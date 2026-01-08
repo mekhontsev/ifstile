@@ -1,0 +1,29 @@
+@G
+$n=Jerusalem cross family
+$a=h
+$dim=4
+$subspace=[s,0]
+g=1+s-s^3
+s=$companion([1,0,0,0])
+r=$exchange()
+&Q=$semigroup([s,r])*$vector()
+h0=Q
+h1=Q
+h2=Q
+h3=Q
+h4=Q
+h5=Q
+h6=Q
+h7=Q
+A=g^-1*h0*A|g^-1*h1*A|g^-1*h2*A|g^-1*h3*A|g^-2*h4*A|g^-2*h5*A|g^-2*h6*A|g^-2*h7*A
+
+@:G
+$n=Jerusalem cross
+h0=[0,1,0,0]
+h1=[0,0,0,1]
+h2=[0,-1,0,0]
+h3=[0,0,0,-1]
+h4=[0,-1,-1,-1]
+h5=[-1,-1,0,1]
+h6=[0,1,1,1]
+h7=[1,1,0,-1]

@@ -1,0 +1,26 @@
+{
+	"short_name": "IFStile",
+	"name": "IFStile",
+	"description": "An algebraic framework for finding and analyzing self-affine tiles and fractals",
+	"start_url": "./",
+	"scope": "./",
+	"id": "/",
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "black",
+	"theme_color": "black",
+	"lang": "en-US",
+	"icons": [
+		{
+			"src": "ifstile192mask.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+            "src": "ifstile512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+	]
+}

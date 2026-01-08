@@ -1,0 +1,87 @@
+//parameters - point from the Mandelbrot Set 
+//let p=[-0.122561, 0.744861]
+let p=[-1, 0]
+
+let N=8;//precision 1..10
+
+let M=2**N;
+let M2=M/2;
+
+
+let u=1-4*p[0];
+let v=-4*p[1];
+let mod=Math.sqrt(u*u+v*v);
+let ny=Math.sqrt((mod-u)/2);
+let nx=Math.sqrt((mod+u)/2);
+if (v<0)ny=-ny;
+
+let x=[]
+let y=[]
+
+x[M]=(1+nx)/2;
+y[M]=ny/2;
+x[0]=-x[M];
+y[0]=-y[M];
+
+for (let i=M2;i>=1;i=i/2){
+	let step=i*2;
+	for(let j=i;j<M;j+=step){
+		if(j<M2){
+			u=-x[2*j];
+			v=-y[2*j];
+		}else{
+			u=x[2*(j-M2)];
+			v=y[2*(j-M2)];
+		}
+		u-=p[0];
+		v-=p[1];
+		mod=Math.sqrt(u*u+v*v);
+		y[j]=Math.sqrt((mod-u)/2);
+		x[j]=Math.sqrt((mod+u)/2);
+		if(v<0)x[j]=-x[j];
+	
+		let dm=Math.abs(x[j]-x[j-i])+Math.abs(y[j]-y[j-i])+Math.abs(x[j]-x[j+i])+Math.abs(y[j]-y[j+i]);
+		let dp=Math.abs(x[j]+x[j-i])+Math.abs(y[j]+y[j-i])+Math.abs(x[j]+x[j+i])+Math.abs(y[j]+y[j+i]);
+		if (dp<dm){
+			x[j]*=-1;
+			y[j]*=-1;
+		}
+	}
+}
+
+
+let s=[]
+for(let i=0;i<M;i++){
+ s[i]=[]
+}
+
+for(let i=0;i<M;i++){
+	let j=i*2;
+	if(j>=M)j-=M;
+	let wx=x[i+1]-x[i];
+	let wy=y[i+1]-y[i];
+	let zx=x[j+2]-x[j];
+	let zy=y[j+2]-y[j];
+	mod=zx*zx+zy*zy;
+	let a=( wx*zx+wy*zy)/mod;
+	let b=(-wx*zy+wy*zx)/mod;
+	//console.log(a,b,mod)
+	
+	let si=s[i]
+	si[0]=[x[i],y[i]]
+	si[1]=[a,-b,b,a]
+	si[2]=[-x[j],-y[j]]
+	si[3]=[s[j],s[j+1],"|"]
+	si.push("*");
+}
+
+s.push("|");
+
+export const $aifs=
+{
+	$dim: 2,
+	$n:"Julia set",
+	J: [s, [-1,s,"*"],"|"],
+}
+
+

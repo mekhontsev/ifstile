@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+.natvis file for Visual Studio debugger.
+Purpose: provide nicer views on data types used by Dear ImGui.
+
+To enable:
+* include file in your VS project (most recommended: not intrusive and always kept up to date!)
+* or copy in %USERPROFILE%\Documents\Visual Studio XXXX\Visualizers (current user)
+* or copy in %VsInstallDirectory%\Common7\Packages\Debugger\Visualizers (all users)
+
+More information at: https://docs.microsoft.com/en-us/visualstudio/debugger/create-custom-views-of-native-objects?view=vs-2019
+-->
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+<Type Name="ims_val">
+  <DisplayString Condition="m_t==ETP::number &amp;&amp; m_s==EST::rational">[Rational={*(Rational*)(this+1)} refs={m_use_count}]</DisplayString>
+  <DisplayString Condition="m_t==ETP::number &amp;&amp; m_s==EST::real">[Real={*(Real*)(this+1)} refs={m_use_count}]</DisplayString>
+  <DisplayString Condition="m_t==ETP::number &amp;&amp; m_s==EST::big_rational">[br={*(ims_val_b::BigRational*)(this+1)} refs={m_use_count}]</DisplayString>
+  
+  <DisplayString Condition="m_t==ETP::matrix">[matrix {m_ex[0]}x{m_ex[1]}, {m_s}, refs={m_use_count}]</DisplayString>
+  <DisplayString Condition="m_t==ETP::ast_ptr">[ast={((ast_context*)(this+1))->h.tt} refs={m_use_count}]</DisplayString>
+  
+  <DisplayString Condition="m_t&gt;=ETP::_first_vec_type_">[#{m_size}, {m_t}, {m_s}, refs={m_use_count}]</DisplayString>
+  <DisplayString Condition="m_t&gt;ETP::number">[{m_t}, {m_s}, refs={m_use_count}]</DisplayString>
+  
+  
+  <Expand>
+    <ArrayItems Condition="m_t==ETP::matrix &amp;&amp; m_s==EST::rational">
+      <Size>m_ex[0]*m_ex[1]</Size>
+      <ValuePointer>(Rational*)(this+1)</ValuePointer>
+    </ArrayItems>
+    <ArrayItems Condition="m_t==ETP::matrix &amp;&amp; m_s==EST::real">
+      <Size>m_ex[0]*m_ex[1]</Size>
+      <ValuePointer>(Real*)(this+1)</ValuePointer>
+    </ArrayItems>
+    <ArrayItems Condition="m_t==ETP::matrix &amp;&amp; m_s==EST::big_rational">
+      <Size>m_ex[0]*m_ex[1]</Size>
+      <ValuePointer>(ims_val_b::BigRational*)(this+1)</ValuePointer>
+    </ArrayItems>
+    
+    <ArrayItems Condition="m_t==ETP::vector &amp;&amp; m_s==EST::rational">
+      <Size>m_size</Size>
+      <ValuePointer>(Rational*)(this+1)</ValuePointer>
+    </ArrayItems>
+    <ArrayItems Condition="m_t==ETP::vector &amp;&amp; m_s==EST::real">
+      <Size>m_size</Size>
+      <ValuePointer>(Real*)(this+1)</ValuePointer>
+    </ArrayItems>
+    <ArrayItems Condition="m_t==ETP::vector &amp;&amp; m_s==EST::big_rational">
+      <Size>m_size</Size>
+      <ValuePointer>(ims_val_b::BigRational*)(this+1)</ValuePointer>
+    </ArrayItems>
+    
+    <ArrayItems Condition="(m_t==ETP::uni || m_t==ETP::compos || m_t==ETP::vector || m_t==ETP::csg)  &amp;&amp;  m_s==EST::other ">
+      <Size>m_size</Size>
+      <ValuePointer>(ims_val**)(this+1)</ValuePointer>
+    </ArrayItems>
+    
+    <Item Condition="m_t==ETP::number &amp;&amp; m_s==EST::rational" Name="Rational">*(Rational*)(this+1)</Item>
+    <Item Condition="m_t==ETP::number &amp;&amp; m_s==EST::real" Name="Real">*(Real*)(this+1)</Item>
+    <Item Condition="m_t==ETP::number &amp;&amp; m_s==EST::big_rational" Name="Real">*(ims_val_b::BigRational*)(this+1)</Item>
+    
+    <Item Condition="m_t==ETP::ast_ptr" Name="AST">*(ast_context*)(this+1)</Item>
+  </Expand>
+</Type>
+
+
+</AutoVisualizer>

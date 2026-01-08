@@ -1,0 +1,72 @@
+@S
+#
+#4-generated self-similar sets
+#
+$dim=2
+
+&r=$number($real(0,1))
+&t=$vector(2, $real())
+&i=$number($integer(0,1))
+r0=r	#scale 0
+a0=r	#rotation 0
+p0=i	#reflection 0
+		#translation 0 = (0,0)
+		
+r1=r	#scale 1
+a1=r	#rotation 1
+q1=r	#translation vector 1 (angle only)
+p1=i	#reflection 1
+
+r2=r	#scale 2
+a2=r	#rotation 2
+q2=r	#translation vector 2 (angle only)
+p2=i	#reflection 2
+
+r3=r	#scale 3
+a3=r	#rotation 3
+t3=t	#translation 3
+p3=i	#reflection 3
+
+
+pi=2*asin(1)
+g=2*pi
+c0=r0*cos((g*a0))
+s0=r0*sin((g*a0))
+c1=r1*cos((g*a1))
+s1=r1*sin((g*a1))
+c2=r2*cos((g*a2))
+s2=r2*sin((g*a2))
+c3=r3*cos((g*a3))
+s3=r3*sin((g*a3))
+rf=[1,0,0,-1] #reflection
+m0=[c0,-s0,s0,c0]*rf^(p0)
+m1=[c1,-s1,s1,c1]*rf^(p1)
+m2=[c2,-s2,s2,c2]*rf^(p2)
+m3=[c3,-s3,s3,c3]*rf^(p3)
+B1=q1*pi
+B2=q2*B1+pi
+f0=[(1-r0),0]*m0
+f1=[((1-r1)*cos(B1)),((1-r1)*sin(B1))]*m1
+f2=[((1-r2)*cos(B2)),((1-r2)*sin(B2))]*m2
+f3=t3*m3
+A=(f0|f1|f2|f3)*A
+
+@:S
+$n=edit_me
+r0=0.661302029809252
+a0=0.086206893436612
+p0=0
+r1=0.444914951302274
+a1=0.65517242299393
+q1=0.756205427374919
+p1=1
+r2=0.485674956102159
+a2=0.31575003559732
+q2=0.216169058640321
+p2=1
+r3=0.244612083950146
+a3=0.450970577463763
+t3=[-0.2136253653629953, 0.7435622129280004]
+p3=1
+
+

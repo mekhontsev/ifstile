@@ -1,0 +1,29 @@
+@@version 3
+
+@G
+$a=h
+$dim=4
+$subspace=s 0
+s=$companion([1,-1,1,-1])
+r=$exchange()
+g=3-s+s^2-s^3
+&R=$semigroup([s,r])
+&Q=R*$vector(0)
+h0=Q
+h1=Q
+h2=Q
+h3=Q
+h4=Q
+h5=Q
+A=g^-1*(h0|h1|h2|h3|h4|h5)*A
+
+@:G
+$n=Pentadentrite
+h0=[0,0,0,0]
+h1=s^2*[0,0,0,-1]
+h2=[1,0,1,0]
+h3=s^6*[-2,1,-2,2]
+h4=s^8*[-1,1,1,0]
+h5=[2,-1,1,-1]
+
+

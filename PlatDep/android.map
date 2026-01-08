@@ -1,0 +1,8 @@
+{
+global:
+SDL_main;
+JNI_OnLoad;
+Java_com_ifstile_IFStile_nativeOnFDReady;
+local:*;
+};
+
