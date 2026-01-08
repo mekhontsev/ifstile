@@ -1,7 +1,7 @@
 What is IFStile ?
 ===================
 
-**IFStile** is a free ([GPL License](LICENSE.txt)) cross-platform application that can:
+**IFStile** is a free ([GPL License](LICENSE)) cross-platform application that can:
 
 * build any affine directed graph iterated function system (IFS) in an Euclidean space of arbitrary dimension (as 2D or 3D section)
 * fully automatically find interesting fractal shapes, rep-tiles, multi-tiles, irreptiles, carpets, dragons, etc
