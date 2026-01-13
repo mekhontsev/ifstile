@@ -1,0 +1,72 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+apply plugin: 'com.android.application'
+
+
+android {
+    compileSdk = 36
+    defaultConfig {
+        applicationId "com.ifstile"
+        minSdkVersion 24
+        targetSdk 34
+		
+        versionCode 51
+        versionName "4.0.1"
+
+        base.archivesName  = "$applicationId-v$versionName"
+    }
+
+
+//   signingConfigs {
+//       release {
+//           storeFile file("IFStile.jks")
+//           storePassword "*"
+//           keyAlias "key0"
+//           keyPassword "*"
+//       }
+//   }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+          //  signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+            'proguard-rules.pro',
+			'../../external/SDL/android-project/app/proguard-rules.pro'
+        }
+    }
+    sourceSets {
+        main {
+            java.srcDirs += ['../../external/SDL/android-project/app/src/main/java']
+			jniLibs.srcDirs = ['../../bin']
+        }
+    }
+    namespace 'com.ifstile'
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar','*.so'])
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+	implementation(platform('org.jetbrains.kotlin:kotlin-bom:2.3.0'))
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.13.2'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+		mavenCentral()
+        google()
+    }
+}
+

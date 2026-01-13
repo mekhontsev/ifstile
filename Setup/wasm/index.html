@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="white" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="black" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="/favicon.ico" type="image/x-icon" />
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+ 
+<title>IFStile</title>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-65T50T67ZG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){window.dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-65T50T67ZG');
+</script>
+
+<style>
+	textarea { font-family: monospace; width: 100%; height: 90vh;}
+
+	.emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
+	div.emscripten { text-align: center; }
+	div.emscripten_border { border: 1px solid black; }
+	/* the canvas *must not* have any border or padding, or mouse coords will be wrong */
+	
+	canvas.emscripten  {
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		margin: 0px;
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		display: block;
+	}
+	
+	textarea.emscripten
+	{
+	  width:100%;
+	}
+	
+
+	.spinner {
+		height: 50px;
+		width: 50px;
+		margin: 0px auto;
+		-webkit-animation: rotation .8s linear infinite;
+		-moz-animation: rotation .8s linear infinite;
+		-o-animation: rotation .8s linear infinite;
+		animation: rotation 0.8s linear infinite;
+		border-left: 10px solid rgb(0,150,240);
+		border-right: 10px solid rgb(0,150,240);
+		border-bottom: 10px solid rgb(0,150,240);
+		border-top: 10px solid rgb(100,0,200);
+		border-radius: 100%;
+		background-color: rgb(200,100,250);
+	}
+	@-webkit-keyframes rotation {
+		from {-webkit-transform: rotate(0deg);}
+		to {-webkit-transform: rotate(360deg);}
+	}
+	@-moz-keyframes rotation {
+		from {-moz-transform: rotate(0deg);}
+		to {-moz-transform: rotate(360deg);}
+	}
+	@-o-keyframes rotation {
+		from {-o-transform: rotate(0deg);}
+		to {-o-transform: rotate(360deg);}
+	}
+	@keyframes rotation {
+		from {transform: rotate(0deg);}
+		to {transform: rotate(360deg);}
+	}
+</style>
+</head>
+
+<body>
+<figure style="overflow:visible;" id="spinner">
+	<div class="spinner"></div>
+	<center style="margin-top:0.5em">
+		<strong>${NAME_VER}</strong>
+	</center>
+</figure>
+<div class="emscripten" id="status">Downloading...</div>
+<div class="emscripten">
+	<progress value="0" max="100" id="progress" hidden=1></progress>
+</div>
+
+<div style="display: none;" id="div_clipboard" >
+	<button id="clipboard_ok">Ok</button>
+	<button id="clipboard_cancel">Cancel</button>
+	<input id="Browse" type="file">
+	<textarea cols="100" rows="10" id='clipboard' spellcheck="false" ></textarea>
+</div>
+
+
+<canvas class="emscripten" id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+<script type='text/javascript'>
+
+"use strict";
+
+if ('serviceWorker' in navigator){
+	try {
+		navigator.serviceWorker.register('./sw.js');
+	} catch (e) {
+		console.log('Registration failed: ');
+	}
+}
+
+var spinnerElement = document.getElementById('spinner');
+var statusElement = document.getElementById('status');
+var progressElement = document.getElementById('progress');
+var canvasElement = document.getElementById('canvas');
+
+
+var Module =
+{
+	preRun: [],
+	postRun: [],
+	print: function(text) {console.log(text);},
+	printErr: function(text) {console.error(text); statusElement.innerHTML = text;},
+	canvas: canvasElement,
+	totalDependencies: 0,
+};
+{	
+	let searchParams = new URLSearchParams(location.search);
+	let arg = searchParams.get("aifs")
+	if (arg !== null){
+		if (arg.length>0 && arg.slice(-1)=='/')arg=arg.slice(0, -1);//for localhost
+		Module.arguments=[arg];
+	}
+	
+	window.addEventListener('load', function() {
+		window.history.pushState({}, '')
+	})
+
+	window.addEventListener('popstate', function() {
+		window.history.pushState({}, '')
+		Module.ccall('browser_back');
+	})
+	
+	window.addEventListener("keydown", (e) => {
+		if (e.code === "F11") {
+			e.preventDefault = function() {};
+		}
+	}, { capture: true });
+}
+
+function show_canvas(show)
+{
+	let d = document.getElementById('div_clipboard');
+	d.style.display = show?"none":"block";
+	
+	let c = Module.canvas
+	c.style.display = show?"block":"none";
+	
+	if (show){
+		c.style.visibility='visible';
+		c.focus()
+	}else{	
+		c.style.visibility='hidden';
+		document.getElementById('clipboard').focus()
+	}
+}
+
+Module.monitorRunDependencies=function(left)
+{
+	let t=Math.max(this.totalDependencies, left)
+	this.totalDependencies = t;
+	Module.setStatus(left ? 
+		'Preparing... (' + (t-left) + '/' + t + ')' : 
+		'All downloads complete.'
+	);
+}
+
+Module.setStatus=function(text)
+{
+	if (!Module.setStatus.last) {
+		Module.setStatus.last = { time: Date.now(), text: '' };
+	}
+	if (text === Module.setStatus.last.text) return;
+	let m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+	let now = Date.now();
+	 // if this is a progress update, skip it if too soon
+	if (m && now - Module.setStatus.last.time < 30) return;
+	Module.setStatus.last.time = now;
+	Module.setStatus.last.text = text;
+	let pe=progressElement
+	if (m) {
+		text = m[1];
+		pe.value = parseInt(m[2])*100;
+		pe.max = parseInt(m[4])*100;
+		pe.hidden = false;
+		spinnerElement.hidden = false;
+	} else {
+		pe.value = null;
+		pe.max = null;
+		pe.hidden = true;
+		if (!text) spinnerElement.hidden = true;
+	}
+	statusElement.innerHTML = text;
+}
+
+Module["preRun"].push(function () {
+	addRunDependency('syncfs')
+
+	FS.mkdir('/IFStile')
+	FS.mount(IDBFS, {autoPersist: true}, '/IFStile')
+	FS.syncfs(true, function (err) {
+		removeRunDependency('syncfs')
+		if (err){
+			console.error('syncfs failed');
+		}
+	})
+});
+
+
+document.getElementById('clipboard_ok').addEventListener("click", function(event)
+{
+	let ta=document.getElementById('clipboard');
+	Module.ccall('string_open', null,['string'], [ta.value]);
+	show_canvas(true)
+}, false);
+
+
+document.getElementById('clipboard_cancel').addEventListener("click", function(event)
+{
+	Module.ccall('string_open', null,['string'], [""]);
+	show_canvas(true)
+}, false);
+
+
+
+
+Module.dedit = function() 
+{
+	show_canvas(false)
+	document.getElementById('clipboard').value = "";
+};
+
+
+Module.copyToClipbard = function(text) {
+    return new Promise((resolve, reject) => {
+		if (document.queryCommandSupported && document.queryCommandSupported("copy")) {
+            let ta = document.createElement("textarea");
+            ta.textContent = text;
+			let ts = ta.style;
+            ts.position = "fixed";
+            ts.width = '2em';
+            ts.height = '2em';
+            ts.padding = 0;
+            ts.border = 'none';
+            ts.outline = 'none';
+            ts.boxShadow = 'none';
+            ts.background = 'transparent';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try {
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+                resolve();
+            }
+            catch (e) {
+                document.body.removeChild(ta);
+                reject(e);
+            }
+        }else if (typeof navigator !== "undefined" && typeof navigator.clipboard !== "undefined" && navigator.permissions !== "undefined") {
+            const type = "text/plain";
+            const blob = new Blob([text], { type });
+            const data = [new ClipboardItem({ [type]: blob })];
+            navigator.permissions.query({name: "clipboard-write"}).then((permission) => {
+                if (permission.state === "granted" || permission.state === "prompt") {
+                    navigator.clipboard.write(data).then(resolve, reject).catch(reject);
+                }
+                else {
+                    reject(new Error("Permission not granted!"));
+                }
+            });
+        }else {
+            reject(new Error("None of copying methods are supported by this browser!"));
+        }
+    });
+}
+
+function iread_file(files)
+{
+	if (!files || files.length !== 1) {
+		console.error('Unsupported files or content.');
+		return;
+	}
+	
+	let file=files[0]
+	
+	let reader = new FileReader();
+	reader.onload = function(e){
+		let arr=new Uint8Array(e.target.result)
+		Module.ccall('file_open', null,['string', 'array', 'number'], [file.name, arr, arr.length]);
+	};
+
+	reader.onerror = function() {
+		console.error('Unable to read file ' + file.name + '.');
+	};
+	
+	reader.readAsArrayBuffer(file);
+}
+
+
+Module.ufile=function(ext)
+{
+	var ul = document.getElementById('Browse');
+	ul.accept=ext;
+	ul.click();
+}  
+
+
+Module.dfile = function(path) 
+{
+	let data;
+	try{
+		data=FS.readFile(path);
+	}catch (e) {
+		console.error(e);
+		return;
+	}
+	
+	let blob = new Blob([data.buffer], {type: 'application/download'});
+	
+	let reader = new FileReader();
+	reader.onloadend = function(e) {
+		let dl = document.createElement("a");
+		dl.href = URL.createObjectURL(blob);
+		dl.download = path.replace(/^.*[\\\/]/, '');
+
+		document.body.appendChild(dl);
+		dl.click();
+		document.body.removeChild(dl);
+	}
+	reader.readAsDataURL(blob);
+};
+
+
+document.addEventListener("dragover", function(event) 
+{
+	event.preventDefault();// prevent default to allow drop
+}, false);
+
+document.addEventListener("drop", function(event)
+{
+	// prevent default action (open as link for some elements)
+	event.stopPropagation();
+	event.preventDefault();
+
+	iread_file(event.dataTransfer.files)
+	
+}, false);
+
+// As a default initial behavior, pop up an alert when webgl context is lost. To make your
+// application robust, you may want to override this behavior before shipping!
+// See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+Module.canvas.addEventListener("webglcontextlost", function(e) 
+{
+	alert('WebGL context lost. You will need to reload the page.'); 
+	e.preventDefault(); 
+}, false);
+
+Module.setStatus('Downloading...');
+
+window.onerror = function(msg, url, line) 
+{
+	spinnerElement.style.display = 'none';
+	progressElement.style.display = 'none';
+	document.getElementById('div_clipboard').style.display = "none";
+	Module.canvas.style.display = "none";
+	statusElement.innerHTML = msg
+	alert(msg);
+};
+
+</script>
+<script async src="${NAME_VER}.js"></script>
+</body>
+</html>

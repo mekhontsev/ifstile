@@ -1,0 +1,4 @@
+#define let const auto
+#define ims_global
+#define ims_static static
+#define ims_func_static static

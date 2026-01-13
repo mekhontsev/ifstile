@@ -1,0 +1,61 @@
+//optional
+export const $info=`
+This text (in [Markdown](https://wikipedia.org/wiki/Markdown) format) will be shown to the user through the **'Help->Current file'** menu item.
+`
+
+//here we use a recursive array to define a square shape
+let s=
+[
+	[[0,0],[0,1],[1,0],[1,1],"|"],//union of four translates
+	[1,2,"/"],  //rational scale 1/2
+	0,          //placeholeder for s (at index 2)
+	"*",        //composition
+]
+s[2] = s;
+
+//block definition
+let square=
+{
+	$dim: 2,
+	$id: "square",	//id of the block
+	s: s,
+}
+
+////////////////////////////////////////////
+//union of n segments
+let nsegments=
+{
+	$dim: 2,
+	$id: "nsegments",
+	seg: [[[0,0],[1,0],"|"], "1/2", "seg","*"],
+	nseg: ["u", "seg", "*"],
+	u: ["|"],//will be replaced by $init function
+	n: "$number($integer(1,100))",
+	$init : function (){
+		//console.log("$init called, this=", this);
+		let n = this.n
+		
+		let u = [];//create union of n translates
+		for(let i=0; i<n; i++){
+			u[i]=[0,2*i/n]
+		}
+		u.push("|");
+		
+		this.u = u;
+	},
+	//the following information will be displayed in the UI
+	$info: {
+		"": "# Union of n segments\n This text (in [Markdown](https://wikipedia.org/wiki/Markdown) format) will be shown to the user through the **'Help->Current block'** menu item.",
+		seg: "Single segment",
+		nseg: "Several segments",
+	},
+}
+
+////////////////////////////////////////////
+
+export const $aifs =
+[
+	square, nsegments, 
+]
+
+

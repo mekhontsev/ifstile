@@ -1,0 +1,24 @@
+@UN0
+$n=Sierpinski Tetrahedron
+$dim=3
+p=$number($real(0,1))
+r=6
+pi=2*asin(1)
+c=cos((p*2*pi))*r
+s=sin((p*2*pi))*r
+$camera=[[c,s,0],[0,0,0],[0,0,1],30]
+A=2^-1*([1,1,1]|[-1,1,-1]|[1,-1,-1]|[-1,-1,1])*A
+
+@:UN0
+$a=c
+$n=keyframe 0
+$time=0
+p=0
+
+@:UN0
+$a=c
+$n=keyframe 1
+$time=1
+p=1
+
+
