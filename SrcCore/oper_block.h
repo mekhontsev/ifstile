@@ -54,7 +54,7 @@ struct oper_block_flags
 		checked : 1,
 		//hidden by user
 		hidden : 1,
-		//block contained $dim
+		//block has $dim field
 		has_dim : 1,
 		//block time will be saved to file
 		has_timestamp : 1,

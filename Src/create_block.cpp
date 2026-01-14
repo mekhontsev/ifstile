@@ -42,6 +42,7 @@ void creator_state::create_block2(
 	};
 
 	b.m_flags.clear();
+	b.m_flags.has_dim = true;
 
 	//b.m_flags.hidden = true;
 
