@@ -62,15 +62,14 @@ size_t affine_builder::compute(
 	m_data.resize(g.num_ver());
 
 	for (size_t v = 0; v < g.num_ver(); ++v) {
+		if (g.is_ver_empty(v))continue;
+
 		auto& vd = m_data[v];
-		
 		vd.next_check = 0;
-
-
 		auto& sb = vd.own;
-
 		let comp_idx = g.m_ver2com[v];
 		let& c = g.m_comp[comp_idx];
+
 		if (!c.has_self) {
 			sb.idx = 0;
 			sb.num = 0;

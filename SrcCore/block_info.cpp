@@ -140,7 +140,7 @@ bool block_info::init4(
 	if (has_empty_maps) {
 
 		//DFS - find empty vertices
-		auto pred = [&](const ims_edge& e) {return !m_map_info[e.m].empty; };
+		auto pred = [&](const ims_edge& e) {return m_map_info[e.m].status != map_info::empty; };
 		for (size_t v = m_dfs.init(g, pred); v < nvers; v = m_dfs.next(g)) {
 			let ne = g.num_edges(v);
 			bool all_empty = true;

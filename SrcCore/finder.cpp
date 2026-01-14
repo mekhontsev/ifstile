@@ -1830,6 +1830,9 @@ graph_not_ok:
 			//aspect ratio
 			br.m_aspect_ratio = 0;
 			for(size_t i = 0; i < nv; ++i){
+				if (dig.is_ver_empty(i)) {
+					continue;
+				}
 				let& h = im.me[i].I;
 				br.m_aspect_ratio = std::max(br.m_aspect_ratio, h(0) / h(dim - 1));
 			}

@@ -123,10 +123,11 @@ void print_diams(const oper_block& sr, const block_info* bi)
 	d.max_queue_size = 100'000'000;
 	d.max_result_size = 1000;
 
+
 	for (size_t i = 0; i < sz; ++i) {
 
 		let vr = sr.get_graph()->ref2fg(i);
-		if (vr == ims_max)continue;
+		if (vr == ims_max || fg.is_ver_empty(vr))continue;
 
 		let& id = g->get_var_name(i);
 
@@ -214,7 +215,7 @@ static void print_measure_1(const oper_block& sr, const block_info* bi)
 	
 	for (size_t i = 0; i < g->m_refs.size(); ++i) {
 		let vr = sr.get_graph()->ref2fg(i);
-		if (vr == ims_max)continue;
+		if (vr == ims_max || fg.is_ver_empty(vr))continue;
 
 		let& di = im.di[fg.m_ver2com[vr]];
 		let& mes = im.measure[vr];
