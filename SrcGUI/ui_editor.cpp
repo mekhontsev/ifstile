@@ -291,39 +291,24 @@ void ws_editor::show()
 	//this is a copy of the object from the list
 	auto& sr = xd->get_block();
 
+	if (!sr.get_parent()) {
+		return;
+	}
+	let* e = sr.get_parent()->ctx();
+	auto* g = sr.get_class();
 
 	m_mut.clear();
-
 	for (let& q : sr) {
-		if (q.is_builtin())continue;
-		m_mut.emplace_back(mut_data{ q.gr(), q.pos5 });
+		if (!q.is_builtin() && e->m_refs5[q.gr()].is_var()) {
+			m_mut.emplace_back(mut_data{ q.gr(), q.pos5 });
+		}
 	}
 
 	for(let& em: m_mut){
-	
-		auto* g = sr.get_class();
-		let* e = sr.ctx();
 
-		
-		if (!e) {
-			//TODO: race condition on js examples (basic.js)
-			continue;
-		}
-		
-		auto& rf = e->m_refs5[em.ref];
-
-		let is_var = rf.is_var();
-		if (!is_var) {
-			continue;
-		}
-
-	
 		auto& cref = g->m_refs[em.ref];
-		////////////////////////////////////////////////////
-
 		let* com = sr.get_comment(em.ref);
 
-		
 		{
 			ImGui::PushID(id++);
 			IMS_SCOPE([] {ImGui::PopID(); });
@@ -579,7 +564,8 @@ void ws_editor::show()
 						}
 
 					} else {
-						changed = ImGui::InputScalar("", ImGuiDataType_S64, &iv);
+						const int64_t step1 = 1;
+						changed = ImGui::InputScalar("", ImGuiDataType_S64, &iv, &step1);
 					};
 					is_int = true;
 				}
