@@ -125,7 +125,7 @@ void ws_editor::show()
 
 
 	if (!editor_ready()) {
-		ImGui::TextUnformatted("Editor is not available in thumbnail mode...");
+		ImGui::TextUnformatted("Not available in thumbnail mode...");
 		return;
 	}
 
@@ -133,14 +133,10 @@ void ws_editor::show()
 
 	auto* xd = get_global_bd();
 	if (!xd || xd->empty()) return;
-	
-	//can edit even uninitialized ones
-	
 
 	let* src = xd->get_direct(ifs_object_type::normal);
 
 	auto& sv = xd->m_special;
-
 
 	if (do_apply) {
 		do_apply = false;
@@ -188,6 +184,9 @@ void ws_editor::show()
 
 	{
 		SAME_LINE ();
+
+		ImGui::BeginDisabled(xd->m_normal_parent.get());
+		IMS_SCOPE([] {ImGui::EndDisabled(); });
 
 		if (ims_button("+Block", "Save changes as a new block", &id)) {
 
@@ -284,6 +283,12 @@ void ws_editor::show()
 
 	//for those operators that are defined directly
 	//information about the value of each control element is known in the block
+
+
+	if (xd->m_normal_parent) {
+		ImGui::TextUnformatted("Controls are not available in boundary mode...");
+		return;
+	}
 
 	ImGui::BeginChild("Controls");
 	ims_window_drag w_ch(false);
