@@ -326,13 +326,14 @@ static void reset_name(oper_block* b)
 static block_id_t get_base_block_id(const oper_block* b)
 {
 	let& i2d = b->get_list().m_id2data;
-	while (b) {
+	for (; b; b = b->get_parent()) {
+		if (b->m_flags.only_view || b->m_js_parent)continue;
 		let id = b->m_block_id;
 		if (id != block_id_max && i2d[id].m_str_id != ims_max) {
+			assert(!b->m_flags.priv);
 			return id;
 		}
 		//the block does not have a string id, let's check parent
-		b = b->get_parent();
 	}
 
 	return block_id_max;
@@ -373,6 +374,8 @@ void finder::init_search_domain(ifs_list& lst)
 		//initialize the block
 		check_block(sr);
 
+		if (sr->m_flags.only_view || sr->m_js_parent)continue;
+
 		if (!sr->can_be_proto() && !sr->can_be_proto_ex()) {
 			continue;
 		}
@@ -390,6 +393,8 @@ void finder::init_search_domain(ifs_list& lst)
 	
 	for (let id : lst.m_blocks) {
 		auto* sr = lst.get_block(id);
+		if (sr->m_flags.only_view)continue;
+
 		let idx = get_search_index(sr);
 		if (idx == ims_max)continue;
 
@@ -1226,21 +1231,12 @@ struct search_contex
 			br.clear();
 		}
 
-		
-
-
-		
 		br.m_prec = static_cast<double>((ires.m_mode == intersect_mode::real) ? fnd2.m_find_prec : 0);
-
 		br.m_ir = ires;
-
 		br.m_dim_proj = (uint32_t)dim;
 		br.m_melp = max_eq_interval;
 		br.m_refl = static_cast<uint32_t>(num_det_neg);
 		br.m_data.all_sim = all_sim;
-		
-
-	
 
 		let DP = static_cast<real_number>(dim);
 		
@@ -1249,7 +1245,7 @@ struct search_contex
 		real_number cdim_min = DP;
 		//real_number cdim_max = -1;
 
-		bool graph_ok = ires.m_completed;
+		bool graph_ok = ires.m_completed && ires.m_depth > 0;
 
 		if (graph_ok) {
 			nb.set_idx_graph();
@@ -2319,9 +2315,6 @@ void finder::find_set(
 			sr = ctx.extract_block_for_full_search(fnd3);
 		} else{
 			sr = ctx.extract_block(fnd3, hot_mut, num_changed);
-
-	
-
 		}
 
 		if (ims_need_stop()) {

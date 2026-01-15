@@ -1336,16 +1336,16 @@ void oper_block::copy_ovr(
 	assert(&src != &dst);
 
 	dst.m_class.reset();
-	dst.set_parent(src.get_parent());
-	dst.m_js_parent = src.m_js_parent;
 
+	let* p = src.get_parent();
+	if (src.m_js_parent) {
+		p = p->get_parent();
+	}
+	dst.set_parent(p);
+	
 	dst.m_dim2 = src.m_dim2;
 	dst.m_subspace = src.m_subspace;
-	//dst.m_graph = src.m_graph;
-	//dst.m_ctx = src.m_ctx;
 	
-
-
 	boost::container::small_vector<int64_t, 10> vec;
 
 	//////////////////////////////////////////////
@@ -1499,8 +1499,8 @@ bool oper_block::inherit_from(
 
 		//all variables that are not overridden in the hierarchy are taken randomly
 		//from their own context (open variations)
-		for (let* p = src.get_parent(); p && !p->own_ctx(); p = p->get_parent()) {
-			if (p->m_flags.priv)continue;
+		for (let* p = src.get_parent(); p && (!p->own_ctx() || p->m_js_parent); p = p->get_parent()) {
+			//if (p->m_flags.priv)continue;
 			for (let& q : *p) {
 				if (q.is_builtin())continue;
 				//you can't take a random variation from its own context,

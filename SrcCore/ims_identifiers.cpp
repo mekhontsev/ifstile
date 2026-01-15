@@ -53,13 +53,13 @@ ims_identifiers::gen_unique_block_id(std::string_view prefix, size_t* suffix) co
 
 	std::string ret(prefix);
 	for (;;) {
+		ret += std::to_string(*suffix);
 		let* d = find_data(ret);
 		if (!d || !d->has_block()) {
 			return ret;
 		}
-		ret.resize(prefix.size());//cut back at each iteration
-		ret += std::to_string(*suffix);
 		++(*suffix);
+		ret.resize(prefix.size());//cut back at each iteration
 	}
 }
 

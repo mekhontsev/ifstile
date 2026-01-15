@@ -143,7 +143,7 @@ bool eval_context::set_block(const oper_block& block)
 			let& qe = g.get_edge(v, e);
 			if (m_refs5[qe.second].overriden) {
 				//some useful action is happening on curve.js
-				m_refs5[v].overriden = true;
+				//m_refs5[v].overriden = true;
 				break;
 			}
 		}
