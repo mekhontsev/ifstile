@@ -65,7 +65,7 @@ private:
 		{
 			pool_ptr m;
 
-			//number of bits required to represent each element
+			//number of bits required to represent any element
 			//used only for rational arithmetic
 			size_t bits;
 

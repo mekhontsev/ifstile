@@ -619,9 +619,6 @@ auto rational_vec_magnitude(const Rational* v, size_t sz)
 	return ret;
 }
 
-
-
-
 //multiply left and right, put the result in dst, the space dimension is dim
 //left has stride equal to dim (col major)
 template<typename Rational>
@@ -676,6 +673,146 @@ void dot_prod_rational(
 };
 
 
+template<typename Integer>
+bool is_mul_overflow(Integer a, Integer b)
+{
+	if (a == 0 || b == 0) return false;
+
+	constexpr auto imax = std::numeric_limits<Integer>::max();
+	constexpr auto imin = std::numeric_limits<Integer>::min();
+
+	if (b > 0) {
+		return a > imax / b || a < imin / b;
+	}
+
+	// b < 0
+	if (b == -1) {
+		return a == imin;// imin * -1 overflows
+	}
+	return a < imax / b || a > imin / b;
+}
+
+template<typename Integer>
+bool is_sum_overflow(Integer a, Integer b)
+{
+	constexpr auto imax = std::numeric_limits<Integer>::max();
+	constexpr auto imin = std::numeric_limits<Integer>::min();
+
+	return (b > 0 && a > imax - b) || (b < 0 && a < imin - b);
+}
+
+inline void reduce_fraction(ims_integer& n, ims_integer& d)
+{
+	ims_rational t = { n,d };
+	n = t.numerator();
+	d = t.denominator();
+}
+
+
+//ns/ds += n/d
+inline bool sum_rational_checked(
+	ims_integer& ns,
+	ims_integer& ds,
+	ims_integer n,
+	ims_integer d)
+{
+	//ns/ds + n/d = (ns*d+ds*n)/(ds*d)
+
+	if (is_mul_overflow(ns, d)) {
+		return false;
+	}
+	ns = ns * d;
+
+	if (is_mul_overflow(ds, n)) {
+		return false;
+	}
+	let t = ds * n;
+
+	if (is_sum_overflow(ns, t)) {
+		return false;
+	}
+	ns = ns + t;
+
+	if (is_mul_overflow(ds, d)) {
+		return false;
+	}
+	ds = ds * d;
+
+	reduce_fraction(ns, ds);
+
+	return true;
+}
+
+inline bool dot_prod_rational_checked(
+	ims_rational* dst,	//output number
+	const ims_rational* left,
+	const ims_rational* right,
+	size_t dim)
+{
+	let* pe = right + dim;
+	let* pl = left;
+	let* pr = right;
+
+
+	ims_integer ns = 0;
+	ims_integer ds = 1;
+
+	while (pr < pe) {
+
+		if (is_mul_overflow(pl->numerator(), pr->numerator())) {
+			return false;
+		}
+		auto n = pl->numerator() * pr->numerator();
+
+		if (is_mul_overflow(pl->denominator(), pr->denominator())) {
+			return false;
+		}
+		auto d = pl->denominator() * pr->denominator();
+
+		reduce_fraction(n, d);
+
+		if (!sum_rational_checked(ns, ds, n, d)) {
+			return false;
+		}
+
+		pl += dim;	//next column
+		pr += 1;	//next row
+	};
+
+	*dst = { ns, ds };
+
+	return true;
+};
+
+
+inline bool sum_vec_rational_checked(
+	ims_rational* dst,	//output vector
+	const ims_rational* left,
+	const ims_rational* right,
+	size_t dim)
+{
+	let* pe = right + dim;
+	let* pl = left;
+	let* pr = right;
+
+	while (pr < pe) {
+		auto n = pl->numerator();
+		auto d = pl->denominator();
+
+		if (!sum_rational_checked(n, d, pr->numerator(), pr->denominator())) {
+			return false;
+		}
+
+		*dst++ = { n, d };
+
+		++pl;
+		++pr;
+	};
+
+	return true;
+};
+
+
 template<typename Rational>
 constexpr auto rational_get_max()
 {
@@ -714,6 +851,36 @@ void mul_affine_rational(
 	}
 };
 
+
+//multiply left and right, put the result in dst, the space dimension is dim
+//left and right have dim rows and dim + 1 columns
+inline bool mul_affine_rational_checked(
+	ims_rational* dst,
+	const ims_rational* left,
+	const ims_rational* right,
+	size_t dim)
+{
+	assert(left != dst && right != dst);
+
+	let sz = dim * (dim + 1);
+
+	for (let* re = right + sz; right < re; right += dim) {
+		for (size_t r = 0; r < dim; ++r) {
+			if (!dot_prod_rational_checked(dst++, left + r, right, dim)) {
+				return false;
+			}
+		}
+	};
+
+	dst -= dim;
+	left += dim * dim;
+
+	if (!sum_vec_rational_checked(dst, dst, left, dim)) {
+		return false;
+	}
+
+	return true;
+};
 
 
 //get the similarity coefficient or 0 if the map is not similarity

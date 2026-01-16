@@ -66,35 +66,6 @@ inter_type compare_size(Real adet)
 }
 
 template<typename Number>
-bool mul_maps_rational(
-	inter_elem& a,
-	const ims_val* m0,
-	const ims_val* m1,
-	bool ori)
-{
-	let dim = m0->extent(0);
-
-	a.m.reset(eval_pool::ep.get_affine<Number>(dim));
-
-	auto* dst = a.m->gp<Number>();
-
-	mul_affine_rational(
-		dst,
-		m0->gp<Number>(),
-		m1->gp<Number>(),
-		dim);
-
-	if (ori) {
-		affine_set_translate_to_zero(dst, dim);
-	}
-
-	a.bits = number_of_bits(rational_vec_magnitude(dst, a.get_sz()));
-
-	return true;
-};
-
-
-template<typename Number>
 bool is_id_rational(const inter_elem& a)
 {
 	if (a.s0 != a.s1)return false;
@@ -153,6 +124,68 @@ static bool is_id_real(const inter_elem& a, double prec)
 	return true;
 };
 
+
+template<typename Number>
+bool mul_maps_rational(
+	inter_elem& a,
+	const ims_val* m0,
+	const ims_val* m1,
+	bool ori)
+{
+	let dim = m0->extent(0);
+
+	a.m.reset(eval_pool::ep.get_affine<Number>(dim));
+
+	auto* dst = a.m->gp<Number>();
+
+	mul_affine_rational(
+		dst,
+		m0->gp<Number>(),
+		m1->gp<Number>(),
+		dim);
+
+	if (ori) {
+		affine_set_translate_to_zero(dst, dim);
+	}
+
+	a.bits = number_of_bits(rational_vec_magnitude(dst, a.get_sz()));
+
+	return true;
+};
+
+
+
+bool mul_maps_rational_checked(
+	inter_elem& a,
+	const ims_val* m0,
+	const ims_val* m1,
+	bool ori)
+{
+	let dim = m0->extent(0);
+
+	a.m.reset(eval_pool::ep.get_affine<ims_rational>(dim));
+
+	auto* dst = a.m->gp<ims_rational>();
+
+	let is_ok = mul_affine_rational_checked(
+		dst,
+		m0->gp<ims_rational>(),
+		m1->gp<ims_rational>(),
+		dim);
+
+	if (!is_ok) {
+		return false;
+	}
+
+	if (ori) {
+		affine_set_translate_to_zero(dst, dim);
+	}
+
+	a.bits = number_of_bits(rational_vec_magnitude(dst, a.get_sz()));
+
+	return true;
+};
+
 static bool mul_maps(
 	inter_elem& a,
 	const ims_val* m0,
@@ -170,7 +203,8 @@ static bool mul_maps(
 		constexpr auto M = rational_get_max<ims_val_b::Rational>();
 		let bw = (size_t)std::bit_width(M / std::max(dim, size_t(2)));
 		if (dim * sum_bits > bw) {
-			return false;
+			//let's try a slower path
+			return mul_maps_rational_checked(a, m0, m1, ori);
 		}
 	
 		return mul_maps_rational<ims_val_b::Rational>(a, m0, m1, ori);
@@ -552,7 +586,6 @@ inter_result integer_ims::calc_inter(
 		nb.m_prec = 1;
 	}
 
-
 	for (;;) {//1 or 2 times (rational+big rational)
 		
 		ims_resize(nb.m_root_inters, num_ver);//full reset for roots
@@ -726,7 +759,6 @@ inter_result integer_ims::calc_inter(
 					st.max_bits > std::numeric_limits<ims_val_b::Integer>::digits)
 				{
 					//try to recalculate everything with greater accuracy
-					ir.m_mode = intersect_mode::big_rational;
 					goto try_rational_big;
 				}
 
@@ -745,7 +777,9 @@ inter_result integer_ims::calc_inter(
 		return ir;
 
 	try_rational_big:;//recreate everything and try again
-
+		ir = inter_result();
+		ir.m_mode = intersect_mode::big_rational;
+		nb.clear();
 	}
 }
 
