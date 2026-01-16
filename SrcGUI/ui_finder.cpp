@@ -185,19 +185,17 @@ void ws_finder::show()
 			}
 		}
 
-#if 0
+
 		{
-			
 			//SAME_LINE();
 			ImGui::Checkbox("Relative", &fnd.m_var_par.m_relative_shift);
 			set_tooltip("Use relative translations");
 		}
-#endif
 
 		{
 			
 			{
-				SAME_LINE();
+				//SAME_LINE();
 				if (ims_button("Default", "Reset all search parameters to default")) {
 					fnd.set_default();
 					columns::get().init_columns();
