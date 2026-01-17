@@ -186,6 +186,9 @@ void standard_vars::sync_builtins(bool add_all, oper_block& b)
 
 	for (size_t i = 0; i < m_has_builtin.size(); ++i) {
 		let bid = builtin_ids(i);
+
+		if (bid == builtin_ids::subspace)continue;
+
 		if (!m_has_builtin[i]) {
 			b.remove_builtin(bid);
 			if (!add_all)continue;
@@ -227,7 +230,6 @@ void standard_vars::sync_builtins(bool add_all, oper_block& b)
 			break;
 		}
 		case builtin_ids::subspace:
-			//do nothing
 			break;
 		default:
 			assert(false);
