@@ -83,7 +83,13 @@ void ims_graph::remove_non_strong_edges(graph_init_data& idata)
 
 void ims_graph::init(graph_init_data& idata, size_t nv0, bool remove_edge_dups)
 {
-	set_vertex_index(nv0, remove_edge_dups);
+	std::sort(m_edges.begin(), m_edges.end());
+
+	//remove duplicates (only after sorting)
+	if (remove_edge_dups) {
+		m_edges.erase(std::unique(m_edges.begin(), m_edges.end()), m_edges.end());
+	}
+	set_vertex_index_sorted(nv0);
 
 #ifndef NDEBUG
 	bool has_empty_edges = false;

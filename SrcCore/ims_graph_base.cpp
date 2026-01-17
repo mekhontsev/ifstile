@@ -90,15 +90,8 @@ void ims_graph_base::clear_base()
 	m_vers.clear();
 }
 
-void ims_graph_base::set_vertex_index(size_t nv, bool remove_edge_dups)
+void ims_graph_base::set_vertex_index_sorted(size_t nv)
 {
-	std::sort(m_edges.begin(), m_edges.end());
-
-	//remove duplicates (only after sorting)
-	if (remove_edge_dups) {
-		m_edges.erase(std::unique(m_edges.begin(), m_edges.end()), m_edges.end());
-	}
-
 	for (let& e : m_edges) {
 		nv = std::max(nv, e.first + 1);
 		nv = std::max(nv, e.second + 1);
@@ -114,6 +107,12 @@ void ims_graph_base::set_vertex_index(size_t nv, bool remove_edge_dups)
 		}
 		vi.sz += 1;
 	}
+};
+
+void ims_graph_base::set_vertex_index(size_t nv)
+{
+	std::sort(m_edges.begin(), m_edges.end());
+	set_vertex_index_sorted(nv);
 }
 
 void ims_graph_base::create_edge(size_t vs, size_t vt, size_t m)

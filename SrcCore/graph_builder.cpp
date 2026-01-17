@@ -204,7 +204,21 @@ bool graph_builder::create(
 		}
 	}
 
-	dg.set_vertex_index(0);
+	auto refresh_graph = [&dg]()
+	{
+		std::stable_sort(dg.m_edges.begin(), dg.m_edges.end(),
+		[] (let& e1, let& e2)
+		{
+			if (e1.first < e2.first)return true;
+			if (e1.first > e2.first)return false;
+
+			return e1.second < e2.second;
+
+		});
+		dg.set_vertex_index_sorted(0);
+	};
+
+	refresh_graph();
 	//assert(num_ver == dg.num_ver());
 
 	for (size_t v = 0; v < dg.num_ver(); ++v) {
@@ -265,8 +279,8 @@ bool graph_builder::create(
 
 	//take into account the removed edges
 	ims_erase(edges, [](let& e) {return e.first == ims_max; });
-
-	dg.set_vertex_index(0);	//rebuild the graph
+	
+	refresh_graph();
 
 	//process vertices with one edge, to which no one leads
 	bool changed = false;
@@ -303,7 +317,7 @@ bool graph_builder::create(
 
 	if (changed) {//take into account the removed edges
 		ims_erase(edges, [](let& e) {return e.first == ims_max; });
-		dg.set_vertex_index(0);	//rebuild the graph
+		refresh_graph();
 	}
 
 	///////////////////////////////////////////////////////////////////////////

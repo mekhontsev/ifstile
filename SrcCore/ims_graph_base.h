@@ -59,8 +59,9 @@ struct ims_graph_base
 	
 	//(re)create the vertex index, sort the edges
 	//nv - the minimum number of vertices in the graph (if there are vertices without outgoing edges)
-	//remove_edge_dups - remove duplicate edges
-	void set_vertex_index(size_t nv, bool remove_edge_dups = false);
+	void set_vertex_index(size_t nv);
+
+	void set_vertex_index_sorted(size_t nv);
 
 
 	//number of graph vertices
