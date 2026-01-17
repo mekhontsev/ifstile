@@ -847,13 +847,9 @@ void set_new_ver_ref(size_t new_ver_ref)
 		assert(xd->m_bi.exists());//TODO: if you press several buttons to the right and down at the same time
 		if (!xd->m_bi.exists())return;
 		xd->get_direct(get_build_mode())->set_active_ref(new_ver_ref);
-		xd->adjust_roots(get_build_mode());
 		do_fit_to_screen();
 	});
-
 }
-
-
 
 static bool change_set(int step, bool cycle)
 {
