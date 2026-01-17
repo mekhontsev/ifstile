@@ -990,9 +990,9 @@ static bool set_help_block()
 {
 	s_ui.m_help.set_mode(ws_help::mode::block);
 
-	let* xd = get_global_bd();
-	if (xd && !xd->empty()) {
-		s_ui.m_help.m_cur_text = xd->m_block_sq->get_block_decription();
+	let* cur = get_cur_block();
+	if (cur) {
+		s_ui.m_help.m_cur_text = cur->get_block_decription();
 		return !s_ui.m_help.m_cur_text.empty();
 	}
 

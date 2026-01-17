@@ -478,6 +478,8 @@ P=g^-1*h11*H|g^-1*h12*H|g^-1*h13*P|g^-1*h14*F|g^-1*h15*F
 F=g^-1*h16*H|g^-1*h17*H|g^-1*h18*P|g^-1*h19*F|g^-1*h20*F|g^-1*h21*F
 
 @:G10
+#A substitution for the aperiodic hat monotile.
+#For more info, see [Tilings Encyclopedia](https://tilings.math.uni-bielefeld.de/substitution/cap/).
 $n=CAP
 h0=O[0]*[-2,-2,2,0,0,0,0,-2]
 h1=O[0]*[2,2,0,0,0,-2,-2,2]

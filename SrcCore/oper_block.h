@@ -79,7 +79,7 @@ struct oper_source
 	size_t line_name = ims_max;//line with name
 	size_t line_attr = ims_max;//line with attributes
 
-	//gives a description for the variable, taken from the comment directly above the block
+	//gives a description for the variable, taken from the comment directly above
 	std::vector<std::string> ref2comments;
 
 	//comes from JS
