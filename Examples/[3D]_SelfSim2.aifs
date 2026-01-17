@@ -25,6 +25,7 @@ ret=k1*a-(b*sn)-((a-1)*cs)
 
 @S
 $dim=3
+$a=h
 $camera=[[0,0,3],[0,0,0],[0,1,0],30]
 &r=$number($real(0,1))
 &s=$number($real(-1,1))

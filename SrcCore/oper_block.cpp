@@ -822,7 +822,6 @@ size_t oper_block::find_default_ref() const
 	let& ra = ec.m_refs5;
 	let* g = get_graph();
 
-	size_t ret = ims_max;
 	for (let* b = this; b; b = b->get_parent()) {
 		size_t var_idx = 0;
 		
@@ -836,15 +835,12 @@ size_t oper_block::find_default_ref() const
 			let idx = q.gr();
 
 			if (g->closed2(idx) && !ra[idx].is_subs) {
-				if (ret == ims_max || ret < idx) {
-					ret = idx;
-				}
-				//seeking further
+				return idx;
 			}
 		}
 	}
 
-	return ret;
+	return ims_max;
 }
 
 size_t oper_block::set_neg(size_t idx)
