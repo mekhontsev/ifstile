@@ -97,7 +97,7 @@ Real norm_adet(const ims_val* m, Real* adet = nullptr);
 
 /*
 multiplies graph edges
-geom_only - ignores geometrically identical edges (those that don't change the ball)
+geom_only - ignores geometrically identity edges (those that don't change the ball)
 
 A is a canonical map
 either NOT a composition, or a composition where only the first factor can be a composition, and a canonical one at that.

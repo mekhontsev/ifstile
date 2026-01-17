@@ -103,7 +103,7 @@ bool graph_builder::create(
 		if (q.vs == s_empty_ver) {
 			m_stack.back().vt = v;//information for the parent task
 		} else if (q.vs != s_empty_ver - 1) {
-			dg.create_edge(q.vs, v, ims_max);//identical edge from parent task
+			dg.create_edge(q.vs, v, ims_max);//identity edge from parent task
 		}
 
 		if (!is_ins) {
@@ -178,7 +178,7 @@ bool graph_builder::create(
 
 	//create maps
 	let num_atoms = dst.m_am.m_atoms.size() + dst.m_am.m_num_refs;
-	maps.resize(num_atoms + 1);//+ identical map at the end
+	maps.resize(num_atoms + 1);//+ identity map at the end
 	ixm.m_compos.resize(num_atoms);
 	for (size_t i = 0; i < num_atoms; ++i) {
 		maps[i] = { i, 1 };
@@ -186,7 +186,7 @@ bool graph_builder::create(
 	}
 	for (auto& e : edges) {
 		if (e.m == ims_max) {
-			e.m = num_atoms;//identical map
+			e.m = num_atoms;//identity map
 		}
 	}
 	////////////////////////////////////////////////////////////////////////////

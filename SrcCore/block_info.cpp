@@ -608,7 +608,7 @@ const ims_val* block_info::create_proj_map(size_t i, const ast_maps& am) const
 		}
 
 		//as a result of geometric calculations, if any compositions appear,
-		//they are only identical (for example, ^0 or $id)
+		//they are only identity (for example, ^0 or $id)
 		assert(!v->is(ims_val::ETP::compos));
 
 		pool_ptr pa;

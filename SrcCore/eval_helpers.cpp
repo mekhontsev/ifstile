@@ -714,14 +714,14 @@ const ims_val* edge_mul(const ims_val* A, const ims_val* B, bool geom_only)
 	let nb = static_cast<size_t>(sbe - sb);//how many was originally in B
 
 	if (geom_only) {
-		//remove the beginning from the identical maps
+		//remove the beginning from the identity maps
 		for (; sb < sbe; ++sb) {
 			if (ims_val::is_geom((*sb)->gt())) {
 				break;
 			}
 		}
 
-		//remove the end from the identical maps
+		//remove the end from the identity maps
 		for (; sbe > sb; --sbe) {
 			if (ims_val::is_geom((*(sbe - 1))->gt())) {
 				break;
@@ -729,7 +729,7 @@ const ims_val* edge_mul(const ims_val* A, const ims_val* B, bool geom_only)
 		}
 	}
 
-	if (sb == sbe) {//B is identical
+	if (sb == sbe) {//B is identity
 		A->add_ref();
 		return A;
 	}
@@ -739,7 +739,7 @@ const ims_val* edge_mul(const ims_val* A, const ims_val* B, bool geom_only)
 	size_t na;
 	if (A->is(ims_val::ETP::compos)) {
 		na = A->get_size();
-		if (na == 0) {//A is identical
+		if (na == 0) {//A is identity
 
 			if (!geom_only) {
 				B->add_ref();

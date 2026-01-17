@@ -94,7 +94,7 @@ enum class ETYPE : uint8_t
 	//stores the distribution index in the graph
 	set_vector,
 
-	//a set of vectors with components equal to empty or identical
+	//a set of vectors with components equal to empty or identity maps
 	//stores the distribution index in the graph
 	set_binary,
 
@@ -107,7 +107,7 @@ enum class ETYPE : uint8_t
 	//distribution and type for set operators (real)
 	distribution_real,
 
-	//color (geometrically identical)
+	//color (geometrically identity)
 	color_style,
 
 	thickness,
