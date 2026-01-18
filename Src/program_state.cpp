@@ -479,7 +479,7 @@ void program_state::build_image(
 
 		//try to reuse the subspace
 		//even if the set has changed
-		if (dim_set != si.get_section_dim()) {
+		if (dim_set != si.get_dim_space()) {
 			sv.m_si_empty = true;
 		};
 
