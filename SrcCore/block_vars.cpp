@@ -403,6 +403,9 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 			//fatal error, the rest will automatically receive a new status
 			b->m_graph.reset();
 			b->m_ctx.reset();
+			if (ims_need_stop()) {
+				b->m_flags.ready = false;
+			}
 			return false;
 		}
 

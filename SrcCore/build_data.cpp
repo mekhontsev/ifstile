@@ -197,7 +197,7 @@ bool build_data::init_normal_block(
 	if (b->empty4()) {
 		check_block(m_bb);
 
-		if (m_bb->is_invalid()) {
+		if (!m_bb->m_graph) {
 			m_bi.gen_next_id();
 			return false;
 		}
