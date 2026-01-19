@@ -90,7 +90,7 @@ void ws_settings::show()
 			}
 			{
 				SAME_LINE();
-				if (ImGui::Checkbox("Show Menu", &s.m_show_menu)) {
+				if (ImGui::Checkbox("Max Viewport", &s.m_max_viewport)) {
 					redraw_gui(1);
 				};
 			}

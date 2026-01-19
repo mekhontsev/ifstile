@@ -35,7 +35,7 @@
 
 
 ims_static SDL_Window* g_window = nullptr;
-
+ims_static bool g_embedded_mode = false;
 
 void try_open_file(std::function<void()>&& F, bool use_confirm);
 bool on_draw();
@@ -396,12 +396,16 @@ void browser_back()
 	on_back_button_pressed();
 };
 
+//EMSCRIPTEN: can be called before main()
 void file_open(const char* filename, const char* data, int size ) {
 #if defined(DEVELOPER_VERSION)
 	ims_print("file_open: {} {} {} {}\n", 
 		filename, size, (int)data[0], (int)data[size - 1]);
 #endif
-	set_open_file(filename, std::string_view(data,size),false);
+	if (!g_window) {
+		g_embedded_mode = true;
+	}
+	set_open_file(filename, std::string_view(data,size), !g_window);
 };
 
 void string_open(const char* contents)
@@ -460,6 +464,11 @@ EM_BOOL visibilitychange_callback(int, const EmscriptenVisibilityChangeEvent* e,
 SDL_Window* MainWindow_get()
 {
 	return g_window;
+}
+
+bool is_embedded_mode()
+{
+	return g_embedded_mode;
 }
 
 bool is_program_minimized()
@@ -924,6 +933,8 @@ int main_utf8(int argc, char **argv)
 	
 	if (argc >= 2) {
 		set_open_file(argv[1], "", true);
+	} else {
+		handle_file();
 	}
 
 	////////////////////////////////////////////////////////////////////////////

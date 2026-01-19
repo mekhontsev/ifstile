@@ -66,7 +66,7 @@ bool load_settings(const std::string& ini_filename)
 	rt = std::clamp(rt, size_t(1), ims_setting::max_threads());
 
 
-	inifile.get("ShowMenu", st.m_show_menu);
+	inifile.get("MaxViewPort", st.m_max_viewport);
 	inifile.get("SelectCorner", st.m_select_fom_corner);
 	inifile.get("PaneMode", (int&)st.m_window_mode);
 	inifile.get("DockedSize", st.m_docked_size);
@@ -136,7 +136,7 @@ bool save_settings(const std::string& ini_filename)
 	inifile.put("Thumbnail", st.m_max_thmb);
 	inifile.put("RenderThreads", st.m_num_render_threads);
 
-	inifile.put("ShowMenu", st.m_show_menu);
+	inifile.put("MaxViewPort", st.m_max_viewport);
 	inifile.put("SelectCorner", st.m_select_fom_corner);
 
 	inifile.put("PaneMode", (int)st.m_window_mode);

@@ -209,9 +209,7 @@ ims_static const char* base_window_name = "Image";
 ims_static Eigen::Vector2f g_zoom_box[2] = { { 0,0 },{ 0,0 } };
 ims_static bool g_zoom_box_visible = false;
 
-
 ims_static bool g_show_pane = true;
-
 
 ims_static uint32_t g_rate_checked = 0;
 
@@ -2554,7 +2552,10 @@ void set_view_mode(ListViewMode m)
 	}
 
 	//bool do_recalc = !g_show_pane;
-	g_show_pane = true;
+
+	if (m != ListViewMode::LIST && !get_settings().m_max_viewport) {
+		g_show_pane = true;
+	}
 
 	//if (do_recalc) {
 		//recalc_layout();
@@ -3961,7 +3962,7 @@ void init_resolution(int w, int h, float scale)
 	get_ui_scale() = scale;
 
 	get_settings().m_window_mode =
-		640.0f * scale <= float(w) ?
+		640.0f * scale <= float(w) && !get_settings().m_max_viewport ?
 		window_mode_type::left : window_mode_type::full;
 }
 
@@ -3999,12 +4000,18 @@ void on_start()
 
 	get_rpars().reset_render_params();
 
-	load_default_palette();
 
 	////////////////////////////////////////////////////////////////////////////
-
-	load_settings(get_ini_filename());
-
+	bool is_embedded_mode();
+	if (is_embedded_mode()) {
+		get_settings().m_max_viewport = true;
+		get_rpars().m_palette.reset();
+		g_show_pane = false;
+	} else {
+		load_default_palette();
+		load_settings(get_ini_filename());
+	}
+	
 	set_ui_scale(get_ui_scale());
 
 	g_gl.init();
@@ -4558,6 +4565,7 @@ static bool toolbar_button(float sz, const char* label, const char* tip, bool en
 
 static void ShowToolbar()
 {
+	if (g_toolbar_heigth == 0)return;
 
 	let& ds = ImGui::GetIO().DisplaySize;
 
@@ -4592,10 +4600,6 @@ static void ShowToolbar()
 		ImGui::PopStyleVar(6);
 	});
 
-
-
-
-
 	if (ImGui::IsWindowFocused()) {
 		check_navi_ex(true);
 
@@ -4606,7 +4610,6 @@ static void ShowToolbar()
 			g_toolbar_drag_in_progress = true;
 		}
 	}
-
 
 	////////////////////////////////////////////////////////////////////////////
 	
@@ -4914,9 +4917,16 @@ bool on_draw()
 
 	auto& st = get_settings();
 
-	g_toolbar_from_y = st.m_show_menu ? sh : 0;
-	g_toolbar_button_heigth = g_toolbar_font_height * get_ui_scale();
-	g_toolbar_heigth = g_toolbar_button_heigth + fp;
+	if (!st.m_max_viewport || g_show_pane) {
+		g_toolbar_from_y = sh ;
+		g_toolbar_button_heigth = g_toolbar_font_height * get_ui_scale();
+		g_toolbar_heigth = g_toolbar_button_heigth + fp;
+	} else {
+		g_toolbar_from_y = 0;
+		g_toolbar_button_heigth = 0;
+		g_toolbar_heigth = 0;
+	}
+	
 
 	//height of menu+toolbar
 	let mh = g_toolbar_from_y + g_toolbar_heigth;
@@ -4969,7 +4979,7 @@ bool on_draw()
 	}
 
 	////////////////////////////////////////////////////////////////////////////
-	if (st.m_show_menu) {
+	if (!st.m_max_viewport || g_show_pane) {
 		//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 		if (ImGui::BeginMainMenuBar()) {

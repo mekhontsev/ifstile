@@ -33,7 +33,7 @@ bool save_settings(const std::string& ini_filename);
 struct ims_setting
 {
 	bool m_select_fom_corner = true;
-	bool m_show_menu=true;
+	bool m_max_viewport = false;
 	float m_window_alpha = 1.0f;
 	float m_backgr_alpha = 0.5f;
 	float m_ui_scale = 1.0f;
