@@ -1,3 +1,6 @@
+v4.0.4
+- Fixed bugs.
+---
 v4.0.3
 - Fixed block information in the help window.
 - Resolved regressions from version 3.x.
