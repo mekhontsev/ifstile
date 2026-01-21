@@ -2416,6 +2416,10 @@ static void build_task(draw_task task)
 
 void do_build(const draw_task& t)
 {
+	if (g_ps.m_build_data.empty()) {
+		return;
+	}
+
 	draw_task task = t;//TODO: copying is probably not necessary
 
 	assert(ims_worker::is_main_thread());
