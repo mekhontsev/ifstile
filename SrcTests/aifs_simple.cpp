@@ -341,6 +341,24 @@ a=[10, 11, 12, 13][1]
 	EXPECT_TRUE(t.equal("a", 11));
 };
 
+TEST(testEval, call_in_parent)
+{
+	aifs_tester t(R"(
+@f
+x=0
+y=x
+
+@G1
+r=0
+a=f(r)
+
+@:G1
+r=5
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 5));
+};
 
 
 TEST(testEval, new_call)

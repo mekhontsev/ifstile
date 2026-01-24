@@ -40,7 +40,7 @@ void print_ims_val_ex(std::ostream& str, const ims_val* v, const ifs_list* lst);
 template<typename T>
 bool aifs_tester::is_arr(std::string_view var, ims_val_b::ETP t, const std::initializer_list<T> arr)
 {
-	pool_ptr v(eval(var));
+	let* v = eval(var);
 
 	constexpr auto sb = ims_val::get_subtype<T>();
 	if (!v || !v->is(t, sb)) {
@@ -72,6 +72,7 @@ aifs_tester::aifs_tester(std::string_view v)
 operator_ptr aifs_tester::get_var_ptr(const oper_block& b, std::string_view var_name)
 {
 	let* g = b.get_class();
+
 	for (let& q : b) {
 		if (g->get_var_name(q.gr()) == var_name) {
 			return b.get_ptr(q.pos5);
@@ -120,10 +121,10 @@ bool aifs_tester::is_closed(std::string_view name) const
 
 std::string aifs_tester::eval_as_str(std::string_view var, bool is_geom /*= true*/)
 {
-	pool_ptr v(eval(var, is_geom));
+	let* v = eval(var, is_geom);
 
 	std::stringstream dst;
-	print_ims_val_ex(dst, v.get(), &nfo->m_list);
+	print_ims_val_ex(dst, v, &nfo->m_list);
 	return dst.str();
 }
 
@@ -180,14 +181,18 @@ bool aifs_tester::init()
 const ims_val* aifs_tester::eval(std::string_view var, bool is_geom /*= true*/)
 {
 	let* b = get_last_block();
-	let p = get_var_ptr(*b, var);
-	pool_ptr v(ec.eval7(ast_context{ p, 0} , is_geom));
-	return v.release();
+	let* g = b->get_class();
+	let ref = g->find_var_by_name(var);
+	if (ref == ims_max) {
+		assert(false);
+		return nullptr;
+	}
+	return ec.eval_ref(ref, is_geom);
 }
 
 bool aifs_tester::equal(std::string_view var, ims_val_b::Rational val)
 {
-	pool_ptr v(eval(var));
+	let* v = eval(var);
 	if (!v || !v->is(ims_val_b::ETP::number, ims_val_b::EST::rational)) {
 		return false;
 	}
@@ -196,7 +201,7 @@ bool aifs_tester::equal(std::string_view var, ims_val_b::Rational val)
 
 bool aifs_tester::approx(std::string_view var, ims_val_b::Real val)
 {
-	pool_ptr v(eval(var));
+	let* v = eval(var);
 	if (!v || !v->is(ims_val_b::ETP::number, ims_val_b::EST::real)) {
 		return false;
 	}
@@ -205,7 +210,8 @@ bool aifs_tester::approx(std::string_view var, ims_val_b::Real val)
 
 bool aifs_tester::not_finite(std::string_view var)
 {
-	pool_ptr v(eval(var));
+	let* v = eval(var);
+	
 	if (!v || !v->is(ims_val_b::ETP::number, ims_val_b::EST::real)) {
 		return false;
 	}

@@ -27,13 +27,6 @@ struct ims_val;
 //#define use_eval_arg_cahche
 //#define use_call_resolver
 
-//1) Eliminate recursion
-//2) Memoize function calls
-//3) Hashing with operator_ptr to avoid creating duplicate ims_val (lazy)
-
-//relatively lightweight structure
-//used when constructing a graph and computing its edge maps
-//topological calculations cannot return an error
 struct eval_stack
 {
 	std::vector<size_t> stack;
@@ -43,6 +36,14 @@ struct eval_stack
 	void pop();
 };
 
+
+//1) Eliminate recursion
+//2) Memorize function calls
+//3) Hashing with operator_ptr to avoid creating duplicate ims_val (lazy)
+
+//relatively lightweight structure
+//used when constructing a graph and computing its edge maps
+//topological calculations cannot return an error
 struct eval_context
 {
 #ifdef use_eval_arg_cahche

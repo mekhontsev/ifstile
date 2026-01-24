@@ -273,7 +273,7 @@ bool builder3d::calc(
 		tv = q->b.center();
 		tv -= si.origin;
 		
-		q->bc = P.L * tv;
+		q->bc.noalias() = P.L * tv;
 
 		if (P.L.rows() != P.L.cols()) {
 			//orthogonal projection of the center of the ball onto the subspace

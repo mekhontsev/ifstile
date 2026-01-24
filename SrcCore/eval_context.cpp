@@ -135,15 +135,14 @@ bool eval_context::set_block(const oper_block& block)
 
 	//propagate the override flag to dependent ones
 	let& g = block.get_graph()->m_deps;
-	for (let v : boost::adaptors::reverse(g.m_ver_sorted)) {
+	for (let v : g.m_ver_sorted) {
 
 		let ne = g.num_edges(v);
 
 		for (size_t e = 0; e < ne; ++e) {
 			let& qe = g.get_edge(v, e);
-			if (m_refs5[qe.second].overriden) {
-				//some useful action is happening on curve.js
-				//m_refs5[v].overriden = true;
+			if (m_refs5[qe.second].overriden && m_refs5[v].is_geom()) {
+				m_refs5[v].overriden = true;
 				break;
 			}
 		}

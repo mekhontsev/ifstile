@@ -27,8 +27,8 @@ let nsegments=
 {
 	$dim: 2,
 	$id: "nsegments",
-	seg: [[[0,0],[1,0],"|"], "1/2", "seg","*"],
 	nseg: ["u", "seg", "*"],
+	seg: [[[0,0],[1,0],"|"], "1/2", "seg","*"],
 	u: ["|"],//will be replaced by $init function
 	n: "$number($integer(1,100))",
 	$init : function (){
