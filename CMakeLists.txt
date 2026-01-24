@@ -5,7 +5,7 @@ if(APPLE)
  	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
 endif()	
 	
-project(IFStile LANGUAGES CXX C VERSION 4.0.4)
+project(IFStile LANGUAGES CXX C VERSION 4.0.5)
 #set(dev_version "#define DEVELOPER_VERSION 1\n")
 
 if (MSVC)
