@@ -22,7 +22,7 @@
 
 void builder2d::draw_lattice(
 	ims_bitmap& img, 
-	size_t numpt, 
+	size_t lattice_to,
 	size_t node_size, 
 	const projector& fproj, 
 	const subspace_info<Real> si,
@@ -45,7 +45,6 @@ void builder2d::draw_lattice(
 	let fdim = fproj.dim_algebraic();
 	let sdim = fproj.dim_proj();
 
-	let lattice_to = (size_t)std::floor(std::pow(double(numpt), 1.0 / fdim) / 2);
 	let sz = 2 * lattice_to + 1;
 	DynVec<Real> fp(fdim);
 	DynVec<Real> hp(sdim);

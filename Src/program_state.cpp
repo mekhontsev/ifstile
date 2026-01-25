@@ -824,13 +824,16 @@ void program_state::build_image(
 
 					call_complete = true;
 #if 0								
-					draw_lattice(
-						rgba_work,
-						1000,
-						4,
-						bi.get_proj(),
-						si,
-						sp);
+					let& pa = bd.m_bi.get_proj_data().m_projs;
+					if (pa.size() == 1) {
+						builder2d::draw_lattice(
+							rgba,
+							1,
+							4,
+							pa.front().m_projector,
+							si,
+							sp);
+					}
 #endif
 
 
