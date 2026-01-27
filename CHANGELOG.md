@@ -1,3 +1,10 @@
+v4.0.6
+- Improved multithreaded performance.
+- Resolved regressions from version 3.x.
+---
+v4.0.5
+- Fixed bugs.
+---
 v4.0.4
 - Fixed bugs.
 ---
