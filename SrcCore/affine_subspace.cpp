@@ -85,8 +85,14 @@ size_t affine_builder::compute(
 		m_points.resize(idx + rows);
 		auto* dst = &m_points[idx];
 		
-		std::copy(src, src + dim, dst);
+		let d = vb[v].dim();
+		assert(d <= dim);
+		std::copy(src, src + d, dst);
+		for (size_t i = d; i < dim; ++i) {
+			dst[i] = 0;
+		}
 		dst[dim] = 1;//expanding the space
+
 
 		sb.idx = idx;
 		sb.num = 1;

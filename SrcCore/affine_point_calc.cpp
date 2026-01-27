@@ -69,8 +69,6 @@ void affine_point_calc::process(
 			size_t vt = v;
 			size_t cycle_from = ims_max;//where the cycle begins
 
-			auto& bt = vb[vt];
-
 			//search for a cycle
 			while (cycle_from == ims_max) {
 				//looking for the first suitable edge
@@ -93,7 +91,7 @@ void affine_point_calc::process(
 
 				vt = m_edg_cycle.back().second;
 
-				if (bt.defined2()) {//previously processed
+				if (vb[vt].defined2()) {//previously processed
 					cycle_from = m_edg_cycle.size();//outside
 				} else {
 					//check, maybe we've seen this before
@@ -119,9 +117,9 @@ void affine_point_calc::process(
 							CycleMap.get(), ri[m_edg_cycle[k].m].m.get(), true);
 				}
 
-				bt = eval_helpers::fixed_point(CycleMap.get());
+				vb[vt] = eval_helpers::fixed_point(CycleMap.get());
 
-				if(!bt){
+				if(!vb[vt]){
 					status = cardinality::error;
 				}
 			};
@@ -131,7 +129,7 @@ void affine_point_calc::process(
 			}
 
 			//spread the point along the chain
-			let* pt = bt.get();
+			let* pt = vb[vt].get();
 
 			for (let& q : boost::adaptors::reverse(m_edg_cycle)) {
 
