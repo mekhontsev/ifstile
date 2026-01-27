@@ -24,13 +24,10 @@ struct ims_pool : public boost::noncopyable
 	{
 		struct link { link* next = nullptr; };
 
-		link* m_free = nullptr;//list of free for use
-
 		~bucket()
 		{
 			clear();
 		};
-
 
 		void dealloc(link* s)
 		{
@@ -40,9 +37,8 @@ struct ims_pool : public boost::noncopyable
 
 		link* alloc()
 		{
-			if (!m_free) return nullptr;
 			auto* ret = m_free;
-			m_free = m_free->next;
+			if (m_free)m_free = m_free->next;
 			return ret;
 		};
 
@@ -54,6 +50,10 @@ struct ims_pool : public boost::noncopyable
 				std::free(d);
 			}
 		}
+
+	private:
+
+		link* m_free = nullptr;//list of free for use
 	};
 
 	static constexpr uint8_t get_idx(size_t bytes)
@@ -78,15 +78,11 @@ struct ims_pool : public boost::noncopyable
 	{
 		if (idx < m_bucket.size()) {
 #ifndef NDEBUG
-			++m_allocated_elems;
+			//++m_allocated_elems;
 #endif
 			assert(idx < s_num_buckets);
 			auto& b = m_bucket[idx];
-
-			acquire_lock();
 			auto* ret = b.alloc();
-			release_lock();
-
 			if (ret)return ret;
 		}
 
@@ -97,14 +93,11 @@ struct ims_pool : public boost::noncopyable
 	{
 		if (idx < m_bucket.size()) {
 #ifndef NDEBUG
-			assert(m_allocated_elems > 0);
-			--m_allocated_elems;
+			//assert(m_allocated_elems > 0);
+			//--m_allocated_elems;
 #endif
 			auto& b = m_bucket[idx];
-
-			acquire_lock();
 			b.dealloc((bucket::link*)e);
-			release_lock();
 		} else {
 			std::free(e);
 		}
@@ -112,11 +105,9 @@ struct ims_pool : public boost::noncopyable
 
 	void clear() 
 	{
-		acquire_lock();
 		for (auto& b : m_bucket) {
 			b.clear();
 		}
-		release_lock();
 	}
 
 	////////////////////////////////////////////////////////////////////////////
@@ -161,20 +152,9 @@ private:
 	std::array<bucket, s_num_buckets> m_bucket{};
 
 #ifndef NDEBUG
-	std::atomic<int> m_allocated_elems{ 0 };
+	//static std::atomic<int> m_allocated_elems;
 #endif
 
-	std::atomic_flag m_lock{};
-
-	void acquire_lock() 
-	{
-		while (m_lock.test_and_set(std::memory_order_acquire));
-	};
-
-	void release_lock()
-	{
-		m_lock.clear(std::memory_order_release);
-	};
 };
 
 

@@ -22,8 +22,6 @@
 struct ims_val;
 
 //can allocate values
-//test on Ryzen9 7940HS 4GHz:
-//element allocation and deallocation: >=172 million/s or 23 cycles:
 struct eval_pool: public boost::noncopyable
 {
 	using ETP = ims_val_b::ETP;
@@ -74,7 +72,7 @@ struct eval_pool: public boost::noncopyable
 
 	static void add_ref(const ims_val* v);
 
-	static eval_pool ep;
+	static thread_local eval_pool ep;
 
 private:
 

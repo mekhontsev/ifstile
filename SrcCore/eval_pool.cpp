@@ -18,7 +18,7 @@
 #include "eval_pool.h"
 #include "ims_val.h"
 
-eval_pool eval_pool::ep;
+thread_local eval_pool eval_pool::ep;
 
 
 ims_val* eval_pool::alloc(ETP t, EST s, size_t data_bytes, size_t dim)
