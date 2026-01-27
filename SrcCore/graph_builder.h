@@ -72,7 +72,7 @@ private:
 	static constexpr vertex s_empty_ver = ims_max;
 
 	//the maximum number of vertices that the operator can act on
-	static constexpr size_t s_max_contexts = 100'000;
+	static constexpr size_t s_max_contexts = 1000'000;
 
 	////////////////////////////////////////////////////////////////////////////
 

@@ -128,6 +128,7 @@ bool graph_builder::create(
 				//go deeper into the operator
 				auto& num_contexts = m_temp[ast->get_ref_idx()];
 				if (++num_contexts > s_max_contexts) {
+					ims_error("IFS is too complex");
 					return false;
 				}
 				m_stack.emplace_back(ec[idx].v[1].get(), q.vt, v);
