@@ -135,12 +135,17 @@ void set_env_block(ims_identifiers& idf, oper_block& b, const env_block_data& eb
 
 bool load_env_block(const oper_block* xb, env_block_data& ebd)
 {
+	check_block(xb);
+
+	if (xb->is_invalid() || !xb->m_flags.ready) {
+		ims_warning("Invalid @{} block", ims_keywords::search_params_block);
+		return false;
+	}
+
 	let* g = xb->get_class();
-	if (!g)return false;
 
 	let* ec = xb->ctx();
 	
-
 	double v = 0;
 
 	auto gd = [xb, g, &v, ec](std::string_view key)->bool
