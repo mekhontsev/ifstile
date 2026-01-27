@@ -360,7 +360,7 @@ bool integer_ims::create_for_ver(
 			return false;
 		}
 
-		nb.m_data.reserve(nb.m_data.size() + 1);//for stable references
+		ims_geometric_reserve(nb.m_data, 1);//for stable references
 		auto& e = nb.m_data[div_idx];
 
 		let ediv = e.next_edge;

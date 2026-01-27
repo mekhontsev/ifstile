@@ -23,6 +23,7 @@ void indexed_maps::clear()
 	m_maps.clear();
 }
 
+
 size_t indexed_maps::mul_maps(const size_t* pm, size_t num)
 {
 	assert(num > 0);
@@ -57,7 +58,7 @@ size_t indexed_maps::mul_maps(const size_t* pm, size_t num)
 	let start = m_compos.size();
 	for (; p0 <= p1; ++p0) {
 		let& m = m_maps[*p0];
-		m_compos.reserve(m_compos.size() + m.num);
+		ims_geometric_reserve(m_compos, m.num);
 		m_compos.insert(
 			m_compos.end(),
 			m_compos.begin() + m.start,

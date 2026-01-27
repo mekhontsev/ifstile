@@ -290,6 +290,18 @@ void ims_resize(Container& t, size_t sz)
 	t.resize(sz);
 }
 
+
+//reserve space for additional num elements
+template<typename Vector>
+void ims_geometric_reserve(Vector& v, size_t num)
+{
+	let new_cap = v.size() + num;
+	if (new_cap > v.capacity()) {
+		v.reserve(std::max(new_cap, v.capacity() * 3 / 2));
+	}
+}
+
+
 //std::abs still has problems with boost::multiprecision
 template<typename Number>
 Number ims_abs(Number v) { return v < 0 ? -v : v; };
