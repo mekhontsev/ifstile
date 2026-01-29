@@ -142,8 +142,11 @@ void affine_point_calc::process(
 	
 				if (!L.defined2()) {
 					let& m = ri[q.m].m;
-					L = eval_helpers::mul_ball(m.get(), pt);
-					L.set_radius(0);//sign that the point has been found
+
+					edge_ball mp(eval_helpers::mul_ball(m.get(), pt));
+
+					//ball is found, create a copy, set radius to 0
+					L = eval_helpers::create_ball(mp.center_data(), 0, mp.dim());
 				}
 
 				pt = L.get();
