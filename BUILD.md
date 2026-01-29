@@ -59,11 +59,11 @@ For HighDPI: add the following lines to the file `/opt/homebrew/Cellar/cmake/4.x
 
 **Pre-requisites:**
 - [Android Studio](https://developer.android.com/studio)
-- Install SDK è NDK using Android Studio SDK Manager.
+- Install SDK and NDK using Android Studio SDK Manager.
 - Setup environment variables:
 ```
 ANDROID_HOME=C:/Users/***/AppData/Local/Android/Sdk
-ANDROID_NDK_HOME=C:/Users/***/AppData/Local/Android/Sdk/ndk/x.y.z
+ANDROID_NDK_HOME=C:/Users/***/AppData/Local/Android/Sdk/ndk/*.*.*
 ```
 
 **Run:**
