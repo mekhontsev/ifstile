@@ -1454,8 +1454,13 @@ struct search_contex
 				for(size_t k = 0; k < dim_uniq.m_arr.size(); ++k){
 
 					inter_graph.init(idata2.get());
-					if(inter_graph.m_comp.size() != 1)break;
-					if(inter_graph.num_ver() != sne)break;
+
+					if (inter_graph.m_comp.size() != 1 || 
+						inter_graph.num_ver() != inter_graph.m_comp[0].num_ver ||
+						inter_graph.num_ver() != sne)
+					{
+						break;
+					}
 
 					cdim_cur = dim_uniq.m_arr[k];
 
