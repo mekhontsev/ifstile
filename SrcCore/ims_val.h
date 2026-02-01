@@ -26,8 +26,7 @@ struct alignas(8) ims_val : public ims_val_b
 private:
 
 	//can be temporarily used for other purposes if reference counting is not needed
-	mutable size_t m_use_count;
-	//mutable std::atomic<size_t> m_use_count;
+	mutable std::atomic<size_t> m_use_count;
 
 	
 	//for scalars it can be used for other purposes
@@ -377,7 +376,7 @@ public:
 
 	void check_ref() const
 	{	
-		assert(m_use_count < 0xFFFFFF);//somthing wrong happens
+		assert(m_use_count < 0xFFFFFF);//something wrong happens
 		assert(m_use_count > 0);
 	}
 
