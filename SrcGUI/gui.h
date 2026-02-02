@@ -110,6 +110,7 @@ bool add_block2(std::unique_ptr<oper_block>& nb, std::string_view id);
 void update_ui_async();
 void do_batch_rendering();
 bool is_batch_in_progress();
+uint32_t get_batch_ready_blocks();
 void do_create_anim(size_t ref_time);
 void do_rebuild();
 bool do_from_clipboard();

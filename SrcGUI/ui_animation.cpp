@@ -39,12 +39,17 @@ void ws_animation::show()
 	if (ImGui::BeginTabItem("Batch"))
 	{
 		
-		ImGui::BeginDisabled(is_batch_in_progress());
+		let in_progress = is_batch_in_progress();
+		ImGui::BeginDisabled(in_progress);
 		if (ims_button("Render", "Render checked elements")) {
 			do_batch_rendering();
 		}
 		ImGui::EndDisabled();
-		
+
+		if (in_progress) {
+			ImGui::SameLine();
+			ImGui::Text("%d ready", get_batch_ready_blocks());
+		}
 #if 0
 		{
 			SAME_LINE();

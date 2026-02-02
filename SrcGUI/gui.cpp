@@ -3284,7 +3284,19 @@ struct render_context
 	render_params ren_par;
 	bool force2d;
 
-	void render() const
+	std::atomic<uint32_t> saved_blocks{};
+	std::atomic<uint32_t> active_threads{};
+
+	static std::string get_file_name(const oper_block* sr) 
+	{
+		auto fn(sr->m_name);//copy
+		if (fn.empty()) {
+			fn = std::to_string(sr->m_block_id);
+		}
+		return fn;
+	}
+
+	void render()
 	{
 		program_state cur_ps;
 		cur_ps.init7();
@@ -3303,15 +3315,16 @@ struct render_context
 			if (!sr)break;
 			if (!sr->m_flags.checked)continue;
 
-			auto fn(sr->m_name);//copy
-			if (fn.empty()) {
-				fn = std::to_string(sr->m_block_id);
-			}
-
+			auto fn = get_file_name(sr);
 
 			FILE* f = ims_file::open_exclusive_write(dir + fn + ".png");
 			if (!f)continue;
-			IMS_SCOPE([&] {	fclose(f); });
+
+			IMS_SCOPE([&]{
+				fclose(f);
+				++saved_blocks;
+			});
+
 
 			////////////////////////////////////////////////////////////
 
@@ -3351,11 +3364,15 @@ struct render_context
 };
 
 ims_static render_context g_rc;
-ims_static std::atomic<uint32_t> g_rc_num { 0 };
 
 bool is_batch_in_progress() 
 {
-	return g_rc_num > 0;
+	return g_rc.active_threads > 0;
+};
+
+uint32_t get_batch_ready_blocks()
+{
+	return g_rc.saved_blocks;
 };
 
 void do_batch_rendering()
@@ -3399,6 +3416,9 @@ void do_batch_rendering()
 
 	rc.ren_par = get_rpars();
 
+	rc.saved_blocks = 0;
+	rc.active_threads = 0;
+
 	let nt = get_settings().m_num_render_threads;
 
 	let thread_start_idx = (size_t)e_ims_threads::num;
@@ -3407,9 +3427,9 @@ void do_batch_rendering()
 	for (size_t i = 0; i < nt; ++i) {
 		auto& rth = ims_worker::get_thread(i + thread_start_idx);
 		rth.start([&rc]() {
-			++g_rc_num;
+			++rc.active_threads;
 			rc.render();
-			--g_rc_num;
+			--rc.active_threads;
 		});
 	}
 };
