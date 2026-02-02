@@ -217,6 +217,35 @@ Mouse drag modifiers for numeric controls:
 "Create frames" button - creates intermediate blocks and adds them to the list - without rendering. It uses checked blocks as keyframes (see Examples/Animation).
 Created blocks can be rendered later using "Batch" tab. 
 
+
+[//]:#(IFS List)
+### IFS List
+
+IFS list contains all currntly visible blocks.
+There are several way to navigate thorugh the list:
+* Mouse clicks
+* ↓ and ↑ buttons on the toolbar
+* ↓ and ↑ keys on the keyboard
+* PgUp and PgDn on the keyboard
+* << and >> buttons just above the list
+
+The leftmost columns is a check mark (selection) for each block and can be inverted by the user by mouse clicks.
+You can invert several checkmarks at once:
+* Click the first desired checkmarks by left mouse button, then hold Shift button and click the last one.
+* Click the first desired checkmarks, then click the last one, then choose "Interval" from the dropbox at the top of the window, and finally, click the "Apply" button.
+
+All checkmarks states will be stored to the AIFS file.
+
+To delete blocks, check them, then select "Delete" item in the dropbox and click the "Apply" button.
+
+To invert checkmarks select "Invert" item in the dropbox and click the "Apply" button.
+
+You can select visible columns (the "C" button above the list) and set conditions to filter the rows (the "R" button).
+
+By default, most available columns will be undefined after loading the file. To initialize these columns, you need to run a search (in the "Finder" window).
+
+All visible columns can be exported to a CSV file (Menu->File->Export CSV)
+
 [//]:#(Location)
 ### Location
 The location window can be used to control screen/camera position and section settings.

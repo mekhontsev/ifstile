@@ -254,7 +254,7 @@ void ws_ifs_list::show()
 				SAME_LINE();
 				std::array<char, 16> buf;
 				fmt::format_to_n(buf.data(), buf.size(), "{}\0", sr->m_block_id);
-				if (ims_button(buf.data(), "Scroll To ID")) {
+				if (ims_button(buf.data(), "Scroll to ID")) {
 					scroll_to_row(vb.m_cur_block_pos);
 				}
 			}
@@ -269,6 +269,7 @@ void ws_ifs_list::show()
 			if (ims_button("<<")) {
 				scroll_to_row(0);
 			}
+			set_tooltip("To the first");
 		}
 		{
 			SAME_LINE();
@@ -276,6 +277,7 @@ void ws_ifs_list::show()
 				let n = vb.m_vis_blocks.size();
 				if (n > 0)scroll_to_row(n - 1);
 			}
+			set_tooltip("To the last");
 		}
 	}
 
