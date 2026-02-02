@@ -5117,23 +5117,22 @@ bool on_draw()
 
 	let rc = get_working_area();
 	if (!rc.empty()) {
-		bool show_console = 
-			get_cur_mode() != ListViewMode::CONSOLE &&
-			get_settings().m_window_mode != window_mode_type::full;
+		bool show_viewport =
+			get_cur_mode() == ListViewMode::CONSOLE ||
+			get_settings().m_window_mode == window_mode_type::full ||
+			g_build_complete_proc ||
+			tb.is_running();
 
-		if (show_console) {
+		if (!show_viewport) {
 			let* bi = get_global_bd();
-			if (bi && bi->m_bi.exists()) {
-				show_console = false;
-			}
+			show_viewport = bi && bi->m_bi.exists();
 		}
 
-		if (show_console) {
-			show_pane(get_window_data(ListViewMode::CONSOLE), rc, true);
-		} else {
+		if (show_viewport) {
 			draw_base(rc);
+		} else {
+			show_pane(get_window_data(ListViewMode::CONSOLE), rc, true);
 		}
-
 	};
 
 	if (g_build_complete_proc && !tb.is_running()) {
@@ -5145,7 +5144,6 @@ bool on_draw()
 		g_status_text = "Ready";
 	}
 	ShowStatusBar(g_status_text);
-
 
 	////////////////////////////////////////////////////////////////////////
 

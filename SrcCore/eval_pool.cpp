@@ -30,7 +30,7 @@ ims_val* eval_pool::alloc(ETP t, EST s, size_t data_bytes, size_t dim)
 
 void eval_pool::release(const ims_val* v)
 {
-	assert(v);//should be be checked outside
+	assert(v);//should be checked outside
 
 	if (v->dec_ref() > 0) {
 		return;
