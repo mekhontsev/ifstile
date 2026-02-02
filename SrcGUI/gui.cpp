@@ -3305,15 +3305,12 @@ struct render_context
 
 		auto& rth = *ims_worker::get();
 
-		for (size_t i = 0;; ++i) {
-
+		for (let& q : ifs_list_get().m_id2data) {
 			if (ims_need_stop()) {
 				break;
 			}
-
-			let* sr = get_vb().get_vis(i);
-			if (!sr)break;
-			if (!sr->m_flags.checked)continue;
+			let* sr = q.b.get();
+			if (!sr || !sr->m_flags.checked)continue;
 
 			auto fn = get_file_name(sr);
 
@@ -3324,7 +3321,6 @@ struct render_context
 				fclose(f);
 				++saved_blocks;
 			});
-
 
 			////////////////////////////////////////////////////////////
 
@@ -3379,7 +3375,14 @@ void do_batch_rendering()
 {
 	assert(!is_batch_in_progress());
 
-	if (get_vb().get_vis_checked() == 0) {
+	size_t num_checked = 0;
+	for (let& q : ifs_list_get().m_id2data) {
+		let* sr = q.b.get();
+		if (!sr || !sr->m_flags.checked)continue;
+		++num_checked;
+	}
+
+	if (num_checked == 0) {
 		ims_show_message("Check items before running this action.\n");
 		return;
 	}

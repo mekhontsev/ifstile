@@ -1,3 +1,11 @@
+v4.0.8
+- Improved multithreaded stability.
+- Batch processing progress visualization.
+- Manual page for the "IFS List" window.
+---
+v4.0.7
+- Fixed bugs.
+---
 v4.0.6
 - Improved multithreaded performance.
 - Resolved regressions from version 3.x.
