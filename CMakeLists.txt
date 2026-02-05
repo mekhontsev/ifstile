@@ -5,8 +5,8 @@ if(APPLE)
  	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
 endif()	
 	
-project(IFStile LANGUAGES CXX C VERSION 4.0.8)
-#set(dev_version "#define DEVELOPER_VERSION 1\n")
+include(version.cmake)
+project(IFStile LANGUAGES CXX C VERSION ${PROJECT_VERSION})
 
 if (MSVC)
 	set(win_directx "#define IMS_USE_DX11 1\n")
