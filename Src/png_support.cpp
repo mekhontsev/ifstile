@@ -124,16 +124,20 @@ static uint8_t* write_mem(
 	//modified body of the cp_save_png_to_memory function
 	cp_save_png_data_t s = { 0 };
 	long dataPos, dataSize;
+
+	// Allocate LZ77 state (~72KB)
+	auto* lz = (cp_lz77_state_t*)CUTE_PNG_ALLOC(sizeof(cp_lz77_state_t));
 	
 	s.adler = 1;
 	s.bits = 0x80;
-	s.prev = 0xFFFF;
 	s.bufcap = 1024;
 	s.buffer = (char*)CUTE_PNG_ALLOC(1024);
+	s.lz = lz;
 
 	cp_save_header(&s, (cp_image_t*)img);
 
 	////////////////////////////////////////////
+
 	for (let& q : keyvals) {
 		let& key = q.first;
 		let& val = q.second;
@@ -151,8 +155,6 @@ static uint8_t* write_mem(
 	}
 
 	dataPos = s.buflen;
-
-
 	cp_save_data(&s, (cp_image_t*)img, dataPos, &dataSize);
 
 	// End chunk.
@@ -163,6 +165,8 @@ static uint8_t* write_mem(
 	fileSize = s.buflen;
 	s.buflen = dataPos;
 	cp_put32(&s, dataSize);
+
+	CUTE_PNG_FREE(lz);
 
 	return  (uint8_t*)s.buffer;
 }

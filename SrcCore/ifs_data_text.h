@@ -134,8 +134,13 @@ struct read_state
 
 	struct parse_result
 	{
-		bool ignore = false;
-		bool keep_source = false;//save the text in oper_block
+		enum {
+			e_continue,
+			e_ignore,
+			e_completed,
+		} status = e_continue;
+
+		bool keep_source = false;//save the text in the oper_block
 
 		std::string block_id;
 		std::string parent_id;

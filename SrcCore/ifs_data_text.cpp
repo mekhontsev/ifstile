@@ -174,6 +174,7 @@ static bool read_next_block(
 	error_helper::line ehl(first_line);
 
 	bool block_found = false;
+	bool directive_found = false;
 
 	dst_size = 0;
 
@@ -216,8 +217,12 @@ static bool read_next_block(
 				break;
 			case ims_keywords::block:
 				if (!com) {
-					if (block_found && dst_size > 1) {//support for @@ directives
-						complete = true;//found the next block, finishing
+					if (block_found) {//support for @@ directives
+						if (dst_size > 1) {
+							complete = true;//found the next block, finishing
+						} else {
+							directive_found = true;//continue to read
+						}
 					}
 					else {
 						block_found = true;
@@ -242,7 +247,7 @@ static bool read_next_block(
 			}
 		}
 
-		if (complete)break;
+		if (complete || directive_found)break;
 	}
 
 	//remove spaces
@@ -354,8 +359,13 @@ bool aifs_from_stream_ex(
 		return false;//critical error - failed to load file
 	}
 
-	if (res.ignore) {
-		return true;//continue to parse
+	if (res.status != read_state::parse_result::e_continue) {
+		if (res.status == read_state::parse_result::e_completed) {
+			rs.m_source_num_lines = 0;
+		} else {
+			assert(res.status == read_state::parse_result::e_ignore);
+		}
+		return true;
 	}
 
 	auto* b = lst.add_block(rs.m_id);
@@ -701,12 +711,15 @@ bool read_state::parse_block(
 	if (is_directive) {
 
 		if (m_id == ims_keywords::version) {
-			ret.ignore = true;//obsolete, let's continue, no error
+			//obsolete, let's continue, no error
+			ret.status = read_state::parse_result::e_ignore;
 			return true;
 		}
 
 		if (m_id == ims_keywords::end) {
-			return true;//finished parsing the block, no error
+			//finished parsing the block, no error
+			ret.status = read_state::parse_result::e_completed;
+			return true;
 		}
 
 		
@@ -716,7 +729,7 @@ bool read_state::parse_block(
 
 	if (lst.find_block(m_id)){
 		//completely ignore the block... don't even check for errors
-		ret.ignore = true;
+		ret.status = read_state::parse_result::e_ignore;
 		WARN_DUP_ID(m_id);
 		return true;
 	};
@@ -824,7 +837,7 @@ bool read_state::parse_block(
 	}
 
 	
-	ret.ignore = false;
+	ret.status = read_state::parse_result::e_continue;
 	return true;
 }
 
