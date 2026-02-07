@@ -45,7 +45,7 @@ void ws_location::on_change(standard_vars& sv, bool reset, bool c, bool si_ch)
 	if (!si_ch && !reset && !c)return;
 
 	//copy m_si and m_cam, otherwise it might return before the callback is called
-	stop_build_then([&sv, reset, c, si_ch, si = m_si, xcam = m_xcam]() {
+	stop_build_then([&sv, reset, c, si_ch, si = m_state.m_si, xcam = m_state.m_xcam]() {
 		if (reset) {
 			sv.m_si_empty = true;
 			sv.m_xcam2.m_2d_empty = true;
@@ -74,31 +74,31 @@ void ws_location::show()
 
 	auto& sv = xd->m_special;
 
-	let dim_set = m_si.get_dim_space();
-	let rd = m_si.get_section_dim();
+	let dim_set = m_state.m_si.get_dim_space();
+	let rd = m_state.m_si.get_section_dim();
 
 	//copy, but memory is not allocated on each redraw
 	Eigen::Vector3d tar;
 	if (m_cliked_state == cliked_state::wait_point) {
 		if (rd < 3) {
-			tar[0] = m_xcam.m_sd.c[0];
-			tar[1] = m_xcam.m_sd.c[1];
+			tar[0] = m_state.m_xcam.m_sd.c[0];
+			tar[1] = m_state.m_xcam.m_sd.c[1];
 		} else {
-			tar = m_xcam.m_camera.m_ref;
+			tar = m_state.m_xcam.m_camera.m_ref;
 		}
 		
 	}
-	m_xcam = sv.m_xcam2;//copying itself
+	m_state.m_xcam = sv.m_xcam2;//copying itself
 
 	if (m_cliked_state == cliked_state::wait_point) {
 		if (rd < 3) {
-			m_xcam.m_sd.c[0] = tar[0];
-			m_xcam.m_sd.c[1] = tar[1];
+			m_state.m_xcam.m_sd.c[0] = tar[0];
+			m_state.m_xcam.m_sd.c[1] = tar[1];
 		} else {
-			m_xcam.m_camera.m_ref = tar;
+			m_state.m_xcam.m_camera.m_ref = tar;
 		}
 	}
-	m_si = sv.m_si2;
+	m_state.m_si = sv.m_si2;
 
 	
 
@@ -157,20 +157,14 @@ void ws_location::show()
 	{
 		SAME_LINE();
 		if (ims_button("Save", "Save current location to the memory slot.", &next_id)) {
-			m_xcam_saved = m_xcam;
-			m_si_saved = m_si;
-			m_zt_saved = m_zt;
-			m_lock_saved = m_lock_dist_target;
+			m_state_saved = m_state;
 		};
 	}
 
 	{
 		SAME_LINE();
 		if (ims_button("Load", "Load saved location from the memory slot.", &next_id)) {
-			m_xcam = m_xcam_saved;
-			m_si = m_si_saved;
-			m_zt = m_zt_saved;
-			m_lock_dist_target = m_lock_saved;
+			m_state = m_state_saved;
 			si_ch = true;
 			c = true;
 		};
@@ -187,7 +181,7 @@ void ws_location::show()
 
 		for (size_t i = 0; i < dim_set; ++i) {
 			ImGui::PushID(next_id++);
-			si_ch = input_double2(m_si.origin(i)) || si_ch;
+			si_ch = input_double2(m_state.m_si.origin(i)) || si_ch;
 			ImGui::PopID();
 		}
 
@@ -218,7 +212,7 @@ void ws_location::show()
 			if (dim_set > 2 && dim_set > rd) {
 				SAME_LINE();
 				if (ims_button("Rand", nullptr, &next_id)) {
-					randomize_section(m_si);
+					randomize_section(m_state.m_si);
 					si_ch = true;
 				};
 			}
@@ -230,7 +224,7 @@ void ws_location::show()
 
 			for (size_t i = 0; i < dim_set; ++i) {
 				ImGui::PushID(next_id++);
-				si_ch = input_double2(m_si.basis_user(i, s_xy)) || si_ch;
+				si_ch = input_double2(m_state.m_si.basis_user(i, s_xy)) || si_ch;
 				ImGui::PopID();
 			}
 
@@ -259,7 +253,7 @@ void ws_location::show()
 		};
 
 		
-		auto& sd = m_xcam.m_sd;
+		auto& sd = m_state.m_xcam.m_sd;
 
 
 		if (m_cliked_state == cliked_state::point_ready) {
@@ -298,14 +292,14 @@ void ws_location::show()
 	
 	} else if (rd == 3) {
 
-		auto& cam7 = m_xcam.m_camera;
+		auto& cam7 = m_state.m_xcam.m_camera;
 		Eigen::Vector3d rl = cam7.m_ref - cam7.m_loc;
 		
 		if (m_cliked_state == cliked_state::point_ready) {
 			m_cliked_state = cliked_state::idle;
 
 			const Eigen::Vector3d q = m_p[0];
-			if (m_lock_dist_target) {
+			if (m_state.m_lock_dist_target) {
 				Eigen::Vector3d dir = m_p[0] - cam7.m_loc;
 				dir.normalize();				
 				cam7.m_loc = q - rl.norm() * dir;
@@ -329,7 +323,7 @@ void ws_location::show()
 		ImGui::SameLine();
 
 		ImGui::PushID(next_id++);
-		ImGui::Checkbox("Fly mode", &m_lock_dist_target);
+		ImGui::Checkbox("Fly mode", &m_state.m_lock_dist_target);
 		ImGui::PopID();
 		set_tooltip("The distance to the target is locked in the 'Fly' mode.");
 	
@@ -344,9 +338,9 @@ void ws_location::show()
 		c = input_double2(cam7.m_loc[2]) || c;
 		ImGui::PopID();
 
-		ImGui::TextUnformatted(m_lock_dist_target ? "Sensitivity" : "Distance to the target");
+		ImGui::TextUnformatted(m_state.m_lock_dist_target ? "Sensitivity" : "Distance to the target");
 
-		if (m_lock_dist_target) {
+		if (m_state.m_lock_dist_target) {
 			ImGui::SameLine();
 
 
@@ -373,7 +367,7 @@ void ws_location::show()
 					let mp = ImGui::GetMousePos();
 					if (ImGui::IsMousePosValid(&mp)) {
 
-						let shift = start_dist * m_zt * ImGui::GetMouseDragDelta(0).x /
+						let shift = start_dist * m_state.m_zt * ImGui::GetMouseDragDelta(0).x /
 							ImGui::GetWindowWidth();
 
 						Eigen::Vector3d lr;
@@ -394,17 +388,17 @@ void ws_location::show()
 		{
 			
 			
-			let old_d = m_lock_dist_target ? m_zt : rl.norm();
+			let old_d = m_state.m_lock_dist_target ? m_state.m_zt : rl.norm();
 
 			double d = old_d;
 			let changed = input_double2(d, 0, 0, nullptr,
-				m_lock_dist_target?1:20);//TODO: magic, in theory, should be equal
+				m_state.m_lock_dist_target?1:20);//TODO: magic, in theory, should be equal
 
 			if (d == 0)d = old_d;
 			if (changed) {
 				
-				if (m_lock_dist_target) {
-					m_zt = d;
+				if (m_state.m_lock_dist_target) {
+					m_state.m_zt = d;
 				} else {
 					rl.normalize();
 					cam7.m_loc = cam7.m_ref - d * rl;
@@ -533,8 +527,8 @@ void ws_location::from_mouse(const camera_ex& xc, std::string& status, Eigen::Ve
 		double zt = rl.dot(p - c.m_loc)/ rln2;
 
 		fmt::format_to(std::back_inserter(status), " zt={}", zt);
-		if (clicked && m_lock_dist_target) {
-			m_zt = zt;
+		if (clicked && m_state.m_lock_dist_target) {
+			m_state.m_zt = zt;
 		}
 	}
 
@@ -543,11 +537,11 @@ void ws_location::from_mouse(const camera_ex& xc, std::string& status, Eigen::Ve
 	}
 
 	if (is2d) {
-		m_xcam.m_sd.c[0] = p[0];
-		m_xcam.m_sd.c[1] = p[1];
+		m_state.m_xcam.m_sd.c[0] = p[0];
+		m_state.m_xcam.m_sd.c[1] = p[1];
 		m_square = p[2];
 	} else {
-		m_xcam.m_camera.m_ref = p;
+		m_state.m_xcam.m_camera.m_ref = p;
 	}
 
 	if (!clicked) {

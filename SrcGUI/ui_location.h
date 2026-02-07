@@ -19,6 +19,15 @@
 #include "geometry.h"
 #include "def_number_types.h"
 
+struct location_state 
+{
+	using Real = DefNumTypes::Real;
+	camera_ex m_xcam;
+	subspace_info<Real> m_si;
+	bool m_lock_dist_target = false;
+	Real m_zt = 1;
+};
+
 struct standard_vars;
 struct ws_location : public window_state
 {
@@ -35,19 +44,14 @@ struct ws_location : public window_state
 
 	void from_mouse(const camera_ex& xc, std::string& status, Eigen::Vector3d p, bool clicked, bool is2d);
 
-	camera_ex m_xcam;
-	subspace_info<Real> m_si;
-	bool m_lock_dist_target = false;
-	Real m_zt = 1;
-	
-	camera_ex m_xcam_saved;
-	subspace_info<Real> m_si_saved;
-	bool m_lock_saved = false;
-	Real m_zt_saved = 1;
+	location_state m_state;
+	location_state m_state_saved;
+
+
 
 	Real get_zt() const
 	{
-		return m_lock_dist_target ? m_zt : 1;
+		return m_state.m_lock_dist_target ? m_state.m_zt : 1;
 	}
 
 	enum class cliked_state 

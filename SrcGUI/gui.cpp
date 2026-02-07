@@ -1357,7 +1357,7 @@ static void do_zoom_out()
 		else {
 			if (xc.empty(3))return;
 			bp->m_buf3d_di->zoom_out_cam(xc.m_camera, 
-				s_ui.m_location.m_lock_dist_target);
+				s_ui.m_location.m_state.m_lock_dist_target);
 		}
 
 		do_rebuild_sync();
@@ -2289,7 +2289,7 @@ static bool use_zoom_box()
 
 	if (!bp->m_buf3d_di->zoom_in_cam(sv.m_xcam2.m_camera,
 		qx / w, qy / h, iw / w, ih / h, 
-		s_ui.m_location.m_lock_dist_target)) 
+		s_ui.m_location.m_state.m_lock_dist_target))
 	{
 		return false;
 	}
@@ -2365,7 +2365,7 @@ static bool use_mouse_wheel(float mx, float my, float mw)
 
 	auto& c = sv.m_xcam2.m_camera;
 	const Eigen::Vector3d  lr = c.m_loc - c.m_ref;
-	if (s_ui.m_location.m_lock_dist_target) {
+	if (s_ui.m_location.m_state.m_lock_dist_target) {
 		let dlr = lr * (1 / scale - 1)* s_ui.m_location.get_zt();
 		c.m_loc += dlr;
 		c.m_ref += dlr;
@@ -3874,7 +3874,7 @@ static bool check_mouse_dragging(
 
 			stop_build_then([dx, dy, &xc]() {
 				auto& c = xc.m_camera;
-				c.rotate(dy, -dx, s_ui.m_location.m_lock_dist_target);
+				c.rotate(dy, -dx, s_ui.m_location.m_state.m_lock_dist_target);
 				c.init();
 				do_rebuild_sync();
 			});
