@@ -49,7 +49,8 @@ struct ims_val_b
 	{
 		number,
 		ast_ptr,	//ast_context
-		inversion, //mobius, relative to the unit ball
+		string,		//array of chars
+		inversion,	//mobius, relative to the unit ball
 
 		style2,		//index in the palette - real number
 		thickness,	//real number

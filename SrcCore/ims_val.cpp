@@ -136,14 +136,13 @@ bool ims_val::is_normal() const
 
 size_t ims_val::num_el() const
 {
-	
-	
 	switch (m_t)
 	{
 	case ETP::number:
+	case ETP::ast_ptr:
+	case ETP::string:
 	case ETP::style2:
 	case ETP::thickness:
-	case ETP::ast_ptr:
 		return 1;
 	case ETP::vector:
 	case ETP::compos:

@@ -82,14 +82,21 @@ ims_val* eval_pool::get_id_val()
 	return get_vector(0, ETP::compos);
 }
 
+ims_val* eval_pool::get_string(std::string_view s)
+{
+	auto* ret = alloc(ETP::string, EST::pod, s.length(), s.length());
+	std::copy(s.begin(), s.end(), ret->gp<char>());
+	return ret;
+}
+
 ims_val* eval_pool::alloc_scalar(ETP t, EST s, size_t sz)
 {
 	return alloc(t, s, sz, 0);
 }
 
-ims_val* eval_pool::get_scalar_int(Integer v)
+ims_val* eval_pool::get_scalar_int(Rational v)
 {
-	auto* ret = alloc_scalar(ETP::number, EST::rational, sizeof(Integer));
+	auto* ret = alloc_scalar(ETP::number, EST::rational, sizeof(Rational));
 	*ret->p_i() = v;
 	return ret;
 }
@@ -111,7 +118,7 @@ ims_val* eval_pool::get_vector(size_t sz, ETP t)
 
 ims_val* eval_pool::get_vector_int(size_t sz)
 {
-	return alloc(ETP::vector, EST::rational, sizeof(Integer) * sz, sz);
+	return alloc(ETP::vector, EST::rational, sizeof(Rational) * sz, sz);
 }
 
 ims_val* eval_pool::get_vector_real(size_t sz)
@@ -122,7 +129,7 @@ ims_val* eval_pool::get_vector_real(size_t sz)
 ims_val* eval_pool::get_matrix_int(size_t rows, size_t cols)
 {
 	assert(rows > 0 && cols > 0);
-	return alloc(ETP::matrix, EST::rational, sizeof(Integer) * rows * cols,
+	return alloc(ETP::matrix, EST::rational, sizeof(Rational) * rows * cols,
 		ims_val::get_dim_field(rows, cols));
 }
 

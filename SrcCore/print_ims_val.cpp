@@ -205,6 +205,12 @@ void print_ims_val_ex(std::ostream& str, const ims_val* v, const ifs_list* lst)
 		return;
 	}
 
+	case ims_val::ETP::string:
+	{
+		str << "\"" << v->get_string() << "\"";
+		return;
+	}
+
 	case ims_val::ETP::compos:
 	{
 		let sz = v->get_size();

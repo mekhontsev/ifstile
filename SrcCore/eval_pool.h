@@ -26,7 +26,7 @@ struct eval_pool: public boost::noncopyable
 {
 	using ETP = ims_val_b::ETP;
 	using EST = ims_val_b::EST;
-	using Integer = ims_val_b::Rational;
+	using Rational = ims_val_b::Rational;
 	using Real = ims_val_b::Real;
 	using BigRational = ims_val_b::BigRational;
 
@@ -38,13 +38,15 @@ struct eval_pool: public boost::noncopyable
 	ims_val* get_empty_val();
 	ims_val* get_id_val();
 
-	ims_val* get_scalar_int(Integer v);
+	ims_val* get_string(std::string_view s);
+
+	ims_val* get_scalar_int(Rational v);
 	ims_val* get_scalar_real(Real v, ETP t = ETP::number);
 
 	template<typename T>
 	ims_val* get_affine(size_t dim) 
 	{
-		if constexpr (std::is_same_v<T, Integer>)
+		if constexpr (std::is_same_v<T, Rational>)
 			return get_affine_int(dim);
 		else if constexpr (std::is_same_v<T, Real>)
 			return get_affine_real(dim);

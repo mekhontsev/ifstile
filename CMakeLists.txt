@@ -84,7 +84,6 @@ function(target_embed_files EMBED_HEADERS_LOCATION DST_FILE)
         "${MULTIPLE_VALUE}"
         ${ARGN}
     )
-	
 
     set(ARRAY_DECLARATIONS)
 
@@ -123,8 +122,6 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release)
 #set(CMAKE_USE_RELATIVE_PATHS ON)
 #set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-
-
 set(bin ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 if (ANDROID)
 	set(bin ${bin}/arm64-v8a)
@@ -151,34 +148,30 @@ if(MSVC)
 			CMAKE_CXX_FLAGS_DEBUG
 			CMAKE_CXX_FLAGS_RELEASE
 		)
-	
+
 	#remove RTTI
 	foreach(CompilerFlag ${CompilerFlags})
 		string(REPLACE "/GR" "" ${CompilerFlag} "${${CompilerFlag}}")
 	endforeach()
-
 	add_definitions(/D_HAS_STATIC_RTTI=0)
 
-	set(CMAKE_CXX_FLAGS	"${CMAKE_CXX_FLAGS} /Zc:char8_t- /utf-8 /MP /GR- /bigobj /fp:except- /Zm256  /permissive-")
 	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} /O2 /Oi /Ot /Oy /GT /GL /Gy /GF /GS-")
 	#set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} /fsanitize=address")
 
-	
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} 
 		/STACK:10000000 
 		/LARGEADDRESSAWARE 
 		/MANIFEST:NO
 		/VERSION:\"${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}\"
 	")
-	
 
 	set(CMAKE_EXE_LINKER_FLAGS_RELEASE 
 		"${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /OPT:REF /OPT:ICF")	
 
 	add_definitions(-D_WIN32_WINNT=0x0601 -DWINVER=0x0601 -DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN)
 
-
-	add_definitions(/experimental:c11atomics)# TODO: remove when will be supported
+	add_compile_options(/utf-8 /Zc:char8_t- /MP /GR- /bigobj /fp:except- /Zm256  /permissive-)
+	add_compile_options(/experimental:c11atomics)# TODO: remove when will be supported
 elseif(APPLE)
 	set(CMAKE_CXX_FLAGS	"${CMAKE_CXX_FLAGS} ${cxx_clang_gcc} -stdlib=libc++ -Wno-logical-op-parentheses")
 	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto")
@@ -191,18 +184,17 @@ elseif(ANDROID)
 	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -flto -Wl,--exclude-libs,ALL -Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/android.map")	
 elseif(EMSCRIPTEN)	
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${cxx_clang_gcc} -fwasm-exceptions -pthread -mnontrapping-fptoint -Wno-logical-op-parentheses -Wno-pthreads-mem-growth")
-	
+
 	set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG}  -g -gseparate-dwarf")
 	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto")
 	#set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -flto")
-	
 
 	#set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto -fexceptions -UNDEBUG -s -gseparate-dwarf -g") #-fno-inline
 	#set(CMAKE_EXE_LINKER_FLAGS_RELEASE	" -s GL_DEBUG=1 -s ASSERTIONS=1 -s NO_DISABLE_EXCEPTION_CATCHING")
 	
 	#set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -s GL_DEBUG=1 -s ASSERTIONS=1 -s NO_DISABLE_EXCEPTION_CATCHING")
 	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -s GL_DEBUG=1 -s ASSERTIONS=1")
-	
+
 	# -s STRICT=1 #still not possible
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
 	-lidbfs.js \
@@ -218,9 +210,7 @@ elseif(EMSCRIPTEN)
 	#workarounds
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-u,scalbnl")
 	#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--trace-symbol=scalbnl")
-	
-	
-	
+
 elseif(LINUX)
 	set(CMAKE_CXX_FLAGS	"${CMAKE_CXX_FLAGS} ${cxx_clang_gcc}")
 	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto -s -Wl,--gc-sections")
@@ -497,7 +487,6 @@ elseif(APPLE)
 	SET( MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2016-2026, Dmitry Mekhontsev. All Rights Reserved.")
 	SET( MACOSX_BUNDLE_GUI_IDENTIFIER "com.ifstile")
 #	set( MACOSX_BUNDLE_ADDITIONAL "<key>NSPrincipalClass</key>\n<string>NSApplication</string>") 
-	
 
 	set(resFiles
 		"${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/Application.icns"
@@ -631,8 +620,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	${ext}/SDL/include
 )
 
-
-
 target_precompile_headers(${PROJECT_NAME} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/pch.h
 )
@@ -658,8 +645,6 @@ set_target_properties (${PROJECT_NAME} PROPERTIES
 	OUTPUT_NAME ${exe_name}
 #	PREFIX ""
 )
-
-
 
 #-------------------------------------------------------------------------------
 #strip

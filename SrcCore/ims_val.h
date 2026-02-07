@@ -32,6 +32,7 @@ private:
 	//for scalars it can be used for other purposes
 	union {
 		//for vectors: number of elements
+		//for strings: length
 		uint32_t m_size;
 		//for matrices - dimensions: rows, cols
 		std::array<uint16_t, 2> m_ex;
@@ -176,6 +177,12 @@ public:
 		assert(has_data(gt()));
 		return m_size;
 	};
+
+	std::string_view get_string() const
+	{
+		assert(is(ETP::string));
+		return { gp<char>(), m_size };
+	}
 
 	bool is_empty() const
 	{
@@ -350,9 +357,9 @@ public:
 	}
 
 	//for pool only
-	ims_val(size_t dim,	uint8_t bucket,	ims_val::ETP t,	ims_val::EST s) :
+	ims_val(size_t size, uint8_t bucket, ims_val::ETP t, ims_val::EST s) :
 		m_use_count{ 1 },
-		m_size{ static_cast<uint32_t>(dim) },
+		m_size{ static_cast<uint32_t>(size) },
 		m_reserved{ 0 },
 		m_bucket{ bucket },
 		m_t{ t },
