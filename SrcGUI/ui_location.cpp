@@ -340,7 +340,7 @@ void ws_location::show()
 
 		ImGui::TextUnformatted(m_state.m_lock_dist_target ? "Sensitivity" : "Distance to the target");
 
-		if (m_state.m_lock_dist_target) {
+		{
 			ImGui::SameLine();
 
 
@@ -349,9 +349,9 @@ void ws_location::show()
 			ImGui::PopID();
 			let drag_active = ImGui::IsItemActive();
 			let drag_clicked = ImGui::IsItemClicked(0);
-			set_tooltip("Drag to move camera");
+			set_tooltip(m_state.m_lock_dist_target ? "Drag to move camera" : "Drag to move target");
 			if (ret) {
-			
+
 			}
 
 			if (drag_active) {
@@ -373,8 +373,14 @@ void ws_location::show()
 						Eigen::Vector3d lr;
 						lr = cam7.m_ref - cam7.m_loc;
 						lr.normalize();
-						cam7.m_loc = start_loc + shift * lr;
-						cam7.m_ref = cam7.m_loc + lr * start_dist;
+
+						if (m_state.m_lock_dist_target) {
+							cam7.m_loc = start_loc + shift * lr;
+							cam7.m_ref = cam7.m_loc + lr * start_dist;
+						} else {
+							cam7.m_ref = cam7.m_loc + lr * (start_dist + shift);
+						}
+
 
 						c = true;
 					}
@@ -382,12 +388,9 @@ void ws_location::show()
 
 			}
 		}
-
 	
 		ImGui::PushID(next_id++);
 		{
-			
-			
 			let old_d = m_state.m_lock_dist_target ? m_state.m_zt : rl.norm();
 
 			double d = old_d;
