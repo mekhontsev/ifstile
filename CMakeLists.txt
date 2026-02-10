@@ -649,20 +649,12 @@ set_target_properties (${PROJECT_NAME} PROPERTIES
 #-------------------------------------------------------------------------------
 #strip
 
-if (CMAKE_BUILD_TYPE STREQUAL Release)
-
-	if(ANDROID)
-		set(_suffix ${CMAKE_SHARED_LIBRARY_SUFFIX})
-		set(_prefix ${CMAKE_SHARED_LIBRARY_PREFIX})
-	else()
-		set(_suffix ${CMAKE_EXECUTABLE_SUFFIX}  )
-		set(_prefix ${CMAKE_EXECUTABLE_PREFIX})
-	endif()
-	
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_STRIP} ${bin}/${_prefix}${exe_name}${_suffix})
+if (CMAKE_BUILD_TYPE STREQUAL Release)	
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+		COMMAND $<$<CONFIG:Release>:${CMAKE_STRIP}> $<TARGET_FILE:${PROJECT_NAME}>
+		COMMENT "Stripping ${PROJECT_NAME} for Release..."
+	)
 endif ()
-
 
 #-------------------------------------------------------------------------------
 #link other
@@ -679,11 +671,6 @@ set (LINK_LIST "")
 foreach(x ${linkto})
 	list (APPEND LINK_LIST debug ${lib}/Debug/${x} optimized ${lib}/Release/${x})
 endforeach()
-
-#file(COPY fonts/fontawesome-webfont.ttf DESTINATION ${bin})
-#file(COPY fonts/MaterialIcons-Regular.ttf DESTINATION ${bin})
-#file(COPY fonts/kenney-icon-font.ttf DESTINATION ${bin})
-
 
 #-------------------------------------------------------------------------------
 if(MSVC)
