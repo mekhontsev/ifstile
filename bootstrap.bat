@@ -3,7 +3,7 @@ rmdir imgui /s/q
 rmdir quickjs /s/q
 
 git clone --depth 1 https://github.com/mekhontsev/imgui.git
-git clone --depth 1 https://github.com/quickjs-ng/quickjs.git
+git clone --depth 1 -b v0.12.0 https://github.com/quickjs-ng/quickjs.git
 
 mkdir external
 cd external
