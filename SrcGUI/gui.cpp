@@ -2847,14 +2847,15 @@ void open_file(
 
 			std::string block_name;
 			std::string block_id;
-			size_t op_id = ims_max;
+			std::string root_id;
 
 			if (keep) {
 				block_name = keep->m_name;
 				block_id = keep->str_id4();
 				let root_ref = keep->get_active_ref();
 				if (root_ref != ims_max) {
-					op_id = keep->get_class()->m_refs[root_ref].unk_id;
+					let unk_id = keep->get_class()->m_refs[root_ref].unk_id;
+					root_id = ifs_list_get().m_idf.get_str_from_unk(unk_id);
 				}
 			}
 
@@ -2910,12 +2911,16 @@ void open_file(
 				assert(!err_msg.empty());
 			}
 
-			if (load_ok && keep_new && op_id != ims_max) {
-				let* g = keep_new->get_class();
-				let it = g->m_unk2var.find(op_id);
-				if (it != g->m_unk2var.end()) {
-					const_cast<oper_block*>(keep_new)->set_active_ref(it->second);
-				};
+			if (load_ok && keep_new && !root_id.empty()) {
+				let& lst = pnfo ? pnfo->m_list : ifs_list_get();
+				let* d = lst.m_idf.find_data(root_id);
+				if (d) {
+					let* g = keep_new->get_class();
+					let it = g->m_unk2var.find(d->unk_id);
+					if (it != g->m_unk2var.end()) {
+						const_cast<oper_block*>(keep_new)->set_active_ref(it->second);
+					};
+				}
 			}
 
 			auto lmain = [load_ok, err_msg, keep_new, pnfo = std::move(pnfo)]() mutable
