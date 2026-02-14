@@ -55,6 +55,8 @@ enum class e_what_print : int
 	Subspaces,
 	Data,
 	AST,
+	ExecJS,
+	NUMBER_OF_WHAT_PRINT,
 };
 
 //in order of priority
@@ -217,6 +219,7 @@ void add_view_to_list(build_data* bd, const oper_block* bb);
 
 void set_new_ver_ref(size_t new_ver_ref);
 
+void console_execute(std::string_view script);
 void console_print(e_what_print what);
 
 std::string get_con_data(bool err);

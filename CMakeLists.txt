@@ -336,6 +336,7 @@ program_state.h program_state.cpp
 ims_help.h ims_help.cpp 
 ims_to_string_ex.h ims_to_string_ex.cpp 
 visible_blocks.h visible_blocks.cpp 
+js_ifs.cpp
 ims_rw.h ims_rw.cpp save_type.h 
 file_dialog_state.h file_dialog_state.cpp 
 thread_priority.cpp platform.h platform.cpp 

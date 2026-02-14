@@ -25,7 +25,7 @@
 #include "ims_keywords.h"
 #include "ims_file.h"
 
-
+std::vector<js_engine::reg_function> js_engine::s_js_export;
 
 
 static bool is_int32(int64_t v)
@@ -464,6 +464,7 @@ static JSValue eval_module(
 	return JS_GetModuleNamespace(ctx, (JSModuleDef*)JS_VALUE_GET_PTR(mv));
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void js_engine::create()
@@ -493,10 +494,21 @@ void js_engine::create()
 	JSValue global_obj = JS_GetGlobalObject(m_ctx);
 	IMS_SCOPE([&] {JS_FreeValue(m_ctx, global_obj); });
 
+	///////////////////////////////////////////////////////////////////////////
+
 	JSValue console = JS_NewObject(m_ctx);
 	JS_SetPropertyStr(m_ctx, console, "log",
-		JS_NewCFunction(m_ctx, js_console_log, "log", 1));
+		JS_NewCFunction(m_ctx, js_console_log, nullptr, 1));
 	JS_SetPropertyStr(m_ctx, global_obj, "console", console);
+
+	JSValue ifs = JS_NewObject(m_ctx);
+	JS_SetPropertyStr(m_ctx, global_obj, "ifs", ifs);//always present
+
+	///////////////////////////////////////////////////////////////////////////
+	for (auto& f : s_js_export) {
+		f(m_ctx, global_obj);
+	}
+	///////////////////////////////////////////////////////////////////////////
 
 	JS_SetInterruptHandler(m_rt, 
 		[](JSRuntime*, void*){
@@ -535,6 +547,32 @@ js_engine::~js_engine()
 {
 	destroy();
 }
+
+void js_engine::eval(std::string_view src)
+{
+	if (!m_ctx) {
+		create();//lazy creation
+	} 
+	
+	std::scoped_lock lock(get_lock());
+	thread_enter();
+	
+	auto v = JS_Eval2(m_ctx, src.data(), src.length(), nullptr);
+	IMS_SCOPE([&] {JS_FreeValue(m_ctx, v); });
+
+	if (JS_IsException(v)) {
+		JSValue e = JS_GetException(m_ctx);
+		IMS_SCOPE([&] {JS_FreeValue(m_ctx, e); });
+		std::string err_str;
+		js_get_error(e, m_ctx, err_str);
+		std::cout << err_str;
+	} else if (!JS_IsUndefined(v)){
+		js_print(m_ctx, v);
+	}
+	
+	std::cout << std::endl;
+};
+
 
 JSModuleDef* js_engine::module_loader_func(const char* module_name)
 {
@@ -1159,6 +1197,16 @@ bool js_aifs_block::add_block3(
 }
 
 
+static void js_reg_cur_module(JSContext* ctx, JSValue module_export)
+{
+	JSValue global_obj = JS_GetGlobalObject(ctx);
+	IMS_SCOPE([&] {JS_FreeValue(ctx, global_obj); });
+
+	auto ifs_obj = JS_GetPropertyStr(ctx, global_obj, "ifs");
+	IMS_SCOPE([&] {JS_FreeValue(ctx, ifs_obj); });
+
+	JS_SetPropertyStr(ctx, ifs_obj, "m", module_export);
+};
 
 bool js_engine::get_blocks_from_js(
 	const std::string& filename,
@@ -1185,12 +1233,14 @@ bool js_engine::get_blocks_from_js(
 	//JS execution
 	std::string err_string;
 	JSValue exports = eval_module(m_ctx, filename, src, err_string);
-	IMS_SCOPE([&] {JS_FreeValue(m_ctx, exports); });
-
+	
 	if (JS_IsException(exports)) {
 		ims_error("JS cxception: {}", err_string);
+		JS_FreeValue(m_ctx, exports);
 		return false;//critical error
 	}
+
+	js_reg_cur_module(m_ctx, exports);//transfer ownership
 
 	auto desc = JS_GetPropertyStr(m_ctx, exports, ims_keywords::js_info);
 	IMS_SCOPE([&] {JS_FreeValue(m_ctx, desc); });

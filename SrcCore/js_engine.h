@@ -19,10 +19,12 @@
 struct JSRuntime;
 struct JSContext;
 struct JSModuleDef;
+struct JSValue;
 
 struct ifs_list;
 struct read_state;
 struct js_aifs_block;
+
 
 
 struct js_engine: public boost::noncopyable
@@ -30,8 +32,7 @@ struct js_engine: public boost::noncopyable
 	js_engine() = default;
 	~js_engine();
 
-	static js_engine& get();
-	
+
 	void create();
 	void destroy();
 
@@ -51,6 +52,11 @@ struct js_engine: public boost::noncopyable
 	std::mutex& get_lock() { return m_lock; };
 
 	js_aifs_block* m_jt = nullptr;
+
+	void eval(std::string_view src);
+
+	using reg_function = void (*)(JSContext*, JSValue&);
+	static std::vector<reg_function> s_js_export;
 
 private:
 

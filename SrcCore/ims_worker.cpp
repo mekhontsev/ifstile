@@ -178,7 +178,10 @@ bool ims_worker::is_running() const
 	return !m_idle;
 }
 
-
+int64_t ims_worker::running_time_ms() const
+{
+	return m_idle ? 0 : m_time_start.to_now_ms();
+}
 
 bool ims_worker::is_need_stop2()
 {

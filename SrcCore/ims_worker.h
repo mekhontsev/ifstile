@@ -60,6 +60,8 @@ struct ims_worker : public boost::noncopyable
 	bool is_running() const;
 
 
+	int64_t running_time_ms() const;
+
 	using FUNC = std::function<void()>;
 
 	void start(FUNC&& f);

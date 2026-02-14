@@ -1445,7 +1445,15 @@ void console_compute(const F& f)
 };
 
 
-
+void console_execute(std::string_view script)
+{
+	auto& ta = get_thread(e_ims_threads::aux);
+	ta.m_stage_name = "JavaScript exec";
+	std::string s{ script };
+	ta.start([s = std::move(s)]() {
+		ims_info_get().m_js_engine.eval(s);
+	});
+}
 
 
 void console_print(e_what_print what)
@@ -4060,6 +4068,9 @@ void on_start()
 	}
 
 	set_view_mode(ListViewMode::EXAMPLES);
+
+	void js_reg_ifs(JSContext * ctx, JSValue & global_obj);
+	js_engine::s_js_export.emplace_back(js_reg_ifs);
 }
 
 void save_settings() 
@@ -5176,7 +5187,8 @@ bool on_draw()
 	////////////////////////////////////////////////////////////////////////
 
 	//at the very end, otherwise IMGUI may crash, for example in the file open dialog
-	if (get_thread(e_ims_threads::aux).is_running() &&
+	let& aux_thread = get_thread(e_ims_threads::aux);
+	if (aux_thread.running_time_ms() > 500 &&
 		!s_ui.m_modal_msg.need_to_show())
 	{
 		show_aux_dialog();

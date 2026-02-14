@@ -28,6 +28,7 @@ struct ws_console : public window_state
 	void clear_console();
 
 	std::string m_buf;
+	std::string m_input_buf;
 
 	bool m_wrap = false;
 };
