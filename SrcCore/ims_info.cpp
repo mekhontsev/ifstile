@@ -221,6 +221,8 @@ bool ims_info::link_refs(const size_t idx_from)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+
+
 bool ims_info::process_js(read_state& rs)
 {
 	if (m_js_src.empty()) {
@@ -234,14 +236,61 @@ bool ims_info::process_js(read_state& rs)
 		m_list);
 }
 
+static std::string remove_fragments(
+	std::string_view str,
+	std::string_view start_marker,
+	std::string_view end_marker)
+{
+	std::string result;
+	//Capacity reservation helps to avoid reallocations during append operations
+	result.reserve(str.size());
 
+	size_t current_pos = 0;
+	while (current_pos < str.size()) {
+		//Find the next occurrence of the opening marker
+		size_t start_pos = str.find(start_marker, current_pos);
 
+		if (start_pos == std::string_view::npos) {
+			//No more fragments to remove, append remaining tail
+			result.append(str.substr(current_pos));
+			break;
+		}
+
+		//Add text found BEFORE the start marker to the result
+		result.append(str.substr(current_pos, start_pos - current_pos));
+
+		//Search for the closing marker strictly after the current opening marker
+		size_t end_pos = str.find(end_marker, start_pos + start_marker.length());
+
+		if (end_pos != std::string_view::npos) {
+			//Successfully found a pair; move current_pos past the closing marker
+			//This correctly handles back-to-back markers like "[][ ]"
+			current_pos = end_pos + end_marker.length();
+			//Remove line breaks just after the end_marker 
+			for (; current_pos < str.size(); ++current_pos) {
+				if (str[current_pos] != '\r' && str[current_pos] != '\n')break;
+			};
+		} else {
+			//No closing marker found: append the rest (including the unmatched start_marker)
+			result.append(str.substr(start_pos));
+			break;
+		}
+	}
+
+	return result;
+}
 
 #include "ims_keywords.h"
 void ims_info::print_js(std::ostream& str) const
 {
-	if (m_js_src.empty())return;
+	auto js_for_save = remove_fragments(m_js_src,
+		"//AIFS_IGNORE_BEGIN", "//AIFS_IGNORE_END");
+
+	auto script = boost::algorithm::trim_copy_if(
+		std::string_view{ js_for_save }, boost::algorithm::is_any_of(" \t\r\n"));
 	
-	str << m_js_src << ims_keywords::js_delimeter 
+	if (script.empty())return;
+
+	str << script << ims_keywords::nlc << ims_keywords::js_delimeter
 		<< ims_keywords::nlc << ims_keywords::nlc;
 }
