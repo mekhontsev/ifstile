@@ -35,17 +35,13 @@ void ims_num_traits_init_all();
 
 ims_static std::mutex g_lock;
 
-
-
-
-
 oper_block* get_cur_block() 
 { 
 	//TODO: used only in one place in finder.cpp
 	return nullptr; 
 };
 
-
+void ext_console_clear() {};
 
 int main_utf8(int argc, char** argv)
 {    
@@ -98,7 +94,6 @@ int main_utf8(int argc, char** argv)
 		std::cout << "Could not open file for write" << std::endl;
 		return 0;
 	}
-
 
 	ims_chrono init_started;
 

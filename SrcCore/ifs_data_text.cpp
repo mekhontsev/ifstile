@@ -467,6 +467,21 @@ void read_state::read_id(std::string& dst, std::string_view& s) //s changes
 	}
 }
 
+bool is_identifier_ex(std::string_view s)
+{
+	if (s.empty() || new_parser::is_digit(s.front())) {
+		return false;
+	}
+
+	while (!s.empty()) {
+		if (!is_var_id_sym(s.front())) {
+			return false;
+		}
+		s.remove_prefix(1);
+	}
+	return true;
+}
+
 void read_state::skip_spaces(std::string_view& s) //s changes
 {
 	while (!s.empty() && new_parser::is_space(s.front())) {
@@ -569,17 +584,23 @@ bool read_state::pre_process_variable(
 					q.val += "]";
 				}
 			}
-		} else {//very special variables
-
+		} else if (!q.val.empty()){//otherwise it would have already been processed before in JS
+			//very special variables
 			q.index7 = ims_max;
-
 			if (n == ims_keywords::name) {
 				b.m_name = q.val;
 				line_name = q.line7;
 			} else if (n == ims_keywords::parent) {
 				//JS only
 			} else if (n == ims_keywords::js_init) {
-				//JS only
+				if (!ims_identifiers::is_identifier(q.val)) {
+					ims_error("Invalid $init identifier: {}", q.val);
+					return false;
+				}
+				if (b.m_js_init == ims_max) {
+					//must be corrected later
+					b.m_js_init = lst.m_idf.get_unk_id(q.val);
+				}
 			} else if (n == ims_keywords::js_info) {
 				//JS only
 			} else if (n == ims_keywords::str_id) {
@@ -611,23 +632,19 @@ bool read_state::pre_process_variable(
 				//classify it later
 				b.m_conv_id = lst.insert_by_str_id(q.val);
 			} else if (n == ims_keywords::dim) {
+				size_t dim = 0;
 
-				if (!q.val.empty()) {//otherwise it would have already been processed before in JS
-
-					size_t dim = 0;
-
-					if (!boost::conversion::try_lexical_convert(q.val, dim)) {
-						ims_error("Invalid dimension: {}", q.val);
-						return false;
-					}
-
-					if (dim > 100) {
-						ims_error("Invalid dimension: {}", dim);
-						return false;
-					}
-					b.m_flags.has_dim = true;
-					b.m_dim2 = dim;
+				if (!boost::conversion::try_lexical_convert(q.val, dim)) {
+					ims_error("Invalid dimension: {}", q.val);
+					return false;
 				}
+
+				if (dim > 100) {
+					ims_error("Invalid dimension: {}", dim);
+					return false;
+				}
+				b.m_flags.has_dim = true;
+				b.m_dim2 = dim;
 			} else {
 				ims_error("Invalid var name:  {}", q.name);
 				return false;//unknown identifier

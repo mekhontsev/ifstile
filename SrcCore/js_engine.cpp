@@ -28,6 +28,225 @@
 std::vector<js_engine::reg_function> js_engine::s_js_export;
 
 
+static int64_t js_get_arr_size(JSContext* ctx, JSValue v)
+{
+	int64_t sz = 0;
+	if (JS_GetLength(ctx, v, &sz)) {
+		return 0;
+	}
+	return sz;
+};
+
+static bool get_int64(JSContext* ctx, int64_t* pres, JSValue val)
+{
+	double res;
+	if (0 != JS_ToFloat64(ctx, &res, val)) {
+		return false;
+	}
+
+	let i = static_cast<int64_t>(res);
+	if (double(i) != res) {
+		return false;
+	}
+
+	*pres = i;
+	return true;
+}
+
+
+struct js_aifs_block
+{
+	js_aifs_block(JSContext* ctx) : m_ctx{ ctx } {};
+	~js_aifs_block() { clear9(); };
+
+	JSContext* m_ctx = nullptr;
+
+	//module's export
+	JSValue m_export = JS_UNDEFINED;
+
+	JSValue get_exports_entry(const char* v) 
+	{
+		return JS_IsObject(m_export) ?
+			JS_GetPropertyStr(m_ctx, m_export, v) :
+			JS_UNDEFINED;
+	}
+
+	struct init_func_info
+	{
+		JSValue v;
+		size_t unk_id;//string identifier
+	};
+
+	//references to all $init functions for blocks
+	//duplicates are allowed
+	//stored as long as the file exists
+	std::vector<init_func_info> m_init_funcs;
+
+
+	//all blocks that have already been added (search for duplicates)
+	UNAMESPACE::unordered_map<void*, oper_block*> m_blocks2;
+
+	struct add_info
+	{
+		oper_block** ppb;
+		JSValue v;//does not store a reference
+	};
+
+	std::vector<add_info> m_parr;//temporary
+
+	std::vector<JSValue> m_process_queue;//temporary
+
+	////////////////////////////////////////////////////////////////////////////
+	//information when processing the current block
+
+	std::vector<JSValue> m_values;
+
+	struct info
+	{
+		size_t num_ref = 0;		//number of references from other locations
+		size_t start = 0;		//start of the array
+		size_t length = 0;		//length of the array
+		size_t index = ims_max; //ims_max or variable it is equal to
+	};
+
+	//there are only arrays here
+	UNAMESPACE::unordered_map<void*, info> m_map;
+
+	std::vector<JSValue> m_js_vars;
+
+	////////////////////////////////////////////////////////////////////////////
+
+	void clear9()
+	{
+		assert(m_values.empty());
+		assert(m_map.empty());
+		assert(m_js_vars.empty());
+		assert(m_blocks2.empty());
+		assert(m_process_queue.empty());
+		assert(m_parr.empty());
+
+		////////////////////////////////////////////////////////////////////////
+		for (auto& e : m_init_funcs) {
+			JS_FreeValue(m_ctx, e.v);
+		}
+		m_init_funcs.clear();
+
+		JS_FreeValue(m_ctx, m_export);
+		m_export = JS_UNDEFINED;
+	}
+
+	//recursively add arrays referenced by the operator
+	//so that we can then create our own operators for them
+	void process_arrays(JSValue vx)
+	{
+		assert(m_process_queue.empty());
+		IMS_SCOPE([&] {m_process_queue.clear(); });
+
+		m_process_queue.emplace_back(vx);
+
+		while (!m_process_queue.empty()) {
+
+			auto v = m_process_queue.back();
+			m_process_queue.pop_back();
+
+			if (!JS_IsArray(v)) {
+				continue;
+			}
+
+			auto res = m_map.emplace(JS_VALUE_GET_PTR(v), info());
+			auto& m = res.first->second;
+			++m.num_ref;
+
+
+			if (!res.second) {
+				continue;//already visited
+			}
+			m.index = ims_max;
+			m.length = js_get_arr_size(m_ctx, v);
+			m.start = m_values.size();
+			m_values.resize(m_values.size() + m.length, JS_NULL);
+
+			for (uint32_t i = 0; i < m.length; ++i) {
+				let vi = JS_GetPropertyUint32(m_ctx, v, i);
+				m_values[m.start + i] = vi;
+				m_process_queue.push_back(vi);
+			}
+		}
+
+	}
+
+	bool get_rational64(const info& m, int64_t* n = nullptr) const
+	{
+		if (m.length != 3)return false;
+
+		auto jlast = m_values[m.start + 2];
+
+		if (!JS_IsString(jlast))return false;
+		{
+			let* s = JS_ToCString(m_ctx, jlast);
+			bool is_ok = s[0] == '/' && s[1] == 0;
+			JS_FreeCString(m_ctx, s);
+			if (!is_ok)return false;
+		}
+
+		int64_t rat[2];
+		for (size_t i = 0; i < 2; ++i) {
+			if (!get_int64(m_ctx, &rat[i], m_values[m.start + i])) {
+				return false;
+			}
+		}
+
+		if (n) {
+			n[0] = rat[0];
+			n[1] = rat[1];
+		}
+		return true;
+	}
+
+
+	bool get_rational64(JSValue v, int64_t* n = nullptr) const
+	{
+		int64_t number;
+		if (get_int64(m_ctx, &number, v)) {
+			if (n) {
+				n[0] = number;
+				n[1] = 1;
+			}
+			return true;
+		}
+
+		auto it = m_map.find(JS_VALUE_GET_PTR(v));
+		if (it == m_map.end()) {
+			return false;
+		}
+
+		return get_rational64(it->second, n);
+	}
+
+	bool add_block3(
+		JSValue block_def,
+		read_state& rs,
+		ifs_list& lst);
+
+	bool parse_var(
+		size_t idx_var,
+		JSValue jv,
+		size_t x,
+		oper_block& b,
+		read_state& rs,
+		ims_identifiers& unk);
+
+
+	bool create_vars(
+		oper_block& b,
+		JSValue block_def,
+		read_state& rs,
+		ifs_list& lst);
+
+};
+
+
+
 static bool is_int32(int64_t v)
 {
 	using N32 = std::numeric_limits<uint32_t>;
@@ -46,29 +265,6 @@ static void js_set_arr_size(JSContext* ctx, JSValue arr, size_t size)
 	JS_SetLength(ctx, arr, (int64_t)size);
 }
 
-static int64_t js_get_arr_size(JSContext* ctx, JSValue v)
-{
-	int64_t sz = 0;
-	if (JS_GetLength(ctx, v, &sz)) {
-		return 0;
-	}
-	return sz;
-};
-
-static bool get_int64(JSContext* ctx, int64_t* pres, JSValue val) {
-	double res;
-	if (0 != JS_ToFloat64(ctx, &res, val)) {
-		return false;
-	}
-
-	let i = static_cast<int64_t>(res);
-	if (double(i) != res) {
-		return false;
-	}
-
-	*pres = i;
-	return true;
-}
 
 //print error
 static void js_get_error(JSValue e, JSContext* ctx, std::string& err_string)
@@ -159,182 +355,6 @@ static JSValue create_js_value(
 	return val;
 }
 
-
-struct js_aifs_block
-{
-
-	js_aifs_block(JSContext* ctx) : m_ctx{ ctx } {};
-	~js_aifs_block() { clear9(); };
-
-	JSContext* m_ctx = nullptr;
-
-	//references to all $init functions for blocks
-	//duplicates are allowed
-	//stored as long as the file exists
-	std::vector<JSValue> m_init_funcs;
-
-
-	//all blocks that have already been added (search for duplicates)
-	UNAMESPACE::unordered_map<void*, oper_block*> m_blocks2;
-
-	struct add_info
-	{
-		oper_block** ppb;
-		JSValue v;//does not store a reference
-	};
-
-	std::vector<add_info> m_parr;//temporary
-
-	std::vector<JSValue> m_process_queue;//temporary
-
-	////////////////////////////////////////////////////////////////////////////
-	//information when processing the current block
-
-	std::vector<JSValue> m_values;
-
-	struct info
-	{
-		size_t num_ref = 0;		//number of references from other locations
-		size_t start = 0;		//start of the array
-		size_t length = 0;		//length of the array
-		size_t index = ims_max; //ims_max or variable it is equal to
-	};
-
-	//there are only arrays here
-	UNAMESPACE::unordered_map<void*, info> m_map;
-
-	
-	std::vector<JSValue> m_js_vars;
-
-	////////////////////////////////////////////////////////////////////////////
-
-
-	void clear9()
-	{
-		
-		assert(m_values.empty());
-		assert(m_map.empty());
-		assert(m_js_vars.empty());
-		assert(m_blocks2.empty());
-		assert(m_process_queue.empty());
-		assert(m_parr.empty());
-		
-		////////////////////////////////////////////////////////////////////////
-		for (auto& e : m_init_funcs) {
-			JS_FreeValue(m_ctx, e);
-		}
-	}
-
-	//recursively add arrays referenced by the operator
-	//so that we can then create our own operators for them
-	void process_arrays(JSValue vx)
-	{
-		assert(m_process_queue.empty());
-		IMS_SCOPE([&] {m_process_queue.clear(); });
-	
-		m_process_queue.emplace_back(vx);
-
-		while (!m_process_queue.empty()) {
-
-			auto v = m_process_queue.back();
-			m_process_queue.pop_back();
-
-			if (!JS_IsArray(v)) {
-				continue;
-			}
-
-			auto res = m_map.emplace(JS_VALUE_GET_PTR(v), info());
-			auto& m = res.first->second;
-			++m.num_ref;
-
-
-			if (!res.second) {
-				continue;//already visited
-			}
-			m.index = ims_max;
-			m.length = js_get_arr_size(m_ctx, v);
-			m.start = m_values.size();
-			m_values.resize(m_values.size() + m.length, JS_NULL);
-
-			for (uint32_t i = 0; i < m.length; ++i) {
-				let vi = JS_GetPropertyUint32(m_ctx, v, i);
-				m_values[m.start + i] = vi;
-				m_process_queue.push_back(vi);
-			}
-		}
-
-	}
-
-	bool get_rational64(const info& m, int64_t* n = nullptr) const
-	{
-		if (m.length != 3)return false;
-
-		auto jlast = m_values[m.start + 2];
-
-		if (!JS_IsString(jlast))return false;
-		{
-			let* s = JS_ToCString(m_ctx, jlast);
-			bool is_ok = s[0] == '/' && s[1] == 0;
-			JS_FreeCString(m_ctx, s);
-			if (!is_ok)return false;
-		}
-
-		int64_t rat[2];
-		for (size_t i = 0; i < 2; ++i) {
-			if (!get_int64(m_ctx, &rat[i], m_values[m.start + i])) {
-				return false;
-			}
-		}
-
-		if (n) {
-			n[0] = rat[0];
-			n[1] = rat[1];
-		}
-		return true;
-	}
-
-
-	bool get_rational64(JSValue v, int64_t* n = nullptr) const 
-	{
-		int64_t number;
-		if (get_int64(m_ctx, &number, v)) {
-			if (n) {
-				n[0] = number;
-				n[1] = 1;
-			}
-			return true;
-		}
-
-		auto it = m_map.find(JS_VALUE_GET_PTR(v));
-		if (it == m_map.end()) {
-			return false;
-		}
-
-		return get_rational64(it->second, n);
-	}
-
-	bool add_block3(
-		JSValue block_def,
-		read_state& rs,
-		ifs_list& lst);
-
-	bool parse_var(
-		size_t idx_var,
-		JSValue jv,
-		size_t x,
-		oper_block& b,
-		read_state& rs,
-		ims_identifiers& unk);
-
-
-	bool create_vars(
-		oper_block& b,
-		JSValue block_def,
-		read_state& rs,
-		ifs_list& lst);
-
-};
-
 ims_static UNAMESPACE::unordered_set<const void*> g_rec_guard;
 
 static const void* do_print(JSValue v)
@@ -424,7 +444,16 @@ static JSValue js_console_log(
 	return JS_UNDEFINED;
 }
 
-
+static JSValue js_console_clear(
+	JSContext* ,
+	JSValueConst,
+	int,
+	JSValueConst*)
+{
+	void ext_console_clear();
+	ext_console_clear();
+	return JS_UNDEFINED;
+}
 
 static JSValue eval_module(
 	JSContext* ctx,
@@ -497,9 +526,12 @@ void js_engine::create()
 	///////////////////////////////////////////////////////////////////////////
 
 	JSValue console = JS_NewObject(m_ctx);
+	JS_SetPropertyStr(m_ctx, global_obj, "console", console);
 	JS_SetPropertyStr(m_ctx, console, "log",
 		JS_NewCFunction(m_ctx, js_console_log, nullptr, 1));
-	JS_SetPropertyStr(m_ctx, global_obj, "console", console);
+	JS_SetPropertyStr(m_ctx, console, "clear",
+		JS_NewCFunction(m_ctx, js_console_clear, nullptr, 0));
+	
 
 	JSValue ifs = JS_NewObject(m_ctx);
 	JS_SetPropertyStr(m_ctx, global_obj, "ifs", ifs);//always present
@@ -835,6 +867,8 @@ void process_description(JSContext* ctx, ims_identifiers& idf, oper_source& s, J
 	}
 }
 
+
+
 bool js_aifs_block::create_vars(
 	oper_block& b,
 	JSValue block_def,
@@ -880,8 +914,7 @@ bool js_aifs_block::create_vars(
 	
 	m_js_vars.reserve(len);
 
-	JSValue init_func = JS_UNDEFINED;
-	IMS_SCOPE([&] {JS_FreeValue(m_ctx, init_func); });
+
 
 
 	for (uint32_t j = 0; j < len; j++) {
@@ -916,7 +949,30 @@ bool js_aifs_block::create_vars(
 			let* s = JS_ToCString(m_ctx, val);
 			v.val = s;
 			JS_FreeCString(m_ctx, s);
-		}else if (v.name == ims_keywords::dim) {//process it immediately
+		}
+
+		if (v.name == ims_keywords::js_init) {//process it immediately
+			assert(b.m_js_init == ims_max);
+			if (JS_IsFunction(m_ctx, val)) {
+				b.m_js_init = m_init_funcs.size();
+				m_init_funcs.push_back({ JS_DupValue(m_ctx, val), ims_max });
+			} else if (ims_identifiers::is_identifier(v.val)) {
+				auto prop = get_exports_entry(v.val.c_str());
+				IMS_SCOPE([&] {JS_FreeValue(m_ctx, prop); });
+				if (!JS_IsFunction(m_ctx, prop)) {
+					ims_error("$init must be an exported function.");
+					return false;
+				}
+				b.m_js_init = m_init_funcs.size();
+				m_init_funcs.push_back({ JS_DupValue(m_ctx, prop), lst.m_idf.get_unk_id(v.val) });
+			} else {
+				ims_error("$init must be a function or identifier.");
+				return false;
+			}
+			v.val.clear();//consumed
+		}else  if (!v.val.empty()) {
+			//parse it later as AIFS
+		} else if (v.name == ims_keywords::dim) {//process it immediately
 			int64_t d;
 			if (get_int64(m_ctx, &d, val)) {
 				if (d > 100) {
@@ -930,14 +986,6 @@ bool js_aifs_block::create_vars(
 				ims_error("invalid value");
 				return false;
 			}
-		}else if (v.name == ims_keywords::js_init) {//process it immediately
-			if (JS_IsFunction(m_ctx, val)) {
-				init_func = JS_DupValue(m_ctx, val);
-			}
-			else {
-				ims_error("must be a function");
-				return false;
-			}
 		}else if (v.name == ims_keywords::js_info) {//process it immediately
 			if (JS_IsObject(val)) {
 				auto& s = b.m_src2;
@@ -946,6 +994,8 @@ bool js_aifs_block::create_vars(
 			}else {
 				ims_warning("must be an object");
 			}
+		} else {
+
 		}
 		v.js_val = m_js_vars.size();
 		m_js_vars.emplace_back(JS_DupValue(m_ctx, val));
@@ -1016,12 +1066,6 @@ bool js_aifs_block::create_vars(
 
 		var.line7 = it->second.index;
 	}
-	///////////////////////////////////////
-
-	if (b.m_js_init == ims_max && !JS_IsUndefined(init_func)) {
-		b.m_js_init = m_init_funcs.size();
-		m_init_funcs.emplace_back(JS_DupValue(m_ctx, init_func));
-	}
 
 	//////////////////////////////////////////////////////////////
 	//final processing
@@ -1066,6 +1110,29 @@ bool js_aifs_block::create_vars(
 
 	return true;
 }
+
+size_t js_engine::add_js_init(size_t unk_id, const char* fname)
+{
+	if (!m_ctx) {
+		create();//lazy creation
+	}
+
+	auto prop = m_jt->get_exports_entry(fname);
+	IMS_SCOPE([&] {JS_FreeValue(m_ctx, prop); });
+
+	if (!JS_IsFunction(m_ctx, prop)) {
+		return ims_max;
+	}
+	let ret = m_jt->m_init_funcs.size();
+	m_jt->m_init_funcs.push_back({ JS_DupValue(m_ctx, prop), unk_id });
+	return ret;
+}
+
+size_t js_engine::get_js_init_identifier(size_t idx) const
+{
+	return m_jt->m_init_funcs[idx].unk_id;
+}
+
 
 bool js_aifs_block::add_block3(
 	JSValue block_def,
@@ -1205,7 +1272,7 @@ static void js_reg_cur_module(JSContext* ctx, JSValue module_export)
 	auto ifs_obj = JS_GetPropertyStr(ctx, global_obj, "ifs");
 	IMS_SCOPE([&] {JS_FreeValue(ctx, ifs_obj); });
 
-	JS_SetPropertyStr(ctx, ifs_obj, "m", module_export);
+	JS_SetPropertyStr(ctx, ifs_obj, "m",JS_DupValue(ctx, module_export));
 };
 
 bool js_engine::get_blocks_from_js(
@@ -1233,14 +1300,16 @@ bool js_engine::get_blocks_from_js(
 	//JS execution
 	std::string err_string;
 	JSValue exports = eval_module(m_ctx, filename, src, err_string);
+	IMS_SCOPE([&] {JS_FreeValue(m_ctx, exports); });
 	
 	if (JS_IsException(exports)) {
-		ims_error("JS cxception: {}", err_string);
-		JS_FreeValue(m_ctx, exports);
+		ims_error("JS exception: {}", err_string);
 		return false;//critical error
 	}
 
-	js_reg_cur_module(m_ctx, exports);//transfer ownership
+	m_jt->m_export = JS_DupValue(m_ctx, exports);
+
+	js_reg_cur_module(m_ctx, exports);
 
 	auto desc = JS_GetPropertyStr(m_ctx, exports, ims_keywords::js_info);
 	IMS_SCOPE([&] {JS_FreeValue(m_ctx, desc); });
@@ -1319,12 +1388,15 @@ bool call_js_init(oper_block& b, size_t idx, ims_view<operator_ptr> ovr)
 	for (size_t i = 0; i < sz; ++i) {
 		if (ovr[i].h.is_xundef())continue;
 		let val = create_js_value(jtx, ovr[i], true);
+		if (JS_IsUndefined(val)) {
+			return false;
+		}
 		var_name = g->get_var_name(i);
 		JS_SetPropertyStr(jtx, obj, var_name.c_str(), val);
 	}
 
 	//call JS
-	let status = JS_Call(jtx, je.m_jt->m_init_funcs[idx], obj, 0, nullptr);
+	let status = JS_Call(jtx, je.m_jt->m_init_funcs[idx].v, obj, 0, nullptr);
 	IMS_SCOPE([&] {JS_FreeValue(jtx, status); });
 
 	if (JS_IsException(status)) {

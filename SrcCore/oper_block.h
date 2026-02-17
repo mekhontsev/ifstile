@@ -125,7 +125,6 @@ struct oper_block
 	//time when it was found, ms since epoch (0 - no information)
 	uint64_t m_timestamp = 0;
 
-
 	//offset of the first root
 	var_header::type m_first_var = var_header::nil;
 
@@ -164,11 +163,11 @@ struct oper_block
 	bool is_converter() const { return m_conv_id != block_id_max; };
 	std::string_view str_id4() const;
 
-
 	size_t simple_hash() const;
 
-	
 	const ifs_list& get_list() const;
+
+	size_t get_js_init_identifier() const;
 
 	//the vertex to be constructed in the final graph
 	size_t get_froot() const;
@@ -224,8 +223,6 @@ struct oper_block
 		const variator_params& vp,
 		int_arr_ref* rel_vec);
 
-
-	
 	//insert operator recursively
 	void insert_op_ex(
 		size_t dst_idx, 
@@ -234,10 +231,6 @@ struct oper_block
 		control_values* ci = nullptr,//fill in for apply_templates
 		bool do_subst = true);//enter substitutions recursively
 
-
-
-
-	
 	void generate_random_vector(size_t dst_idx,
 		const operator_ptr& src, const distrib_info& di, const int_arr_ref* proto = nullptr);
 	void generate_random_vector(size_t dst_idx,
@@ -245,7 +238,6 @@ struct oper_block
 	void generate_random_binary(size_t dst_idx,
 		const operator_ptr& src, const distrib_info& di);
 	void generate_random_number(size_t dst_idx, const distrib_info& dim);
-
 
 	void remove_search();
 	//get a comment on a variable
@@ -265,7 +257,8 @@ struct oper_block
 
 	void set_own_dim();
 
-	bool fix_js_parent();
+	void fix_js_parent();
+	bool has_js_parent() const;
 	////////////////////////////////////////////////////////////////////////////
 	//operator=
 	void simple_copy(oper_block& dst) const;
@@ -311,13 +304,10 @@ struct oper_block
 	void set_mobius(size_t idx);
 	size_t set_power_ref(size_t idx);
 
-	
 
 	void set_distribution(size_t idx, ETYPE t, ESUBTYPE s, double v1, double v2);
 	void set_distribution_def(size_t idx);
 	size_t set_binary_or_vector(size_t idx, ETYPE t, size_t sz);
-
-
 
 	void set(size_t idx, ETYPE t, size_t primary, size_t secondary);
 
@@ -332,7 +322,6 @@ struct oper_block
 	
 	void set_double(size_t idx, double v);
 	void set_double(ims_operator& h, double v);
-
 
 	//add after prev position, updating it
 	var_header::type add_var(uint32_t& prev, size_t ref, bool is_subs);
@@ -352,13 +341,9 @@ struct oper_block
 
 	bool convert_type_inplace(ims_operator& h, bool to_int);
 
-	
-
-
 	block_class& create_own_class();
 	block_class& set_new_class(const ims_info* nfo);
 	block_class& create_copy(const block_class* p);
-
 
 	bool can_exists() const;//there is a graph and the dimension is defined
 	

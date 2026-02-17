@@ -91,6 +91,11 @@ static void write_block_t(std::ostream& str, const oper_block& b, oper_block_fla
 		str << ims_keywords::dim << "=" << b.get_dim() << nlc;
 	}
 
+	let js_init = b.get_js_init_identifier();
+	if (js_init != ims_max) {
+		str << ims_keywords::js_init << "=" << lst.m_idf.get_str_from_unk(js_init) << nlc;
+	}
+
 	if (b.is_converter()) {
 		str << ims_keywords::convert_to << "=" << lst.get_str(b.m_conv_id) << nlc;
 	}
@@ -189,12 +194,16 @@ void aifs_printer::write_block(
 
 	let* dp = b->get_parent();
 
+
+
 	if (dp) {
-		write_sym(dst, ims_keywords::base);
 		if (ignore_priv) dp = dp->elevate_priv();
-		let id = get_temp_id(dp);
-		assert(!id.empty());
-		dst << id;
+		if (dp) {
+			write_sym(dst, ims_keywords::base);
+			let id = get_temp_id(dp);
+			assert(!id.empty());
+			dst << id;
+		}
 	}
 	dst << nlc;
 
@@ -244,7 +253,7 @@ void aifs_printer::add_depends(const ifs_list& lst, ast_stack& ai, bool ignore_j
 		if (dp) {
 			if (ignore_js) {
 				dp = dp->elevate_priv();
-				if (dp->m_flags.from_js)continue;
+				if (!dp || dp->m_flags.from_js)continue;
 			}
 			add_dep_block(dp);
 		}

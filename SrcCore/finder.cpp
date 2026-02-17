@@ -327,7 +327,7 @@ static block_id_t get_base_block_id(const oper_block* b)
 {
 	let& i2d = b->get_list().m_id2data;
 	for (; b; b = b->get_parent()) {
-		if (b->m_flags.only_view || b->m_js_parent)continue;
+		if (b->m_flags.only_view || b->has_js_parent())continue;
 		let id = b->m_block_id;
 		if (id != block_id_max && i2d[id].m_str_id != ims_max) {
 			assert(!b->m_flags.priv);

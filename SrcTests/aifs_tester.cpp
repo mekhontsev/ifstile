@@ -175,7 +175,19 @@ bool aifs_tester::init()
 	if (!b)return true;
 
 	bi.recalc_graph();
-	return bi.init4(*b, ec, am, true, gid.get(), ac);
+	if (!bi.init4(*b, ec, am, true, gid.get(), ac)) {
+		return false;
+	}
+
+	//the block must be inheritable
+	inh.clear();
+	inh.inherit_from(*b, vp, cv, true);
+	check_block(&inh);
+	if (inh.is_invalid()) {
+		return false;
+	}
+
+	return true;
 }
 
 const ims_val* aifs_tester::eval(std::string_view var, bool is_geom /*= true*/)

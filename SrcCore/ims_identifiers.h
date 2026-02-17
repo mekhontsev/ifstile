@@ -68,4 +68,7 @@ struct ims_identifiers
 		std::string_view prefix, size_t* suffix = nullptr) const;
 
 	size_t create_unique_identifier(std::string_view prefix);
+
+	static bool is_identifier(std::string_view s);
+
 };

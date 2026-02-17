@@ -24,6 +24,7 @@
 #include "graph_init_data_ptr.h"
 #include "affine_calc.h"
 #include "ast_maps.h"
+#include "variator.h"
 
 struct ims_val;
 
@@ -37,15 +38,16 @@ struct aifs_tester
 	std::string aifs;
 	std::string err_msg;
 	graph_init_data_ptr gid;
+	variator_params vp;
+	control_values2 cv;
+	oper_block inh;
 	
 	static constexpr ims_val_b::Real eps = 1e-15;
 
 	error_helper::use_buf ehb;//intercept the program output
-	
+
 	aifs_tester() = default;
-
 	aifs_tester(std::string_view v);
-
 
 	static operator_ptr get_var_ptr(const oper_block& b, std::string_view var_name);
 
@@ -55,15 +57,12 @@ struct aifs_tester
 
 	const ims_val* eval(std::string_view var, bool is_geom = true);
 
-
 	//compares the variable from the last block
 	bool equal(std::string_view var, ims_val_b::Rational val);
-
 
 	bool approx(std::string_view var, ims_val_b::Real val);
 
 	bool not_finite(std::string_view var);
-
 
 	template<typename T>
 	bool is_arr(std::string_view var, ims_val_b::ETP t,
@@ -75,18 +74,14 @@ struct aifs_tester
 	bool equal_vec(std::string_view var,
 		const std::initializer_list<ims_val_b::Rational> arr);
 
-	
-
 	bool approx_affine(std::string_view var,
 		const std::initializer_list<ims_val_b::Real> arr);
 
 	bool equal_affine(std::string_view var,
 		const std::initializer_list<ims_val_b::Rational> arr);
 
-
 	std::string eval_as_str(std::string_view var, bool is_geom = true);
 
-	
 	const oper_block* get_last_block() const;
 
 	const oper_block* get_block(std::string_view id);

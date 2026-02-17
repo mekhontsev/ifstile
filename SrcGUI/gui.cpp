@@ -237,27 +237,27 @@ void switch_fullscreen();
 
 static bool reset_resolution();
 
-	
-
 static void try_autosave();
 
 
 ims_setting& get_settings() { return g_st; };
-
-
 
 void timer_callback(size_t ms_interval)
 {
 	g_rate_checked = uint32_t(finder::get().get_rate() * 1000 / ms_interval);
 }
 
-
 void stop_build()
 {
 	get_thread(e_ims_threads::build).stop();
 };
 
-
+void ext_console_clear()
+{
+	call_main_thread([]{
+		s_ui.m_console.clear_console();
+	});
+};
 
 float& get_ui_scale()
 {

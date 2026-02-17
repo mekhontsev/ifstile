@@ -161,7 +161,6 @@ void build_data::on_change_mode()
 	if (!m_normal_parent)return;
 
 	set_block(m_normal_parent);
-	m_changed = true;
 	m_bi.recalc_graph();
 }
 
@@ -298,7 +297,7 @@ size_t build_data::get_froot() const
 
 bool build_data::can_create_view() const
 {
-	return !m_changed && !empty() && m_bi.exists();
+	return !m_normal_parent && !m_changed && !empty() && m_bi.exists();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

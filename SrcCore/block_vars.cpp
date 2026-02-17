@@ -272,8 +272,6 @@ bool call_js_init(oper_block&, size_t, ims_view<operator_ptr>);
 //returns false if the block cannot be materialized
 bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 {
-	
-	
 	ast_stack ai;
 	eval_stack es;
 
@@ -298,25 +296,21 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 
 	bool need_set_block = true;
 
-	while (!parr.empty()) {//during iterations parr can grow!
+	while (!parr.empty()) {//can grow during iterations!
 
 		auto* b = parr.back();
 
 		let was_ready = b->m_flags.ready;
+
 		if (b->m_flags.ready) {//second pass
 			parr.pop_back();
 		} else {
 			b->m_flags.ready = true;
 		}
 
-		if (was_ready && b->get_parent() != b->m_js_parent.get()) {
+		if (was_ready && !b->has_js_parent()) {
 			assert(!b->is_invalid());
 			assert(!b->m_flags.priv);
-
-			let sz = b->num_vars();
-			if (sz == 0) {
-				continue;//the block is ready
-			}
 
 			size_t js_init = ims_max;
 			for (let* p = b; p; p = p->get_parent()) {
@@ -334,6 +328,8 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 
 			static ovr_data opod;//TODO reuse
 			opod.init(*b);
+
+			let sz = b->num_vars();
 			for (size_t i = 0; i < sz; ++i) {
 				if (!b->ctx()->m_refs5[i].is_var()) {
 					opod.m_arr[i].p.h.set_xundef();
@@ -344,12 +340,13 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 			
 			let res = call_js_init(*b, js_init, v);
 
+			if (!res) {
+				continue;//ignore $init if any JavaScript error occurred
+			}
+
 			b->m_graph.reset();
 			b->m_ctx.reset();
 
-			if (!res) {
-				return false;
-			}
 			assert(b->m_js_parent);
 
 			auto* p = b->m_js_parent.get();
@@ -361,12 +358,13 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 			b->m_class.reset();//use js_parent
 			b->set_active_ref(active_ref);
 
-			parr.emplace_back(b);
-
 			assert(!p->m_graph);
 			assert(!p->m_ctx);
 			
-			b = p;//process at this iteration, without inserting into parr
+			//In this iteration, process the new parent element without
+			//inserting it into parr, then process block b again.
+			parr.emplace_back(b);
+			b = p;
 		}
 
 		assert(b->get_class());
@@ -381,7 +379,7 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 
 		if (!need_graph) {
 
-		;	//try to reuse
+			//try to reuse
 			b->m_graph = p->m_graph;
 			b->m_ctx = p->m_ctx;
 

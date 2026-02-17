@@ -37,7 +37,7 @@ struct build_data
 
 	std::unique_ptr<oper_block> m_block_sq;
 
-	//It's simply stored because it's the parent of the custom block.
+	//the parent of the custom block.
 	std::unique_ptr<oper_block> m_normal_parent;
 
 	//TODO: It is only stored here and is almost never used in build_data

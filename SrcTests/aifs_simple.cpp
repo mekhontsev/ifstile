@@ -23,6 +23,8 @@
 #include "edge_ball.h"
 #include "edge_map.h"
 
+std::string get_con_data(bool err = false);
+
 TEST(testLoad, invalid_block_header_fail)
 {
 	aifs_tester t(R"(
@@ -845,3 +847,77 @@ b=(a^-1)^2
 	EXPECT_EQ(t.get_def("b"), "(a^-1)^2");
 	EXPECT_TRUE(t.equal("b", { 1, 4 }));
 };
+
+////////////////////////////////////////////////////////////////////////////////
+TEST(testJS, ConsoleLog)
+{
+	aifs_tester t(R"(
+console.log('ConsoleLog')
+)");
+	get_con_data(false);
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_EQ(get_con_data(false), "ConsoleLog\n");
+}
+
+TEST(testJS, JsInitFunc)
+{
+	aifs_tester t(R"(
+export function js_init(){
+	this.a=123
+}
+@@
+@
+$init = js_init
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 123));
+}
+
+TEST(testJS, JsInitFunc2)
+{
+	aifs_tester t(R"(
+export function js_init(){
+	this.a=125
+}
+export const $aifs={$init: 'js_init' };
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 125));
+}
+
+TEST(testJS, JsInitFunc3)
+{
+	aifs_tester t(R"(
+function js_init(){
+	this.a=125
+}
+export const $aifs={$init: 'js_init' };
+)");
+	if (t.init())FAIL() << "should fail, not exported";
+	
+}
+TEST(testJS, JsInitFunc4)
+{
+	aifs_tester t(R"(
+@
+$init = js_init
+)");
+	if (t.init())FAIL() << "should fail, not found in JS";
+}
+
+TEST(testJS, JsInitFunc5)
+{
+	aifs_tester t(R"(
+@
+$init = 1
+)");
+	if (t.init())FAIL() << "should fail, not an identifier";
+}
+
+TEST(testJS, JsInitFunc6)
+{
+	aifs_tester t(R"(
+export const $aifs={$init: 0 };
+)");
+	if (t.init())FAIL() << "should fail, not an identifier";
+}

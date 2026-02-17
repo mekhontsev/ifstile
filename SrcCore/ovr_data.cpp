@@ -61,6 +61,7 @@ void ovr_data::merge_from(oper_block& dst, const oper_block& src) const
 	dst.m_name = src.m_name;
 	dst.m_dim2 = src.get_dim();
 	dst.m_subspace = src.m_subspace;
+	dst.m_js_init = src.m_js_init;
 
 	auto& f = dst.m_flags;
 	f = src.m_flags;

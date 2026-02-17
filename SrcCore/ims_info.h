@@ -52,4 +52,6 @@ struct ims_info: public boost::noncopyable
 	bool process_js(read_state& rs);
 
 	void print_js(std::ostream& str) const;
+
+	size_t get_js_init_identifier(size_t idx) const;
 };

@@ -15,19 +15,23 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "pch.h"
-
+#include "conbuf.h"
 
 void ims_num_traits_init_all();
 
-void test_all();
+ims_static console_writer g_conbuf;
+
+std::string get_con_data(bool err = false)
+{
+	return err ? g_conbuf.fetch_error() : g_conbuf.fetch_string();
+};
+
+void ext_console_clear() {};
 
 int main_utf8(int argc, char** argv)
-{    
-    ims_num_traits_init_all();
-#if 0
-	test_all();
-#endif
-
+{
+	ims_num_traits_init_all();
+	g_conbuf.redirect();
 	printf("Running main() from %s\n", __FILE__);
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

@@ -75,3 +75,9 @@ size_t ims_identifiers::create_unique_identifier(std::string_view prefix)
 
 	return get_data(ret).unk_id;
 }
+
+bool ims_identifiers::is_identifier(std::string_view s)
+{
+	bool is_identifier_ex(std::string_view s);
+	return is_identifier_ex(s);
+}

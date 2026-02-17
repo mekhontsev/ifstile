@@ -53,18 +53,33 @@ void oper_block::set_parent(const oper_block* b)
 
 void oper_block::prepare_js_parent()
 {
-	if (m_js_parent) {
+	if (m_js_parent.use_count() == 1) {//we don't use weak_ptr for m_js_parent
 		m_js_parent->clear();
 	} else {
-		m_js_parent = std::make_unique<oper_block>();
+		m_js_parent = std::make_shared<oper_block>();
 	}
 
 	auto* jsp = m_js_parent.get();
 	jsp->set_parent(get_parent());
 	jsp->m_flags.from_js = true;
 	jsp->m_flags.priv = true;
-	
+	jsp->m_dim2 = get_dim();
 }
+
+void oper_block::fix_js_parent()
+{
+	let* p = get_parent();
+	if (p && p == m_js_parent.get()) {
+		set_parent(p->get_parent());
+		m_flags.ready = false;
+	}
+}
+
+bool oper_block::has_js_parent() const
+{
+	return m_js_parent && m_js_parent.get() == get_parent();
+}
+
 
 eval_context* oper_block::own_ctx() const
 {
@@ -116,6 +131,12 @@ size_t oper_block::simple_hash() const
 const ifs_list& oper_block::get_list() const
 {
 	return get_class()->m_nfo->m_list;
+}
+
+size_t oper_block::get_js_init_identifier() const
+{
+	if (m_js_init == ims_max)return ims_max;
+	return get_class()->m_nfo->get_js_init_identifier(m_js_init);
 }
 
 size_t oper_block::get_froot() const
@@ -1334,13 +1355,14 @@ void oper_block::copy_ovr(
 	dst.m_class.reset();
 
 	let* p = src.get_parent();
-	if (src.m_js_parent) {
+	if (src.has_js_parent()) {
 		p = p->get_parent();
 	}
 	dst.set_parent(p);
 	
 	dst.m_dim2 = src.m_dim2;
 	dst.m_subspace = src.m_subspace;
+
 	
 	boost::container::small_vector<int64_t, 10> vec;
 
@@ -1423,6 +1445,7 @@ void oper_block::inherit_view(const oper_block& src)
 	dst.m_dim2 = p->m_dim2;
 	dst.m_subspace = p->m_subspace;
 
+
 	auto& f = dst.m_flags;
 	f = p->m_flags;
 
@@ -1469,9 +1492,10 @@ bool oper_block::inherit_from(
 
 	let* par = &src;
 
-	if (!src.own_ctx() || src.m_js_parent) {
-		if (src.m_js_parent) {
-			par = src.m_js_parent->get_parent();
+	let* js_par = src.has_js_parent() ? src.m_js_parent->get_parent() : nullptr;
+	if (!src.own_ctx() || js_par) {
+		if (js_par) {
+			par = js_par;
 		}else if (src.m_flags.only_view && copy_view) {
 			//if inherited from view, then we go up once
 			par = par->get_parent();
@@ -1495,7 +1519,7 @@ bool oper_block::inherit_from(
 
 		//all variables that are not overridden in the hierarchy are taken randomly
 		//from their own context (open variations)
-		for (let* p = src.get_parent(); p && (!p->own_ctx() || p->m_js_parent); p = p->get_parent()) {
+		for (let* p = src.get_parent(); p && (!p->own_ctx() || p->has_js_parent()); p = p->get_parent()) {
 			//if (p->m_flags.priv)continue;
 			for (let& q : *p) {
 				if (q.is_builtin())continue;
@@ -1505,12 +1529,12 @@ bool oper_block::inherit_from(
 			}
 		}
 	}
-	
 
 	dst.m_class.reset();
 	dst.set_parent(par);
 	dst.m_dim2 = src.m_dim2;
 	dst.m_subspace = src.m_subspace;
+	dst.m_js_init = par ? ims_max : src.m_js_init;
 	
 	dst.clear_ops();
 	uint32_t pos = 0;
@@ -1742,16 +1766,6 @@ void oper_block::set_own_dim()
 	m_flags.has_dim = (!p && m_dim2 > 0) || (p && p->get_dim() != m_dim2);
 }
 
-bool oper_block::fix_js_parent()
-{
-	let* p = get_parent();
-	if (p && p == m_js_parent.get()) {
-		set_parent(p->get_parent());
-		m_flags.ready = false;
-		return true;
-	}
-	return false;
-}
 
 void oper_block_flags::clear()
 {
