@@ -25,6 +25,10 @@
 #include "ims_keywords.h"
 #include "ims_file.h"
 
+#include "ims_val.h"
+#include "eval_pool.h"
+#include "pool_ptr.h"
+
 std::vector<js_engine::reg_function> js_engine::s_js_export;
 
 
@@ -53,7 +57,171 @@ static bool get_int64(JSContext* ctx, int64_t* pres, JSValue val)
 	return true;
 }
 
+struct js_arr_enumerator
+{
+	std::vector<JSValue> m_values;
 
+	struct info
+	{
+		size_t start = 0;		//start of the array
+		size_t length = 0;		//length of the array
+		size_t num_ref = 0;		//number of references from other locations
+		union {
+			size_t index = ims_max; //ims_max or variable it is equal to
+			ims_val* val;
+		};
+	};
+
+	///////////////////////////////////////////////////////////////////////////
+
+	bool empty() const
+	{
+		assert(m_values.empty() == m_map.empty());
+		return m_values.empty();
+	}
+
+	info* find(const JSValue& v)
+	{
+		auto it = m_map.find(JS_VALUE_GET_PTR(v));
+		if (it == m_map.end()) return nullptr;
+		return &it->second;
+	}
+
+	const info* find(const JSValue& v) const
+	{
+		return const_cast<js_arr_enumerator*>(this)->find(v);
+	}
+
+	size_t set_index(size_t next_var)
+	{
+		for (auto& q : m_map) {
+			if (q.second.num_ref <= 1 || q.second.index != ims_max) {
+				continue;
+			}
+			q.second.index = next_var++;
+		}
+		return next_var;
+	}
+
+	void clear(JSContext* ctx)
+	{
+		m_process_queue.clear();
+		m_map.clear();
+
+		for (let& v : m_values) {
+			JS_FreeValue(ctx, v);
+		}
+		m_values.clear();
+	};
+
+	const ims_val* load_arr_tree(JSValue vx, JSContext* ctx)
+	{
+		assert(empty());
+
+		IMS_SCOPE([&] {clear(ctx); });
+
+		process_arrays(vx, ctx);
+
+		for (auto& q : m_map) {
+			q.second.val = eval_pool::ep.get_vector(q.second.length);
+		}
+
+		IMS_SCOPE([&] {
+			for (auto& q : m_map) {
+				eval_pool::ep.release(q.second.val);
+			}
+		});
+
+		for (auto& q : m_map) {
+			let& m = q.second;
+			auto** arr = m.val->p_v();
+			for (size_t i = 0; i < m.length; ++i) {
+				let& vi = m_values[m.start + i];
+				auto* mi = find(vi);
+				if (mi) {//another array
+					arr[i] = mi->val;
+					mi->val->add_ref();
+					continue;
+				}
+				if (JS_IsString(vi)) {
+					let* s = JS_ToCString(ctx, vi);
+					IMS_SCOPE([&] {JS_FreeCString(ctx, s); });
+					arr[i] = eval_pool::ep.get_string(s);
+					continue;
+				}
+				int64_t i64;
+				if (get_int64(ctx, &i64, vi)) {
+					arr[i] = eval_pool::ep.get_scalar_int({ i64 , 1});
+					continue;
+				}
+				double f64;
+				if (0 == JS_ToFloat64(ctx, &f64, vi)) {
+					arr[i] = eval_pool::ep.get_scalar_real(f64);
+					continue;
+				}
+
+				//the type is not supported (bool, object, etc...)
+				assert(!arr[i]);
+			}
+		}
+
+		auto* rm = find(vx);
+		if (!rm)return nullptr;
+
+		auto* ret = rm->val;
+		ret->add_ref();
+		return ret;
+	}
+
+	//recursively add arrays referenced by the operator
+	//so that we can then create our own operators for them
+	void process_arrays(JSValue vx, JSContext* ctx)
+	{
+		assert(m_process_queue.empty());
+		IMS_SCOPE([&] {m_process_queue.clear(); });
+
+		m_process_queue.emplace_back(vx);
+
+		while (!m_process_queue.empty()) {
+
+			auto v = m_process_queue.back();
+			m_process_queue.pop_back();
+
+			if (!JS_IsArray(v)) {
+				continue;
+			}
+
+			auto res = m_map.emplace(JS_VALUE_GET_PTR(v), info());
+			auto& m = res.first->second;
+			++m.num_ref;
+
+
+			if (!res.second) {
+				continue;//already visited
+			}
+			m.index = ims_max;
+			m.length = js_get_arr_size(ctx, v);
+			m.start = m_values.size();
+			m_values.resize(m_values.size() + m.length, JS_NULL);
+
+			for (uint32_t i = 0; i < m.length; ++i) {
+				let vi = JS_GetPropertyUint32(ctx, v, i);
+				m_values[m.start + i] = vi;
+				m_process_queue.push_back(vi);
+			}
+		}
+	}
+
+private:
+
+	std::vector<JSValue> m_process_queue;
+
+	//there are only arrays here
+	ankerl::unordered_dense::map<void*, info> m_map;
+};
+
+////////////////////////////////////////////////////////////////////////////
+//information when processing the current block
 struct js_aifs_block
 {
 	js_aifs_block(JSContext* ctx) : m_ctx{ ctx } {};
@@ -64,11 +232,50 @@ struct js_aifs_block
 	//module's export
 	JSValue m_export = JS_UNDEFINED;
 
+	js_arr_enumerator m_enumerator;
+
 	JSValue get_exports_entry(const char* v) 
 	{
 		return JS_IsObject(m_export) ?
 			JS_GetPropertyStr(m_ctx, m_export, v) :
 			JS_UNDEFINED;
+	}
+
+	pool_ptr m_dialog_data;//for constructor
+
+
+	bool init_constructor()
+	{
+		assert(!m_dialog_data);
+
+		auto c = get_exports_entry("$constructor");
+		IMS_SCOPE([&] {JS_FreeValue(m_ctx, c); });
+		if (JS_IsUndefined(c)) {
+			return true;//it's ok
+		}
+
+		if (!JS_IsArray(c) || js_get_arr_size(m_ctx, c) != 2) {
+			ims_error("$constructor must be a 2 elements array");
+			return false;
+		}
+
+		auto v0 = JS_GetPropertyUint32(m_ctx, c, 0);
+		IMS_SCOPE([&] {JS_FreeValue(m_ctx, v0); });
+		if (!JS_IsFunction(m_ctx, v0)) {
+			ims_error("$constructor[0] must be a function");
+			return false;
+		}
+
+		auto v1 = JS_GetPropertyUint32(m_ctx, c, 1);
+		IMS_SCOPE([&] {JS_FreeValue(m_ctx, v1); });
+
+		m_dialog_data.reset(m_enumerator.load_arr_tree(v1, m_ctx));
+		if (!m_dialog_data) {
+			ims_error("$constructor[1] must be an array of controls");
+			return false;
+		}
+
+		return true;
 	}
 
 	struct init_func_info
@@ -94,35 +301,15 @@ struct js_aifs_block
 
 	std::vector<add_info> m_parr;//temporary
 
-	std::vector<JSValue> m_process_queue;//temporary
-
-	////////////////////////////////////////////////////////////////////////////
-	//information when processing the current block
-
-	std::vector<JSValue> m_values;
-
-	struct info
-	{
-		size_t num_ref = 0;		//number of references from other locations
-		size_t start = 0;		//start of the array
-		size_t length = 0;		//length of the array
-		size_t index = ims_max; //ims_max or variable it is equal to
-	};
-
-	//there are only arrays here
-	UNAMESPACE::unordered_map<void*, info> m_map;
-
 	std::vector<JSValue> m_js_vars;
 
 	////////////////////////////////////////////////////////////////////////////
 
 	void clear9()
 	{
-		assert(m_values.empty());
-		assert(m_map.empty());
+		assert(m_enumerator.empty());
 		assert(m_js_vars.empty());
 		assert(m_blocks2.empty());
-		assert(m_process_queue.empty());
 		assert(m_parr.empty());
 
 		////////////////////////////////////////////////////////////////////////
@@ -135,51 +322,11 @@ struct js_aifs_block
 		m_export = JS_UNDEFINED;
 	}
 
-	//recursively add arrays referenced by the operator
-	//so that we can then create our own operators for them
-	void process_arrays(JSValue vx)
-	{
-		assert(m_process_queue.empty());
-		IMS_SCOPE([&] {m_process_queue.clear(); });
-
-		m_process_queue.emplace_back(vx);
-
-		while (!m_process_queue.empty()) {
-
-			auto v = m_process_queue.back();
-			m_process_queue.pop_back();
-
-			if (!JS_IsArray(v)) {
-				continue;
-			}
-
-			auto res = m_map.emplace(JS_VALUE_GET_PTR(v), info());
-			auto& m = res.first->second;
-			++m.num_ref;
-
-
-			if (!res.second) {
-				continue;//already visited
-			}
-			m.index = ims_max;
-			m.length = js_get_arr_size(m_ctx, v);
-			m.start = m_values.size();
-			m_values.resize(m_values.size() + m.length, JS_NULL);
-
-			for (uint32_t i = 0; i < m.length; ++i) {
-				let vi = JS_GetPropertyUint32(m_ctx, v, i);
-				m_values[m.start + i] = vi;
-				m_process_queue.push_back(vi);
-			}
-		}
-
-	}
-
-	bool get_rational64(const info& m, int64_t* n = nullptr) const
+	bool get_rational64(const js_arr_enumerator::info& m, int64_t* n = nullptr) const
 	{
 		if (m.length != 3)return false;
 
-		auto jlast = m_values[m.start + 2];
+		auto jlast = m_enumerator.m_values[m.start + 2];
 
 		if (!JS_IsString(jlast))return false;
 		{
@@ -191,7 +338,7 @@ struct js_aifs_block
 
 		int64_t rat[2];
 		for (size_t i = 0; i < 2; ++i) {
-			if (!get_int64(m_ctx, &rat[i], m_values[m.start + i])) {
+			if (!get_int64(m_ctx, &rat[i], m_enumerator.m_values[m.start + i])) {
 				return false;
 			}
 		}
@@ -202,7 +349,6 @@ struct js_aifs_block
 		}
 		return true;
 	}
-
 
 	bool get_rational64(JSValue v, int64_t* n = nullptr) const
 	{
@@ -215,12 +361,11 @@ struct js_aifs_block
 			return true;
 		}
 
-		auto it = m_map.find(JS_VALUE_GET_PTR(v));
-		if (it == m_map.end()) {
+		let* it = m_enumerator.find(v);
+		if (!it) {
 			return false;
 		}
-
-		return get_rational64(it->second, n);
+		return get_rational64(*it, n);
 	}
 
 	bool add_block3(
@@ -494,6 +639,11 @@ static JSValue eval_module(
 }
 
 
+js_engine::~js_engine()
+{
+	destroy();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void js_engine::create()
@@ -575,9 +725,9 @@ void js_engine::destroy()
 	}
 }
 
-js_engine::~js_engine()
+void js_engine::thread_enter()
 {
-	destroy();
+	JS_UpdateStackTop(m_rt);
 }
 
 void js_engine::eval(std::string_view src)
@@ -640,11 +790,6 @@ JSModuleDef* js_engine::module_loader_func(const char* module_name)
 
 
 
-void js_engine::thread_enter()
-{
-	JS_UpdateStackTop(m_rt);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -704,13 +849,13 @@ bool js_aifs_block::parse_var(
 	}
 
 	//below only an array is allowed
-	auto it = m_map.find(JS_VALUE_GET_PTR(jv));
-	if (it == m_map.end()) {
+	let* it = m_enumerator.find(jv);
+	if (!it) {
 		ims_error("Array Expected");
 		return false;
 	}
 
-	let& m = it->second;
+	let& m = *it;
 
 	//some arrays correspond to some named variable
 	//in this case, we don't enter this block, but parse it
@@ -735,7 +880,7 @@ bool js_aifs_block::parse_var(
 	size_t num_val = m.length;
 
 	if (m.length > 0) {
-		auto jlast = m_values[m.start + m.length - 1];
+		auto jlast = m_enumerator.m_values[m.start + m.length - 1];
 
 		if (JS_IsString(jlast)) {
 			let* s = JS_ToCString(m_ctx, jlast);
@@ -768,10 +913,10 @@ bool js_aifs_block::parse_var(
 
 		auto ar = b.set_power_ref(x);
 
-		if (!parse_var(ims_max, m_values[m.start], ar, b, rs, unk)) {
+		if (!parse_var(ims_max, m_enumerator.m_values[m.start], ar, b, rs, unk)) {
 			return false;
 		}
-		if (!parse_var(ims_max, m_values[m.start + 1], ar + 1, b, rs, unk)) {
+		if (!parse_var(ims_max, m_enumerator.m_values[m.start + 1], ar + 1, b, rs, unk)) {
 			return false;
 		}
 
@@ -786,13 +931,13 @@ bool js_aifs_block::parse_var(
 
 		auto ar = b.add_args(x, ETYPE::mul, 2);
 
-		if (!parse_var(ims_max, m_values[m.start], ar, b, rs, unk)) {
+		if (!parse_var(ims_max, m_enumerator.m_values[m.start], ar, b, rs, unk)) {
 			return false;
 		}
 
 		let apos = b.add_args(ar + 1, ETYPE::inv, 1);
 
-		if (!parse_var(ims_max, m_values[m.start + 1], apos, b, rs, unk)) {
+		if (!parse_var(ims_max, m_enumerator.m_values[m.start + 1], apos, b, rs, unk)) {
 			return false;
 		}
 
@@ -804,7 +949,7 @@ bool js_aifs_block::parse_var(
 		auto ar = b.add_args(x, t, num_val);
 
 		for (size_t i = 0; i < num_val; ++i) {
-			auto ji = m_values[m.start + i];
+			auto ji = m_enumerator.m_values[m.start + i];
 			if (!parse_var(ims_max, ji, ar++, b, rs, unk)) {
 				return false;
 			}
@@ -816,7 +961,7 @@ bool js_aifs_block::parse_var(
 	auto ar = b.set_vector(x, num_val);
 
 	for (size_t i = 0; i < num_val; ++i) {
-		auto ji = m_values[m.start + i];
+		auto ji = m_enumerator.m_values[m.start + i];
 		if (!parse_var(ims_max, ji, ar++, b, rs, unk)) {
 			return false;
 		}
@@ -878,18 +1023,11 @@ bool js_aifs_block::create_vars(
 
 	error_helper::line ehl(b.m_line8);
 
-	assert(m_values.empty());
-	assert(m_map.empty());
+	assert(m_enumerator.empty());
 	assert(m_js_vars.empty());
 	IMS_SCOPE([&] {
-		m_map.clear();
 
-
-		for (let& v : m_values) {
-			JS_FreeValue(m_ctx, v);
-		}
-		m_values.clear();
-
+		m_enumerator.clear(m_ctx);
 
 		for (auto& e : m_js_vars) {
 			JS_FreeValue(m_ctx, e);
@@ -1002,7 +1140,7 @@ bool js_aifs_block::create_vars(
 
 		rs.m_vars.emplace_back(v);
 
-		process_arrays(val);
+		m_enumerator.process_arrays(val, m_ctx);
 	}
 
 
@@ -1029,42 +1167,36 @@ bool js_aifs_block::create_vars(
 			continue;
 		}
 
-		auto it = m_map.find(JS_VALUE_GET_PTR(jv));
-		if (it == m_map.end()) {
+		auto* it = m_enumerator.find(jv);
+		if (!it) {
 			assert(false);//interesting
 			continue;
 		}
-		if (it->second.index == ims_max) {
-			it->second.index = j;
+		if (it->index == ims_max) {
+			it->index = j;
 		}
 	}
 
-	for (auto& q : m_map) {
-		if (q.second.num_ref <= 1 || q.second.index != ims_max) {
-			continue;
-		}
+	let num_new_vars = m_enumerator.set_index(next_var) - next_var;
+	rs.m_vars.resize(rs.m_vars.size() + num_new_vars);
 
-		q.second.index = next_var++;
-		rs.m_vars.emplace_back();
-	}
-
-	for (let& jv : m_values) {
+	for (let& jv : m_enumerator.m_values) {
 		if (!JS_IsArray(jv)) {
 			continue;
 		}
-		auto it = m_map.find(JS_VALUE_GET_PTR(jv));
-		if (it == m_map.end() ||
-			it->second.index == ims_max ||
-			it->second.index < len)
+		let* it = m_enumerator.find(jv);
+		if (!it ||
+			it->index == ims_max ||
+			it->index < len)
 		{
 			continue;
 		}
-		auto& var = rs.m_vars[it->second.index];
+		auto& var = rs.m_vars[it->index];
 
 		var.js_val = m_js_vars.size();
 		m_js_vars.emplace_back(JS_DupValue(m_ctx, jv));
 
-		var.line7 = it->second.index;
+		var.line7 = it->index;
 	}
 
 	//////////////////////////////////////////////////////////////
@@ -1275,6 +1407,8 @@ static void js_reg_cur_module(JSContext* ctx, JSValue module_export)
 	JS_SetPropertyStr(ctx, ifs_obj, "m",JS_DupValue(ctx, module_export));
 };
 
+
+
 bool js_engine::get_blocks_from_js(
 	const std::string& filename,
 	std::string_view src,
@@ -1308,6 +1442,9 @@ bool js_engine::get_blocks_from_js(
 	}
 
 	m_jt->m_export = JS_DupValue(m_ctx, exports);
+	if (!m_jt->init_constructor()) {
+		return false;//critical error
+	};
 
 	js_reg_cur_module(m_ctx, exports);
 
