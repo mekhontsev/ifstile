@@ -101,6 +101,14 @@ ims_val* eval_pool::get_scalar_int(Rational v)
 	return ret;
 }
 
+ims_val* eval_pool::get_scalar_big_rational()
+{
+	auto* ret = alloc_scalar(ETP::number, EST::big_rational, sizeof(ims_val_b::BigRational));
+	auto* p = ret->p_b();
+	new (ret->p_b()) ims_val_b::BigRational();
+	return ret;
+}
+
 ims_val* eval_pool::get_scalar_real(Real v, ETP t)
 {
 	auto* ret = alloc_scalar(t, EST::real, sizeof(Real));

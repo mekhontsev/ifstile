@@ -42,6 +42,8 @@ struct eval_pool: public boost::noncopyable
 
 	ims_val* get_scalar_int(Rational v);
 	ims_val* get_scalar_real(Real v, ETP t = ETP::number);
+	//allocates a scalar value of type BigRational initialized to zero.
+	ims_val* get_scalar_big_rational();
 
 	template<typename T>
 	ims_val* get_affine(size_t dim) 

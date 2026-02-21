@@ -47,8 +47,7 @@
 
     <Item Condition="m_t==ETP::number &amp;&amp; m_s==EST::rational" Name="Rational">*(Rational*)(this+1)</Item>
     <Item Condition="m_t==ETP::number &amp;&amp; m_s==EST::real" Name="Real">*(Real*)(this+1)</Item>
-    <Item Condition="m_t==ETP::number &amp;&amp; m_s==EST::big_rational" Name="Real">*(ims_val_b::BigRational*)(this+1)</Item>
-
+    <Item Condition="m_t==ETP::number &amp;&amp; m_s==EST::big_rational" Name="BigRational">*(ims_val_b::BigRational*)(this+1)</Item>
     <Item Condition="m_t==ETP::ast_ptr" Name="AST">*(ast_context*)(this+1)</Item>
   </Expand>
 </Type>

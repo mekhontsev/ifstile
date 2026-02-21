@@ -114,6 +114,42 @@ struct js_arr_enumerator
 		m_values.clear();
 	};
 
+	static const ims_val* convert(JSValue vi, JSContext* ctx)
+	{
+		if (JS_IsString(vi)) {
+			let* s = JS_ToCString(ctx, vi);
+			IMS_SCOPE([&] {JS_FreeCString(ctx, s); });
+			return eval_pool::ep.get_string(s);
+		}
+
+		if (JS_IsBigInt(vi)) {
+			if (JS_VALUE_GET_TAG(vi) == JS_TAG_SHORT_BIG_INT) {
+				return eval_pool::ep.get_scalar_int(JS_VALUE_GET_SHORT_BIG_INT(vi));
+			}
+
+			const char* s = JS_ToCString(ctx, vi);
+			IMS_SCOPE([&] {JS_FreeCString(ctx, s); });
+
+			int64_t i64;
+			if (boost::conversion::try_lexical_convert(s, i64)) {
+				return eval_pool::ep.get_scalar_int(i64);
+			}
+
+			auto* a = eval_pool::ep.get_scalar_big_rational();
+			*a->p_b() = ims_integer_big(s);
+			return a;
+		}
+
+		if (JS_IsNumber(vi)) {
+			double f64;
+			JS_ToFloat64(ctx, &f64, vi);
+			return eval_pool::ep.get_scalar_real(f64);
+		}
+
+		//the type is not supported (bool, object, function, etc...)
+		return nullptr;
+	}
+
 	const ims_val* load_arr_tree(JSValue vx, JSContext* ctx)
 	{
 		assert(empty());
@@ -141,27 +177,9 @@ struct js_arr_enumerator
 				if (mi) {//another array
 					arr[i] = mi->val;
 					mi->val->add_ref();
-					continue;
+				} else {
+					arr[i] = convert(vi, ctx);
 				}
-				if (JS_IsString(vi)) {
-					let* s = JS_ToCString(ctx, vi);
-					IMS_SCOPE([&] {JS_FreeCString(ctx, s); });
-					arr[i] = eval_pool::ep.get_string(s);
-					continue;
-				}
-				int64_t i64;
-				if (get_int64(ctx, &i64, vi)) {
-					arr[i] = eval_pool::ep.get_scalar_int({ i64 , 1});
-					continue;
-				}
-				double f64;
-				if (0 == JS_ToFloat64(ctx, &f64, vi)) {
-					arr[i] = eval_pool::ep.get_scalar_real(f64);
-					continue;
-				}
-
-				//the type is not supported (bool, object, etc...)
-				assert(!arr[i]);
 			}
 		}
 
