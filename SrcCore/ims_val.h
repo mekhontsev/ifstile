@@ -356,6 +356,12 @@ public:
 		}
 	}
 
+	void set_size(size_t sz)
+	{
+		assert(is(ETP::string));
+		m_size = static_cast<uint32_t>(sz);
+	}
+
 	//for pool only
 	ims_val(size_t size, uint8_t bucket, ims_val::ETP t, ims_val::EST s) :
 		m_use_count{ 1 },

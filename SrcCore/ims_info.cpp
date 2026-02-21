@@ -230,12 +230,18 @@ bool ims_info::link_refs(const size_t idx_from)
 	return true;
 }
 
+std::string  ims_info::create_from_constructor(const ims_val* v)
+{
+	return m_js_engine.create_from_constructor(v);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 
 
 bool ims_info::process_js(read_state& rs)
 {
+	m_constructor_dialog.reset();
 	if (m_js_src.empty()) {
 		return true;
 	}
@@ -244,7 +250,8 @@ bool ims_info::process_js(read_state& rs)
 		m_js_src,
 		m_js_description,
 		rs, 
-		m_list);
+		m_list,
+		m_constructor_dialog);
 }
 
 static std::string remove_fragments(

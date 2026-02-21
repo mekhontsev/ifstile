@@ -249,6 +249,7 @@ struct js_aifs_block
 
 	//module's export
 	JSValue m_export = JS_UNDEFINED;
+	JSValue m_constructor = JS_UNDEFINED;
 
 	js_arr_enumerator m_enumerator;
 
@@ -259,12 +260,9 @@ struct js_aifs_block
 			JS_UNDEFINED;
 	}
 
-	pool_ptr m_dialog_data;//for constructor
-
-
-	bool init_constructor()
+	bool init_constructor(pool_ptr& data)
 	{
-		assert(!m_dialog_data);
+		assert(!data);
 
 		auto c = get_exports_entry("$constructor");
 		IMS_SCOPE([&] {JS_FreeValue(m_ctx, c); });
@@ -277,9 +275,10 @@ struct js_aifs_block
 			return false;
 		}
 
-		auto v0 = JS_GetPropertyUint32(m_ctx, c, 0);
-		IMS_SCOPE([&] {JS_FreeValue(m_ctx, v0); });
-		if (!JS_IsFunction(m_ctx, v0)) {
+		assert(JS_IsUndefined(m_constructor));
+		m_constructor = JS_GetPropertyUint32(m_ctx, c, 0);
+		if (!JS_IsFunction(m_ctx, m_constructor)) {
+			JS_FreeValue(m_ctx, m_constructor);	m_constructor = JS_UNDEFINED;
 			ims_error("$constructor[0] must be a function");
 			return false;
 		}
@@ -287,8 +286,10 @@ struct js_aifs_block
 		auto v1 = JS_GetPropertyUint32(m_ctx, c, 1);
 		IMS_SCOPE([&] {JS_FreeValue(m_ctx, v1); });
 
-		m_dialog_data.reset(m_enumerator.load_arr_tree(v1, m_ctx));
-		if (!m_dialog_data) {
+		data.reset(m_enumerator.load_arr_tree(v1, m_ctx));
+		if (!data ||
+			!data->is(ims_val_b::ETP::vector, ims_val_b::EST::other))
+		{
 			ims_error("$constructor[1] must be an array of controls");
 			return false;
 		}
@@ -336,8 +337,8 @@ struct js_aifs_block
 		}
 		m_init_funcs.clear();
 
-		JS_FreeValue(m_ctx, m_export);
-		m_export = JS_UNDEFINED;
+		JS_FreeValue(m_ctx, m_export); m_export = JS_UNDEFINED;
+		JS_FreeValue(m_ctx, m_constructor); m_constructor = JS_UNDEFINED;
 	}
 
 	bool get_rational64(const js_arr_enumerator::info& m, int64_t* n = nullptr) const
@@ -1283,6 +1284,67 @@ size_t js_engine::get_js_init_identifier(size_t idx) const
 	return m_jt->m_init_funcs[idx].unk_id;
 }
 
+static JSValue create_js_value(JSContext* ctx, const ims_val* v)
+{
+	if (!v)return JS_UNDEFINED;
+	if (v->is(ims_val_b::ETP::string)) {
+		let str = v->get_string();
+		return JS_NewStringLen(ctx, str.data(), str.size());
+	}
+	if (v->is(ims_val_b::ETP::number, ims_val_b::EST::rational)) {
+		if (v->p_i()->denominator() == 1) {
+			return JS_NewInt64(ctx, v->p_i()->numerator());
+		}
+	} else if (v->is(ims_val_b::ETP::number, ims_val_b::EST::big_rational)) {
+		if (denominator(*v->p_b()) == 1) {
+			auto str = numerator(*v->p_b()).str();
+			str += "n";
+			return JS_Eval2(ctx, str.data(), str.length(), nullptr);
+		}
+	}
+	double dv;
+	if (v->to_real(dv)) {
+		return JS_NewFloat64(ctx, dv);
+	}
+	if (!v->is(ims_val_b::ETP::vector, ims_val_b::EST::other)) {
+		return JS_UNDEFINED;
+	}
+
+	let sz = v->get_size();
+	JSValue arr = JS_NewArray(ctx);
+	js_set_arr_size(ctx, arr, sz);
+	for (size_t i = 0; i < sz; ++i) {
+		JS_SetPropertyUint32(ctx, arr, (uint32_t)i, create_js_value(ctx, v->p_v()[i]));
+	}
+	return arr;
+}
+
+std::string js_engine::create_from_constructor(const ims_val* v)
+{
+	std::scoped_lock lock(js_engine::get_lock());
+	thread_enter();
+
+	assert(!JS_IsUndefined(m_jt->m_constructor));
+
+	//call JS
+	JSValue obj = create_js_value(m_ctx, v);
+	IMS_SCOPE([&] {JS_FreeValue(m_ctx, obj); });
+
+	let status = JS_Call(m_ctx, m_jt->m_constructor, obj, 0, nullptr);
+	IMS_SCOPE([&] {JS_FreeValue(m_ctx, status); });
+
+	if (JS_IsException(status)) {
+		std::string err_str;
+		JSValue e = JS_GetException(m_ctx);
+		IMS_SCOPE([&] {JS_FreeValue(m_ctx, e); });
+		js_get_error(e, m_ctx, err_str);
+		std::string ret;
+		fmt::format_to(std::back_inserter(ret), "JS constructor error: {}", err_str);
+		return ret;
+	}
+
+	return "";
+}
 
 bool js_aifs_block::add_block3(
 	JSValue block_def,
@@ -1425,17 +1487,16 @@ static void js_reg_cur_module(JSContext* ctx, JSValue module_export)
 	JS_SetPropertyStr(ctx, ifs_obj, "m",JS_DupValue(ctx, module_export));
 };
 
-
-
 bool js_engine::get_blocks_from_js(
 	const std::string& filename,
 	std::string_view src,
 	std::string& description,
 	read_state& rs,
-	ifs_list& lst)
+	ifs_list& lst,
+	pool_ptr& constructor_dialog)
 {
 	description.clear();
-	
+
 	assert(!src.empty());
 
 	if (!m_ctx) {
@@ -1460,7 +1521,7 @@ bool js_engine::get_blocks_from_js(
 	}
 
 	m_jt->m_export = JS_DupValue(m_ctx, exports);
-	if (!m_jt->init_constructor()) {
+	if (!m_jt->init_constructor(constructor_dialog)) {
 		return false;//critical error
 	};
 
@@ -1490,11 +1551,9 @@ bool js_engine::get_blocks_from_js(
 
 
 	if (!JS_IsArray(aifs)) {
-
 		if (!m_jt->add_block3(aifs, rs, lst)) {
 			return false;
 		}
-
 		return true;
 	}
 

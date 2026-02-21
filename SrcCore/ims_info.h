@@ -18,6 +18,7 @@
 
 #include "js_engine.h"
 #include "ifs_list.h"
+#include "pool_ptr.h"
 
 struct oper_block;
 struct block_class;
@@ -47,6 +48,8 @@ struct ims_info: public boost::noncopyable
 	//sets all parents and all references inside blocks to the tail of the list
 	bool link_refs(const size_t idx_from);
 
+	std::string create_from_constructor(const ims_val* v);
+	pool_ptr m_constructor_dialog;
 
 	[[nodiscard]]
 	bool process_js(read_state& rs);

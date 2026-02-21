@@ -24,8 +24,8 @@ struct JSValue;
 struct ifs_list;
 struct read_state;
 struct js_aifs_block;
-
-
+struct ims_val;
+struct pool_ptr;
 
 struct js_engine: public boost::noncopyable
 {
@@ -44,7 +44,8 @@ struct js_engine: public boost::noncopyable
 		std::string_view src, 
 		std::string& description,//output parameter
 		read_state& rs, 
-		ifs_list& lst);
+		ifs_list& lst,
+		pool_ptr& constructor_dialog);
 
 	//called when the thread changes
 	void thread_enter();
@@ -62,14 +63,14 @@ struct js_engine: public boost::noncopyable
 
 	size_t get_js_init_identifier(size_t idx) const;
 
+
+	std::string  create_from_constructor(const ims_val* v);
 private:
 
 	std::mutex m_lock;
 
 	JSRuntime* m_rt = nullptr;
 	JSContext* m_ctx = nullptr;
-
-	
 	JSModuleDef* module_loader_func(const char* module_name);
 };
 

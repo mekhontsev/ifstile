@@ -38,6 +38,10 @@ struct eval_pool: public boost::noncopyable
 	ims_val* get_empty_val();
 	ims_val* get_id_val();
 
+	static size_t get_data_capacity(const ims_val* v);
+
+	ims_val* update_string(ims_val* v, std::string_view src);
+
 	ims_val* get_string(std::string_view s);
 
 	ims_val* get_scalar_int(Rational v);

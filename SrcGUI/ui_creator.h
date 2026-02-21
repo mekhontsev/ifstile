@@ -16,7 +16,9 @@
 
 #pragma once
 #include "ui_window.h"
+#include "pool_ptr.h"
 
+struct ims_val;
 
 struct ws_creator : public window_state
 {
@@ -24,5 +26,14 @@ struct ws_creator : public window_state
 	void show() override;
 
 	void create_ifs3();
-	
+
+	void show_2d_creator();
+
+	//d - type (structure or array)
+	//v - value to edit, can be null
+	void show_ui_for_val(const ims_val* d, pool_ptr& v);
+
+	int next_id = 0;
+	std::string m_cur_name;
+	pool_ptr m_constructor_value;
 };

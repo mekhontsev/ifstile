@@ -73,6 +73,12 @@ bool ims_val::to_real(Real& v) const
 			static_cast<Real>(ival.denominator());
 		return true;
 	}
+	case EST::big_rational:
+	{
+		let& bval = get_big_rational();
+		v = bval.convert_to<double>();
+		return true;
+	}
 	case EST::real:
 		v = get_real();
 		return true;
@@ -159,6 +165,7 @@ size_t ims_val::num_el() const
 		return 0;
 	}
 }
+
 
 ims_val::Real ims_val::get_real() const
 {

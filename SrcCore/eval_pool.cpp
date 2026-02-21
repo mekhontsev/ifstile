@@ -82,6 +82,24 @@ ims_val* eval_pool::get_id_val()
 	return get_vector(0, ETP::compos);
 }
 
+size_t eval_pool::get_data_capacity(const ims_val* v)
+{
+	return ims_pool::get_size(v->get_bucket()) - sizeof(ims_val);
+}
+
+ims_val* eval_pool::update_string(ims_val* v, std::string_view src)
+{
+	let cap = v ? get_data_capacity(v) : 0;
+	if (!v || !v->is(ims_val_b::ETP::string) || cap < src.size()) {
+		return get_string(src);
+	}
+
+	std::copy(src.data(), src.data() + src.size(), v->gp<char>());
+	v->set_size(src.size());
+	v->add_ref();
+	return v;
+}
+
 ims_val* eval_pool::get_string(std::string_view s)
 {
 	auto* ret = alloc(ETP::string, EST::pod, s.length(), s.length());
@@ -104,7 +122,6 @@ ims_val* eval_pool::get_scalar_int(Rational v)
 ims_val* eval_pool::get_scalar_big_rational()
 {
 	auto* ret = alloc_scalar(ETP::number, EST::big_rational, sizeof(ims_val_b::BigRational));
-	auto* p = ret->p_b();
 	new (ret->p_b()) ims_val_b::BigRational();
 	return ret;
 }
