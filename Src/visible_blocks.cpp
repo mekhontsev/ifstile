@@ -243,8 +243,7 @@ bool visible_blocks::append_block(oper_block* sr)
 		++m_checked;
 	}
 
-	if (!columns::get().accepted(sr, sr->m_calc_data.get(), true))
-	{
+	if (!columns::get().accepted(sr, sr->m_calc_data.get(), true)){
 		return false;//hidden
 	}
 

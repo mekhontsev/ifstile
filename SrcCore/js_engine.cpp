@@ -220,7 +220,7 @@ struct js_arr_enumerator
 			m.index = ims_max;
 			m.length = js_get_arr_size(ctx, v);
 			m.start = m_values.size();
-			m_values.resize(m_values.size() + m.length, JS_NULL);
+			m_values.resize(m_values.size() + m.length, JS_UNDEFINED);
 
 			for (uint32_t i = 0; i < m.length; ++i) {
 				let vi = JS_GetPropertyUint32(ctx, v, i);
@@ -259,6 +259,38 @@ struct js_aifs_block
 			JS_GetPropertyStr(m_ctx, m_export, v) :
 			JS_UNDEFINED;
 	}
+
+	bool create_blocks(
+		JSValue aifs,
+		read_state& rs,
+		ifs_list& lst)
+	{
+		assert(m_blocks2.empty());
+		IMS_SCOPE([&] {m_blocks2.clear(); });
+
+		if (JS_IsUndefined(aifs)) {
+			return true;//JS doesn't export blocks - that's fine
+		}
+
+		if (!JS_IsArray(aifs)) {
+			if (!add_block3(aifs, rs, lst)) {
+				return false;
+			}
+			return true;
+		}
+
+		let num_blocks = js_get_arr_size(m_ctx, aifs);
+		for (uint32_t i = 0; i < num_blocks; ++i) {
+
+			auto v = JS_GetPropertyUint32(m_ctx, aifs, i);
+			IMS_SCOPE([&] {JS_FreeValue(m_ctx, v); });
+
+			if (!add_block3(v, rs, lst)) {
+				return false;
+			}
+		}
+		return true;
+	};
 
 	bool init_constructor(pool_ptr& data)
 	{
@@ -1319,7 +1351,9 @@ static JSValue create_js_value(JSContext* ctx, const ims_val* v)
 	return arr;
 }
 
-std::string js_engine::create_from_constructor(const ims_val* v)
+std::string js_engine::create_from_constructor(const ims_val* v,
+	read_state& rs,
+	ifs_list& lst)
 {
 	std::scoped_lock lock(js_engine::get_lock());
 	thread_enter();
@@ -1330,10 +1364,10 @@ std::string js_engine::create_from_constructor(const ims_val* v)
 	JSValue obj = create_js_value(m_ctx, v);
 	IMS_SCOPE([&] {JS_FreeValue(m_ctx, obj); });
 
-	let status = JS_Call(m_ctx, m_jt->m_constructor, obj, 0, nullptr);
-	IMS_SCOPE([&] {JS_FreeValue(m_ctx, status); });
+	auto aifs = JS_Call(m_ctx, m_jt->m_constructor, obj, 0, nullptr);
+	IMS_SCOPE([&] {JS_FreeValue(m_ctx, aifs); });
 
-	if (JS_IsException(status)) {
+	if (JS_IsException(aifs)) {
 		std::string err_str;
 		JSValue e = JS_GetException(m_ctx);
 		IMS_SCOPE([&] {JS_FreeValue(m_ctx, e); });
@@ -1343,8 +1377,11 @@ std::string js_engine::create_from_constructor(const ims_val* v)
 		return ret;
 	}
 
+	m_jt->create_blocks(aifs, rs, lst);
+
 	return "";
 }
+
 
 bool js_aifs_block::add_block3(
 	JSValue block_def,
@@ -1444,6 +1481,7 @@ bool js_aifs_block::add_block3(
 			if (lst.find_block(str_id)) {
 				//warning
 				WARN_DUP_ID(str_id);
+				return true;
 			};
 		}
 
@@ -1542,33 +1580,7 @@ bool js_engine::get_blocks_from_js(
 	auto aifs = JS_GetPropertyStr(m_ctx, exports, ims_keywords::js_export_blocks);
 	IMS_SCOPE([&] {JS_FreeValue(m_ctx, aifs); });
 
-	if (JS_IsUndefined(aifs)) {
-		return true;//JS doesn't export blocks - that's fine
-	}
-
-	assert(m_jt->m_blocks2.empty());
-	IMS_SCOPE([&]{ m_jt->m_blocks2.clear(); });
-
-
-	if (!JS_IsArray(aifs)) {
-		if (!m_jt->add_block3(aifs, rs, lst)) {
-			return false;
-		}
-		return true;
-	}
-
-	let num_blocks = js_get_arr_size(m_ctx, aifs);
-	for (uint32_t i = 0; i < num_blocks; ++i) {
-
-		auto v = JS_GetPropertyUint32(m_ctx, aifs, i);
-		IMS_SCOPE([&] {JS_FreeValue(m_ctx, v); });
-
-		if (!m_jt->add_block3(v, rs, lst)) {
-			return false;
-		}
-	}
-
-	return true;
+	return m_jt->create_blocks(aifs, rs, lst);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

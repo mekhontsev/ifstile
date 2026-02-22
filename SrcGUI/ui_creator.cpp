@@ -29,6 +29,7 @@
 #include "eval_pool.h"
 #include "call_thread.h"
 
+
 ims_static creator_state g_creator;
 
 
@@ -76,7 +77,6 @@ static void create_ifs6(const std::string name)
 	}
 	////////////////////////////////////////////////////////////////////////////
 
-
 	finder::get().on_create_ifs(g_creator.m_cg.m_ig2.m_edges.size());
 
 	//unconditionally save only the search parameters
@@ -84,7 +84,6 @@ static void create_ifs6(const std::string name)
 
 	set_last_file(name + ".aifs", true, false);
 
-	
 	StartSearch();
 }
 
@@ -441,7 +440,14 @@ void ws_creator::show_ui_for_val(const ims_val* d, pool_ptr& v)
 			if (old_length > 0)m_cur_name += '.';
 			m_cur_name += id->get_string();
 			ImGui::TextUnformatted(m_cur_name.data(), m_cur_name.data() + m_cur_name.size());
+			if (sz >= 3 && entry->p_v(2)->is(ims_val_b::ETP::string)) {
+				let tt = entry->p_v(2)->get_string();
+				if (!tt.empty()) {
+					set_tooltip("%.*s", static_cast<int>(tt.size()), tt.data());
+				}
+			}
 			ImGui::SameLine();
+
 
 			pool_ptr vi = v->p_v(i);
 			if (vi)vi->add_ref();
@@ -582,14 +588,21 @@ void ws_creator::show()
 		m_cur_name.clear();
 		if (ims_button("Create")) {
 			get_thread(e_ims_threads::aux).start([this]() {
-				auto ret = ims_info_get().create_from_constructor(
+				auto& nfo = ims_info_get();
+				let blocks_start_from = nfo.m_list.m_blocks.size();
+
+				auto ret = nfo.create_from_constructor(
 					m_constructor_value.get());
-				if (!ret.empty()) {
-					auto lambda = [ret] {
+
+				auto lambda = [ret, blocks_start_from]
+				{
+					if (!ret.empty()) {
 						ims_show_message(ret);
-					};
-					main_thread::post(lambda);
-				}
+						return;
+					}
+					on_constructor_success(blocks_start_from);
+				};
+				main_thread::post(lambda);
 			});
 		}
 		ImGui::SameLine();

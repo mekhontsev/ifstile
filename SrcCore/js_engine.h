@@ -63,8 +63,11 @@ struct js_engine: public boost::noncopyable
 
 	size_t get_js_init_identifier(size_t idx) const;
 
+	std::string  create_from_constructor(
+		const ims_val* v,
+		read_state& rs,
+		ifs_list& lst);
 
-	std::string  create_from_constructor(const ims_val* v);
 private:
 
 	std::mutex m_lock;

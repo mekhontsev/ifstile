@@ -33,6 +33,7 @@ private:
 	union {
 		//for vectors: number of elements
 		//for strings: length
+		//for jsval - index in the js_engine
 		uint32_t m_size;
 		//for matrices - dimensions: rows, cols
 		std::array<uint16_t, 2> m_ex;
@@ -150,11 +151,6 @@ public:
 		return affine_num_elems(extent(0));
 	}
 
-	//there is some additional data
-	static constexpr bool has_data(ETP t)
-	{
-		return t >= ETP::_first_vec_type_;
-	}
 
 	size_t extent(size_t idx) const
 	{
@@ -174,7 +170,6 @@ public:
 
 	size_t get_size() const
 	{
-		assert(has_data(gt()));
 		return m_size;
 	};
 
@@ -197,10 +192,10 @@ public:
 	}
 	
 	//use only for shrinking!
-	void shrink(size_t dim) 
+	void shrink(size_t new_size) 
 	{
-		assert(has_data(gt()) && dim <= get_size());
-		m_size = static_cast<uint32_t>(dim);
+		assert(new_size <= m_size);
+		m_size = static_cast<uint32_t>(new_size);
 	}
 
 	Real get_real() const;
@@ -276,7 +271,6 @@ public:
 		return { p_r(), m_ex[0], m_ex[1] };
 	}
 
-	
 	////////////////////////////////////////////////////////////////////////////
 	
 	MMatInt MatI() const
@@ -398,7 +392,6 @@ public:
 	using EST = ims_val_b::EST;
 	using Rational = ims_val_b::Rational;
 	using Real = ims_val_b::Real;
-
 };
 
 

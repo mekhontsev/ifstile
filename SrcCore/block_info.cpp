@@ -55,7 +55,6 @@ bool block_info::init4(
 	const oper_block& b,
 	eval_context& ec,
 	ast_maps& am,
-	bool checked,
 	graph_init_data& gid,
 	affine_calc& ac)
 {
@@ -101,7 +100,7 @@ bool block_info::init4(
 		}
 
 		a.eval(ec, ast);
-		a.project(ec, ast, m_proj_data, checked);
+		a.project(ec, ast, m_proj_data, true);
 	}
 
 	////////////////////////////////////////////////////////////////////////////

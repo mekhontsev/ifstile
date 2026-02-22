@@ -72,7 +72,6 @@ struct block_info
 		const oper_block& b,
 		eval_context& ec,
 		ast_maps& am,
-		bool checked,
 		graph_init_data& gid,
 		affine_calc& ac);
 

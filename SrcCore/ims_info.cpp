@@ -170,9 +170,8 @@ bool ims_info::link_refs(const size_t idx_from)
 			}
 			b.set_parent(d.b.get());
 		}
-		
-		
-		//just checking the converter
+
+		//check the converter
 		if (b.is_converter()) {
 			let& d = lst.m_id2data[b.m_conv_id];
 			if (!d.b) {
@@ -182,7 +181,7 @@ bool ims_info::link_refs(const size_t idx_from)
 			}
 		}
 
-		// Fixed $init values ​​obtained from AIFS
+		//fix $init values obtained from AIFS
 		if (!b.m_flags.from_js && b.m_js_init != ims_max) {
 			b.m_js_init = m_js_engine.add_js_init(
 				b.m_js_init,
@@ -230,9 +229,27 @@ bool ims_info::link_refs(const size_t idx_from)
 	return true;
 }
 
-std::string  ims_info::create_from_constructor(const ims_val* v)
+std::string ims_info::create_from_constructor(
+	const ims_val* v)
 {
-	return m_js_engine.create_from_constructor(v);
+	read_state rs;
+
+	size_t num_blocks_before = m_list.m_blocks.size();
+
+	let err_msg = m_js_engine.create_from_constructor(v, rs, m_list);
+	if (!err_msg.empty()) {
+		return err_msg;
+	}
+
+	if (!link_refs(num_blocks_before)) {
+		return "Could not link references.";
+	}
+
+	for (size_t i = num_blocks_before; i < m_list.m_blocks.size(); ++i) {
+		m_list.get_block_by_idx(i)->m_flags.from_js = false;
+	}
+
+	return "";
 }
 
 ////////////////////////////////////////////////////////////////////////////////

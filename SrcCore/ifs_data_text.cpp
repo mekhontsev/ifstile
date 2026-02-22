@@ -153,8 +153,8 @@ bool is_var_id_sym(char c)
 void WARN_DUP_ID(std::string_view id)
 {
 	//ignore this block and continue 
-	//useful for loading from the clipboard
-	ims_warning("Duplicate block ignored, id  =", id);
+	//useful for loading from the clipboard and JS constructors
+	ims_warning("The duplicate block was ignored, id  = {}", id);
 }
 
 //reads a block as an array of dst strings
@@ -857,10 +857,6 @@ bool read_state::parse_block(
 	ret.status = read_state::parse_result::e_continue;
 	return true;
 }
-
-
-
-
 
 static std::string_view get_var_name(size_t idx, ims_identifiers& idf)
 {

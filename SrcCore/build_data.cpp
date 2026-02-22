@@ -209,7 +209,6 @@ bool build_data::init_normal_block(
 		*b,
 		ec,
 		am,
-		true,
 		ei.m_idata4.get(),
 		bc);
 
@@ -520,7 +519,6 @@ bool build_data::init_custom_block(
 		b,
 		ec,
 		am,
-		false,
 		ei.m_idata4.get(),
 		bc);
 

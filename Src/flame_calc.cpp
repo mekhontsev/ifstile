@@ -89,7 +89,6 @@ size_t calc_flame(
 			*block_sq,
 			ec,
 			am,
-			true,
 			ei.m_idata4.get(),
 			bc);
 

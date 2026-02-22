@@ -17,7 +17,7 @@
 #pragma once
 //no one else can be included - that's the point
 
-void set_tooltip(const char* str);
+void set_tooltip(const char* fmt, ...);
 bool ims_button(const char* title, const char* tip = nullptr, int* id = nullptr);
 void set_ui_scale(float f);
 float& get_ui_scale();

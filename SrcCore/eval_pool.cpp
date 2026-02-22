@@ -21,10 +21,10 @@
 thread_local eval_pool eval_pool::ep;
 
 
-ims_val* eval_pool::alloc(ETP t, EST s, size_t data_bytes, size_t dim)
+ims_val* eval_pool::alloc(ETP t, EST s, size_t data_bytes, size_t sz)
 {
 	let idx = ims_pool::get_idx(sizeof(ims_val) + data_bytes);
-	return new (m_pool.alloc_by_idx(idx)) ims_val(dim, idx, t, s);
+	return new (m_pool.alloc_by_idx(idx)) ims_val(sz, idx, t, s);
 }
 
 
@@ -105,6 +105,11 @@ ims_val* eval_pool::get_string(std::string_view s)
 	auto* ret = alloc(ETP::string, EST::pod, s.length(), s.length());
 	std::copy(s.begin(), s.end(), ret->gp<char>());
 	return ret;
+}
+
+ims_val* eval_pool::get_indexed_object(size_t idx, ETP t)
+{
+	return alloc(t, EST::pod, 0, idx);
 }
 
 ims_val* eval_pool::alloc_scalar(ETP t, EST s, size_t sz)

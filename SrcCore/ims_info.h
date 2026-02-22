@@ -49,6 +49,7 @@ struct ims_info: public boost::noncopyable
 	bool link_refs(const size_t idx_from);
 
 	std::string create_from_constructor(const ims_val* v);
+
 	pool_ptr m_constructor_dialog;
 
 	[[nodiscard]]

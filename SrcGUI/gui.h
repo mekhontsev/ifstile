@@ -96,6 +96,8 @@ void ims_confirm_dlg(
 void try_open_file(std::function<void()>&& F, bool use_confirm = true);
 void stop_build_then(std::function<void()>&& f, uint64_t time_ms = min_build_time_ms);
 
+void on_constructor_success(size_t blocks_start_from);
+
 void StartSearch();
 
 void set_last_file(const std::string& filename, bool set_name, bool set_folder);

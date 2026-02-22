@@ -175,7 +175,7 @@ bool aifs_tester::init()
 	if (!b)return true;
 
 	bi.recalc_graph();
-	if (!bi.init4(*b, ec, am, true, gid.get(), ac)) {
+	if (!bi.init4(*b, ec, am, gid.get(), ac)) {
 		return false;
 	}
 

@@ -88,7 +88,7 @@ bool ifs_renderer::init(const std::string& aifs)
 	ast_maps am;
 	graph_init_data_ptr gd;
 	affine_calc ac;
-	if (!m_bi.init4(*b, ec, am, true, gd.get(), ac)) {
+	if (!m_bi.init4(*b, ec, am,  gd.get(), ac)) {
 		return false;
 	}
 

@@ -1032,7 +1032,6 @@ struct search_contex
 			ccl->get_block(), 
 			ec, 
 			am,
-			fnd2.m_search_init_mode, 
 			ei.m_idata4.get(), 
 			bc);
 

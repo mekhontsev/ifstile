@@ -41,8 +41,8 @@ struct eval_pool: public boost::noncopyable
 	static size_t get_data_capacity(const ims_val* v);
 
 	ims_val* update_string(ims_val* v, std::string_view src);
-
 	ims_val* get_string(std::string_view s);
+	ims_val* get_indexed_object(size_t idx, ETP t);
 
 	ims_val* get_scalar_int(Rational v);
 	ims_val* get_scalar_real(Real v, ETP t = ETP::number);
@@ -87,7 +87,7 @@ private:
 	ims_pool m_pool;
 
 	//returns with one reference, removed via release
-	ims_val* alloc(ETP t, EST s, size_t data_bytes = 0,	size_t dim = 0);
+	ims_val* alloc(ETP t, EST s, size_t data_bytes = 0,	size_t sz = 0);
 };
 
 

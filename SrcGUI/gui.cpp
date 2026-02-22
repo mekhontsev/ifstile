@@ -2600,6 +2600,31 @@ void try_open_file(std::function<void()>&& F, bool use_confirm)
 		});
 };
 
+void on_constructor_success(size_t blocks_start_from)
+{
+	auto& lst = ims_info_get().m_list;
+	bool has_new_visible = false;
+	for (size_t i = blocks_start_from; i < lst.m_blocks.size(); ++i) {
+		auto* b = lst.get_block_by_idx(i);
+		if (get_vb().append_block(b)) has_new_visible = true;
+	};
+
+	if (!has_new_visible) {
+		return;
+	}
+
+	if (blocks_start_from == 0) {
+		s_ui.m_ifs_list.m_find_scroll = true;
+		s_ui.m_ifs_list.m_find_build = true;
+		StartSearch();
+	}
+
+	stop_build_then([]() {
+		set_block_ex(get_vb().m_vis_blocks.size() - 1);
+		do_rebuild_sync();
+	});
+}
+
 bool is_search_started()
 {
 	return get_thread(e_ims_threads::search).is_running();

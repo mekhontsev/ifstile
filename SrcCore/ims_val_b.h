@@ -58,7 +58,7 @@ struct ims_val_b
 		////////////////////////////////////////////////////////////////////////
 		//vector types start here (use the m_dim field)
 		vector,	
-		_first_vec_type_ = vector,
+		_first_vec_type_ = vector,//for natvis only
 		compos,	//composition of other ims_val
 		uni,	//union other ims_vals
 

@@ -55,14 +55,19 @@ void calc_min_max(const Real v, Real& vmin, Real& vmax, bool positive)
 	}
 };
 
-void set_tooltip(const char* str)
+void set_tooltip(const char* fmt, ...)
 {
-	if (!str || !*str || !ImGui::IsItemHovered())return;
+	if (!fmt || !*fmt || !ImGui::IsItemHovered())return;
 	let& s = ImGui::GetStyle();
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, s.FramePadding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, s.WindowRounding);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, s.WindowBorderSize);
-	ImGui::SetTooltip("%s", str);
+
+	va_list args;
+	va_start(args, fmt);
+	ImGui::SetTooltipV(fmt, args);
+	va_end(args);
+
 	ImGui::PopStyleVar(3);
 }
 
