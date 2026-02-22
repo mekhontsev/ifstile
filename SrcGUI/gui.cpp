@@ -2961,7 +2961,6 @@ void open_file(
 				assert(ims_worker::is_main_thread());
 				g_file_open_in_progress = false;
 
-
 				if (!load_ok) {
 					std::cerr << err_msg;
 					ims_show_message(err_msg);
@@ -2969,14 +2968,12 @@ void open_file(
 					return;
 				}
 
-				
 				if (pnfo) {//Apply
 					//successful loading, replace
 
 					std::swap(pnfo, g_ims_info);
 					pnfo.reset();//delete the old one immediately
-					
-					
+
 					init6(true);//loaded from memory, needs to be saved
 
 					finder::get().init();
@@ -2994,15 +2991,19 @@ void open_file(
 					start_idx = get_vb().find_vis_block(keep_new);
 				}else {
 					start_idx = get_default_block();
-					
+
 					if (get_vb().m_vis_blocks.empty()) {
-						set_view_mode(ListViewMode::CONSOLE);
+						if (ims_info_get().m_constructor_dialog) {
+							set_view_mode(ListViewMode::CREATOR);
+						} else {
+							set_view_mode(ListViewMode::CONSOLE);
+						}
 					}else {
 						if (start_idx != ims_max) {
 							keep_new = get_vb().m_vis_blocks[start_idx];
 						}
 						set_view_mode(ListViewMode::LIST);
-					}					
+					}
 				}
 
 				get_vb().m_cur_block_pos = start_idx;//can be ims_max

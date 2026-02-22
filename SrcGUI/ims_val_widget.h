@@ -15,23 +15,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
-#include "ui_window.h"
-#include "ims_val_widget.h"
+#include "pool_ptr.h"
 
 struct ims_val;
 
-
-
-struct ws_creator : public window_state
+struct ims_val_widget
 {
-	const char* get_title() override;
-	void show() override;
+	std::string m_cur_name;
+	pool_ptr m_value;
 
-	void create_ifs3();
+	void show(const ims_val* d, int& next_id);
 
-	void show_2d_creator();
+	void reset();
 
-	ims_val_widget m_val_widget;
+private:
 
-	int m_next_id = 0;
+	//d - type (structure or array)
+	//v - value to edit, can be null
+	void show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id);
 };

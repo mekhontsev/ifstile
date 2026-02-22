@@ -349,18 +349,19 @@ prepend(SRC_GENERAL Src)
 #-------------------------------------------------------------------------------
 set (SRC_GUI
 ui_window.h ui_window.cpp gui.h gui.cpp ims_window_drag.h ims_window_drag.cpp
-ui_creator.h ui_creator.cpp ui_animation.h ui_animation.cpp 
+ui_creator.h ui_creator.cpp ui_animation.h ui_animation.cpp
 ui_examples.h ui_examples.cpp ui_colum_info.cpp ui_finder.h ui_finder.cpp 
 ui_search_session.h ui_search_session.cpp ui_clipboard.h ui_clipboard.cpp
-ui_file_dialog.h ui_file_dialog.cpp ui_about.h ui_about.cpp 
+ui_file_dialog.h ui_file_dialog.cpp ui_about.h ui_about.cpp
 ui_palette.h ui_palette.cpp ui_location.h ui_location.cpp ui_components.h
 ui_components.cpp ui_filter_columns.h ui_filter_columns.cpp
 ui_settings.h ui_settings.cpp ui_modal_msg.h ui_modal_msg.cpp ui_source.h
 ui_source.cpp ui_help.h ui_help.cpp ui_fonts.h ui_fonts.cpp ui_ifs_list.h
-ui_ifs_list.cpp ui_sel_visible.h ui_sel_visible.cpp ui_render_par.h 
-ui_render_par.cpp ui_console.h ui_console.cpp ui_editor.h ui_editor.cpp 
+ui_ifs_list.cpp ui_sel_visible.h ui_sel_visible.cpp ui_render_par.h
+ui_render_par.cpp ui_console.h ui_console.cpp ui_editor.h ui_editor.cpp
 ui_utils.h ui_utils.cpp ims_markdown.h ims_markdown.cpp icons.cpp
 font_icons.cpp font_regular.cpp font_bold.cpp font_italic.cpp
+ims_val_widget.h ims_val_widget.cpp
 )
 prepend(SRC_GUI SrcGUI)
 source_group(SrcGUI FILES ${SRC_GUI})
