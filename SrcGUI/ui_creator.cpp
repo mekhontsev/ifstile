@@ -284,7 +284,7 @@ void ws_creator::show()
 				let blocks_start_from = nfo.m_list.m_blocks.size();
 
 				auto ret = nfo.create_from_constructor(
-					m_val_widget.m_value.get());
+					m_val_widget.get_val());
 
 				auto lambda = [ret, blocks_start_from]
 				{

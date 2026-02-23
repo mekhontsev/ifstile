@@ -21,16 +21,18 @@ struct ims_val;
 
 struct ims_val_widget
 {
-	std::string m_cur_name;
-	pool_ptr m_value;
 
 	void show(const ims_val* d, int& next_id);
-
 	void reset();
+
+	const ims_val* get_val() { return m_value.get(); }
 
 private:
 
+	pool_ptr m_value;
+
 	//d - type (structure or array)
 	//v - value to edit, can be null
-	void show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id);
+	void show_ui_for_val(
+		const ims_val* d, pool_ptr& v, int& next_id, size_t rec_level);
 };

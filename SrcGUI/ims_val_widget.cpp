@@ -69,7 +69,8 @@ static size_t entry_size(const ims_val* d)
 	return sz;
 }
 
-void ims_val_widget::show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id)
+void ims_val_widget::show_ui_for_val(
+	const ims_val* d, pool_ptr& v, int& next_id, size_t rec_level)
 {
 	let sz = entry_size(d);
 
@@ -145,10 +146,6 @@ void ims_val_widget::show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id
 	if (sz >= 2 && d0->is(ims_val_b::ETP::number) &&
 		entry_size(d->p_v(1)) > 0)
 	{//array
-		let old_length = m_cur_name.size();
-		if (old_length > 0) {
-			ImGui::NewLine();
-		}
 		int64_t nume_el;
 		if (!get_i64(d0, &nume_el)) {
 			return;
@@ -165,26 +162,17 @@ void ims_val_widget::show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id
 		}
 
 		for (size_t i = 0; i < (size_t)nume_el; ++i) {
-			fmt::format_to(std::back_inserter(m_cur_name), "[{}]", i);
-			ImGui::TextUnformatted(m_cur_name.data(), m_cur_name.data() + m_cur_name.size());
-			ImGui::SameLine();
 			pool_ptr vi = v->p_v(i);
 			if (vi)vi->add_ref();
-			show_ui_for_val(d->p_v(1), vi, next_id);//recursive call
+			show_ui_for_val(d->p_v(1), vi, next_id, rec_level + 1);//recursive call
 			if (v->p_v(i)) eval_pool::ep.release(v->p_v(i));
 			v->p_v()[i] = vi.release();
-			m_cur_name.resize(old_length);
 		}
 		err = false;
 		return;
 	}
 	if (entry_size(d0) > 0)
 	{//struct
-		let old_length = m_cur_name.size();
-		if (old_length > 0) {
-			ImGui::NewLine();
-		}
-
 		if (!v ||
 			!v->is(ims_val_b::ETP::vector, ims_val_b::EST::other) ||
 			v->get_size() != (size_t)sz)
@@ -204,25 +192,17 @@ void ims_val_widget::show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id
 				show_invalid_field();
 				continue;
 			};
-			if (old_length > 0)m_cur_name += '.';
-			m_cur_name += id->get_string();
-			ImGui::TextUnformatted(m_cur_name.data(), m_cur_name.data() + m_cur_name.size());
-			if (szi >= 3 && entry->p_v(2)->is(ims_val_b::ETP::string)) {
-				let tt = entry->p_v(2)->get_string();
-				if (!tt.empty()) {
-					set_tooltip("%.*s", static_cast<int>(tt.size()), tt.data());
-				}
+			let str = entry->p_v(0)->get_string();
+			if (str.length() > 0) {
+				ImGui::PushTextWrapPos(0.0f);
+				ImGui::TextUnformatted(str.data(), str.data() + str.size());
+				ImGui::PopTextWrapPos();
 			}
-			ImGui::SameLine();
-
-
 			pool_ptr vi = v->p_v(i);
 			if (vi)vi->add_ref();
-			show_ui_for_val(entry->p_v(1), vi, next_id);//recursive call
+			show_ui_for_val(entry->p_v(1), vi, next_id, rec_level + 1);//recursive call
 			if (v->p_v(i)) eval_pool::ep.release(v->p_v(i));
 			v->p_v()[i] = vi.release();
-
-			m_cur_name.resize(old_length);
 		}
 		err = false;
 		return;
@@ -257,12 +237,13 @@ void ims_val_widget::show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id
 	if (d0->is(ims_val_b::EST::rational))
 	{//integer
 		int64_t def_val;
+
 		if (sz < 3 || !d0->to_int(def_val)) {
 			return;
 		}
 
 		int64_t vmin, vmax;
-		if (!d->p_v(1)->to_int(vmin) || !d->p_v(2)->to_int(vmax)) {
+		if (!get_i64(d->p_v(1), &vmin) || !get_i64(d->p_v(2), &vmax)) {
 			return;
 		}
 
@@ -282,6 +263,7 @@ void ims_val_widget::show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id
 
 		if (vmin == 0 && vmax == 1) {
 			bool b = (cur_val != 0);
+			ImGui::SameLine();
 			if (ImGui::Checkbox("", &b)) {
 				*v->p_i() = b ? 1 : 0;
 			}
@@ -338,8 +320,7 @@ void ims_val_widget::show_ui_for_val(const ims_val* d, pool_ptr& v, int& next_id
 
 void ims_val_widget::show(const ims_val* d, int& next_id)
 {
-	m_cur_name.clear();
-	show_ui_for_val(d, m_value, next_id);
+	show_ui_for_val(d, m_value, next_id, 0);
 }
 
 void ims_val_widget::reset()
