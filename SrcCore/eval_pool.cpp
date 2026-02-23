@@ -87,10 +87,61 @@ size_t eval_pool::get_data_capacity(const ims_val* v)
 	return ims_pool::get_size(v->get_bucket()) - sizeof(ims_val);
 }
 
+ims_val* eval_pool::update_vec_size(ims_val* v, size_t new_sz)
+{
+	if (v && !v->is(ims_val_b::ETP::vector, ims_val_b::EST::other)) {
+		v = nullptr;
+	}
+
+	//current capacity and size, in elements
+	size_t cap = 0;
+	size_t sz = 0;
+	if (v) {
+		cap = get_data_capacity(v) / sizeof(ims_val*);
+		sz = v->get_size();
+	}
+
+	ims_val* nv = nullptr;
+
+	if (!v || cap < new_sz) {//copy old elements into a new vector
+		nv = get_vector(new_sz);
+		for (size_t i = 0; i < sz; ++i) {
+			let* a = v->p_v(i);
+			if (a) {
+				nv->p_v()[i] = a;
+				a->add_ref();
+			}
+		}
+		return nv;
+	}
+
+	auto** d = v->p_v();
+	v->set_size(new_sz);
+	//make all changes in-place
+	if (sz < new_sz) {//extend by zeros
+		for (size_t i = sz; i < new_sz; ++i) {
+			d[i] = nullptr;
+		}
+	} else {//shrink
+		for (size_t i = new_sz; i < sz; ++i) {
+			let* a = d[i];
+			d[i] = nullptr;
+			if (a)release(a);
+		}
+	}
+
+	v->add_ref();
+	return v;
+}
+
 ims_val* eval_pool::update_string(ims_val* v, std::string_view src)
 {
-	let cap = v ? get_data_capacity(v) : 0;
-	if (!v || !v->is(ims_val_b::ETP::string) || cap < src.size()) {
+	if (v && !v->is(ims_val_b::ETP::string)) {
+		v = nullptr;
+	}
+
+	let cap_chars = v ? get_data_capacity(v) : 0;
+	if (!v || cap_chars < src.size()) {
 		return get_string(src);
 	}
 

@@ -44,6 +44,8 @@ struct eval_pool: public boost::noncopyable
 	ims_val* get_string(std::string_view s);
 	ims_val* get_indexed_object(size_t idx, ETP t);
 
+	ims_val* update_vec_size(ims_val* v, size_t new_sz);
+
 	ims_val* get_scalar_int(Rational v);
 	ims_val* get_scalar_real(Real v, ETP t = ETP::number);
 	//allocates a scalar value of type BigRational initialized to zero.

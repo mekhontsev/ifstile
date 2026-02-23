@@ -1,111 +1,132 @@
 //AIFS_IGNORE_BEGIN
 
-export const $info=`
+export const $info = `
 **Algebraic self-affine curves.**
 `
 
-let params = [
-["N", [7n, 2n, 20n], "Number of maps"],
-["D", [2n, 1n, 8n], "Max algebraic dimension"],
-["P", [0n, 0n, 1n], "Palindromic"],
-["M", [3n, 1n, 10n], "Maximum coefficient of a polynomial"],
-["E", [3n, 1n, 10n], "Maximum used order of the group generator: s^E, s^-E"],
-["R", [1n, 1n, 10n], "Max numerator (for irrational search only)"],
-["Q", [1n, 1n, 10n], "Max denominator (for irrational search only)"],
-]
+	let params = [
+		["Maps in the trunk",
+			[7n, 2, 20]],
+		["Branch locations (one map per branch)",
+			[0n, [0n, 0, 100]]],
+		["Max algebraic dimension",
+			[2n, 1, 8]],
+		["Palindromic",
+			[0n, 0, 1]],
+		["Maximum coefficient of a polynomial",
+			[3n, 1, 10]],
+		["Maximum used order of the group generator: s^E, s^-E",
+			[3n, 1, 15]],
+		["Max numerator (for irrational search only)",
+			[1n, 1, 10]],
+		["Max denominator (for irrational search only)",
+			[1n, 1, 10]],
+	]
 
-function create()
-{
+function create() {
 
-	const N=this[0];
-	const D=this[1];
-	const P=this[2];
-	const M=this[3];
-	const E=this[4];
-	const R=this[5];
-	const Q=this[6];
+	const [N, B, D, P, C, E, R, Q] = this
 
-	let dim=D;
+		let dim = D;
 
-	let c=[];
-	let pn=dim;
-	if (P==1){
-		if (dim%2!=0){
-			dim=dim-1;
+	let c = [];
+	let pn = dim;
+	if (P == 1) {
+		if (dim % 2 != 0) {
+			dim = dim - 1;
 		}
-		pn=dim/2;
+		pn = dim / 2;
 		c.push(1);
-		for(let i=1;i<dim;++i){
-			if (i<=pn){
-				c.push(`p[${i-1}]/a`);
-			}else{
-				c.push(`p[${dim-i-1}]/a`);
+		for (let i = 1; i < dim; ++i) {
+			if (i <= pn) {
+				c.push(`p[${i - 1}]/a`);
+			} else {
+				c.push(`p[${dim - i - 1}]/a`);
 			}
 		}
-	}else{
-		for(let i=0;i<dim;++i){
+	} else {
+		for (let i = 0; i < dim; ++i) {
 			c.push(`p[${i}]/a`);
 		}
 	}
 
-	let v=[1]
-	for(let i=1;i<dim;++i){
+	let v = [1]
+	for (let i = 1; i < dim; ++i) {
 		v.push(0)
 	}
 
-	let max_j = (P==0 && dim>2) ? 1:3
+	let max_j = (P == 0 && dim > 2) ? 1 : 3
 
-	let B=
-	{
-		$id: `G${N}_${dim}_${P}`,
+	let nB = B.length; //number of branches
+	let idB = `B${nB}_`;
+	for (let i = 0; i < nB; ++i) {
+		idB += `${B[i]}_`
+	}
+
+	let M = N + nB; //total number of maps
+
+	let T = {
+		$id: `G${N}_${idB}${dim}_${P}`,
 		$dim: dim,
-		$subspace : `[s,i]`,
+		$subspace: "[s,i]",
 		c: c,
 		s: "$companion(c)",
 		x: "$exchange()",
 		v: v,
-		w: `x*s^${dim-1}`,
+		w: `x*s^${dim - 1}`,
 		xj: "[1,(v*-1),w,(w*v*-1)]",
-		p: `$vector(${pn},$integer(${-M},${M}))`,
-		k: `$vector(${N},$integer(${-E},${E}))`,
-		r: `$vector(${N},$integer(${-R},${R-1}))`,
-		q: `$vector(${N},$integer(1,${Q}))`,
-		j: `$vector(${N},$integer(0,${max_j}))`,
-		a: `$number($integer(1,${M}))`,
-		i: `$number($integer(0,${dim-1}))`,
+		p: `$vector(${pn},$integer(${ - C},${C}))`,
+		k: `$vector(${M},$integer(${ - E},${E}))`,
+		r: `$vector(${M},$integer(${ - R},${R - 1}))`,
+		q: `$vector(${M},$integer(1,${Q}))`,
+		j: `$vector(${M},$integer(0,${max_j}))`,
+		a: `$number($integer(1,${C}))`,
+		i: `$number($integer(0,${dim - 1}))`,
 		u: "v*0",
 		t0: 1,
 	}
 
-
-	for (let i=0;i<N;++i){
-		B["s"+i]=`(r[${i}]+if(r[${i}]+1,1,0))/q[i]*s^k[${i}]`;	
+	for (let i = 0; i < M; ++i) {
+		T["s" + i] = `(r[${i}]+if(r[${i}]+1,1,0))/q[${i}]*s^k[${i}]`;
 	}
 
-	for (let i=1;i<N;++i){	
-		B["t"+i]=`(s${i-1}*u+1)*t${i-1}`;
-	}
-
-	let sum="";
-	let uni="";
-	for (let i=0;i<N;++i){
-		B["h"+i]=`t${i}*s${i}*xj[j[${i}]]`;
-		
-		if(i>0){
-			sum=sum+"+";
-			uni=uni+"|";
+	for (let i = 1; i < M; ++i) {
+		if (i < N) {
+			T["t" + i] = `(s${i - 1}*u+1)*t${i - 1}`;
+		} else {
+			let base = B[i - N] % (i + 1);
+			if (base == 0) {
+				T["t" + i] = `t0`;
+			} else {
+				T["t" + i] = `(s${base - 1}*u+1)*t${base - 1}`;
+			}
 		}
-		
-		sum=sum+"s"+i;
-		uni=uni+"h"+i;
 	}
 
-	B.g=sum;
-	B.A="g^-1*(" + uni + ")*A";
+	let uni = "";
+	for (let i = 0; i < M; ++i) {
+		T["h" + i] = `t${i}*s${i}*xj[j[${i}]]`;
 
-	return B
+		if (i > 0) {
+			uni = uni + "|";
+		}
+		uni = uni + "h" + i;
+	}
+
+	let sum = "";
+	for (let i = 0; i < N; ++i) {
+		if (i > 0) {
+			sum = sum + "+";
+		}
+		sum = sum + "s" + i;
+	}
+	T.g = sum;
+
+	T.A = "g^-1*(" + uni + ")*A";
+
+	return T
 }
 
-export const $constructor=[create, params];
+export const $constructor = [create, params];
 
 //AIFS_IGNORE_END

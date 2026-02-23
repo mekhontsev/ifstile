@@ -352,7 +352,7 @@ public:
 
 	void set_size(size_t sz)
 	{
-		assert(is(ETP::string));
+		assert(is(ETP::string) || is(ETP::vector));
 		m_size = static_cast<uint32_t>(sz);
 	}
 
