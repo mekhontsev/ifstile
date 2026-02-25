@@ -92,7 +92,7 @@ samples::samples()
 		ME("basic.js",basic_js),
 		ME("disk_like.js", disk_like_js),
 		ME("julia.js",julia_js),
-		ME("curves.js",curves_js),
+		ME("trees.js",trees_js),
 		}},
 	};
 }

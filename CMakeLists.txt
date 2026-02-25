@@ -553,7 +553,7 @@ set (Examples
 	Animation.aifs
 	basic.js.aifs
 	Cube.aifs
-	curves.js.aifs
+	trees.js.aifs
 	disk_like.js.aifs
 	IR3.aifs
 	IR3-211111-90.aifs
