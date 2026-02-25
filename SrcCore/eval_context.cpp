@@ -216,14 +216,27 @@ const ims_val* eval_context::eval_ref(size_t idx, bool is_geom)
 		let was_unions	= m_topo_unions;
 		let was_cycles	= m_topo_cycles;
 		let was_templates = m_geom_templates;
-		
-		rf->in_eval = true;
-		v = eval7(rf->c, is_geom);
-		rf = &get_ref4(idx);//restore after eval
-		rf->in_eval = false;
-		
 
-		rf->v[v_idx].reset(v);//intercepting ownership
+		//support for recursive vector initialization
+		if (rf->c.h.tt == ETYPE::vector) {
+			if (!is_geom) {
+				v = get_ast_val(rf->c);
+			} else {
+				let na = rf->c.h.num_args();
+				auto& vec = rf->v[v_idx];
+				vec.reset(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
+				pool_ptr vloc = vec;
+				eval_vector_ex(rf->c, vloc);
+				v = vloc.release();
+			}
+		} else {
+			rf->in_eval = true;
+			v = eval7(rf->c, is_geom);
+			rf = &get_ref4(idx);//restore after eval
+			rf->in_eval = false;
+		}
+
+		rf->v[v_idx].reset(v);//take ownership
 
 		if (m_topo_unions > was_unions) {
 			rf->dep_from_unions = true;
@@ -1354,16 +1367,13 @@ const ims_val* eval_context::eval_uni(ast_context p, bool is_geom)
 	return ret;
 };
 
-
-const ims_val* eval_context::eval_vector(ast_context p, bool)
+void eval_context::eval_vector_ex(ast_context p, pool_ptr& vec)
 {
 	let& op = p.h;
 
 	let na = op.num_args();
 
-	if (na == 0) {//unknown
-		return eval_pool::ep.get_vector(0, ims_val::ETP::vector);
-	}
+	assert(vec->get_size() == na);
 
 	//calculate all components of the vector
 	//consider 3 cases
@@ -1373,13 +1383,14 @@ const ims_val* eval_context::eval_vector(ast_context p, bool)
 
 	//some vector elements may be nullptr
 	//this is okay because they may not be needed
-	pool_ptr vec(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
 
 	auto* da = vec->p_v();
-	
+
 	bool is_ok = true;
+
+	//calculate the components
 	for (size_t j = 0; j < na; ++j) {
-		//intercepting ownership
+		//take ownership
 		da[j] = eval7(p.index(j), true);
 
 		if (strict_mode() && !da[j]) {
@@ -1389,12 +1400,11 @@ const ims_val* eval_context::eval_vector(ast_context p, bool)
 		}
 	}
 	if (!is_ok) {
-		return nullptr;
+		vec.reset();
+		return;
 	}
-	
-	
-	//calculate the components
 
+	//try to narrow the type
 	auto common_sbt = ims_val::EST::rational;
 
 	vec->visit_childs([&](const ims_val* v) {
@@ -1409,9 +1419,8 @@ const ims_val* eval_context::eval_vector(ast_context p, bool)
 		return true;//continue
 	});
 
-
 	if (common_sbt == ims_val::EST::other) {
-		return vec.release();
+		return;
 	}
 
 	//conversion from Other, numeric scalars
@@ -1421,7 +1430,8 @@ const ims_val* eval_context::eval_vector(ast_context p, bool)
 		for (size_t j = 0; j < na; ++j) {
 			d[j] = da[j]->get_int();
 		};
-		return ret;
+		vec.reset(ret);
+		return;
 	}
 
 	/////////////////////////////////////////
@@ -1431,9 +1441,17 @@ const ims_val* eval_context::eval_vector(ast_context p, bool)
 	for (size_t j = 0; j < na; ++j) {
 		da[j]->to_real(d[j]);
 	};
-	return ret;
-};
+	vec.reset(ret);
+}
 
+const ims_val* eval_context::eval_vector(ast_context p, bool)
+{
+	let na = p.h.num_args();
+	pool_ptr vec;
+	vec.reset(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
+	eval_vector_ex(p, vec);
+	return vec.release();
+};
 
 const ims_val* eval_context::eval_mul(ast_context p, bool is_geom)
 {

@@ -101,6 +101,7 @@ struct eval_context
 	//the result does not need to be freed
 	const ims_val* eval_ref(size_t idx, bool is_geom = true);
 
+	void eval_vector_ex(ast_context p, pool_ptr& ret);
 	//numeric conversions
 	//indexing
 	//traversing references

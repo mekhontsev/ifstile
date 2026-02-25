@@ -146,6 +146,26 @@ f=func(5)
 	EXPECT_TRUE(t.equal("f", 5));
 };
 
+TEST(testEval, recursive_vectors)
+{
+	aifs_tester t(R"(
+@
+t=[0, t[0]+10, t[1]+15, t[1]+t[2]]
+a=[2, b[0]+3]
+b=[3, a[0]+2]
+
+t3=t[3]
+a1=a[1]
+b1=b[1]
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("t3", 35));
+	EXPECT_TRUE(t.equal("a1", 6));
+	EXPECT_TRUE(t.equal("b1", 4));
+};
+
+
 
 TEST(testEval, recursive_fib)
 {

@@ -25,9 +25,9 @@ export const $info = `
 
 function create() {
 
-	const [N, B, D, P, C, E, R, Q] = this
+	const [N, B, D, P, C, E, R, Q] = this;
 
-		let dim = D;
+	let dim = D;
 
 	let c = [];
 	let pn = dim;
@@ -83,34 +83,15 @@ function create() {
 		a: `$number($integer(1,${C}))`,
 		i: `$number($integer(0,${dim - 1}))`,
 		u: "v*0",
-		t0: 1,
 	}
 
 	for (let i = 0; i < M; ++i) {
 		T["s" + i] = `(r[${i}]+if(r[${i}]+1,1,0))/q[${i}]*s^k[${i}]`;
 	}
 
-	for (let i = 1; i < M; ++i) {
-		if (i < N) {
-			T["t" + i] = `(s${i - 1}*u+1)*t${i - 1}`;
-		} else {
-			let base = B[i - N] % (i + 1);
-			if (base == 0) {
-				T["t" + i] = `t0`;
-			} else {
-				T["t" + i] = `(s${base - 1}*u+1)*t${base - 1}`;
-			}
-		}
-	}
-
-	let uni = "";
 	for (let i = 0; i < M; ++i) {
-		T["h" + i] = `t${i}*s${i}*xj[j[${i}]]`;
-
-		if (i > 0) {
-			uni = uni + "|";
-		}
-		uni = uni + "h" + i;
+		let base = i < N ? i : B[i - N] % (i + 1);
+		T["t" + i] = base == 0 ? 1 : `(s${base - 1}*u+1)*t${base - 1}`
 	}
 
 	let sum = "";
@@ -122,6 +103,15 @@ function create() {
 	}
 	T.g = sum;
 
+	let uni = "";
+	for (let i = 0; i < M; ++i) {
+		T["h" + i] = `t${i}*s${i}*xj[j[${i}]]`;
+
+		if (i > 0) {
+			uni = uni + "|";
+		}
+		uni = uni + "h" + i;
+	}
 	T.A = "g^-1*(" + uni + ")*A";
 
 	return T

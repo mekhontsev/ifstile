@@ -285,7 +285,7 @@ struct ims_operator
 	static consteval auto get_topo_eval_arr()
 	{
 		//types that require non-trivial operator evaluation
-//all others are immediately wrapped in ast_ptr
+		//all others are immediately wrapped in ast_ptr
 		std::array<bool, (size_t)ETYPE::num_elems> ret{ false };
 		auto set = [&](ETYPE t) {ret[(size_t)t] = true; };
 		set(ETYPE::empty);	//turn into an empty union
