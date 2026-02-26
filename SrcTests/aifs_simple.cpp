@@ -451,8 +451,6 @@ y4y = recy(18)
 };
 
 
-
-
 TEST(testEval, func_and_index)
 {
 	aifs_tester t(R"(
@@ -868,6 +866,82 @@ b=(a^-1)^2
 	EXPECT_TRUE(t.equal("b", { 1, 4 }));
 };
 
+////////////////////////////////////////////////////////////////////////////////
+
+TEST(testArrFuncs, ArrSize)
+{
+	aifs_tester t(R"(
+@
+a0=[]
+a1=[0]
+a2=[0,0]
+s0=$(a0)
+s1=$(a1)
+s2=$(a2)
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("s0", 0));
+	EXPECT_TRUE(t.equal("s1", 1));
+	EXPECT_TRUE(t.equal("s2", 2));
+};
+
+TEST(testArrFuncs, ArrGenSimple)
+{
+	aifs_tester t(R"(
+@
+a=[$]
+b=[$,$]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("a", {}));
+	EXPECT_TRUE(t.equal_vec("b", {}));
+};
+
+TEST(testArrFuncs, ArrGenSeq)
+{
+	aifs_tester t(R"(
+@
+a=[$, if ($(a)-3, $, $(a))]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("a", { 0,1,2,3 }));
+};
+
+TEST(testArrFuncs, ArrGenSeq2)
+{
+	aifs_tester t(R"(
+@
+a=[$, if ($(a)-3, $, [$(a),$(a)*$(a)])]
+sa=$(a)
+a3=a[3]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("a3", { 3,9 }));
+	EXPECT_TRUE(t.equal("sa", 4));
+};
+
+
+TEST(testArrFuncs, ArrGenFib)
+{
+	aifs_tester t(R"(
+@
+a=[0, 1, $, if ($(a)-6, $, a[$(a)-1]+a[$(a)-2])]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("a", { 0,1,1,2,3,5,8 }));
+};
+
+TEST(testArrFuncs, ArrGenCopy)
+{
+	aifs_tester t(R"(
+@
+b=[2,3,5,7,11]
+a=[$, if($(a)-$(b)+1, $, b[$(a)])]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("a", { 2,3,5,7,11 }));
+};
 ////////////////////////////////////////////////////////////////////////////////
 TEST(testJS, ConsoleLog)
 {

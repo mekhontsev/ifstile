@@ -1075,6 +1075,23 @@ const ims_val* eval_context::eval_csg(ast_context p, bool is_geom)
 	return ret.release();
 };
 
+const ims_val* eval_context::eval_arr_func(ast_context p, bool is_geom)
+{
+	let& op = p.h;
+
+	//check for correct types and dimensions
+	let na = op.num_args();
+
+	if (na == 1) {
+		let* arg = eval7(p.index(0), is_geom);
+		if (arg && arg->is(ims_val_b::ETP::vector)) {
+			return eval_pool::ep.get_scalar_int((ims_val_b::Integer)arg->get_size());
+		}
+	}
+	eval_error("$(...): invalid arguments");
+	return nullptr;
+}
+
 const ims_val* eval_context::eval_companion(ast_context p, bool)
 {
 	let& op = p.h;
@@ -1383,6 +1400,7 @@ const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
 			get_ref4(ref_idx).v[get_val_idx(true)] = vec;
 		}
 	};
+	update_ref();
 
 	//calculate all components of the vector
 	//consider 3 cases
@@ -1394,12 +1412,42 @@ const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
 	//this is okay because they may not be needed
 
 	//calculate the components
-	for (size_t j = 0; j < na; ++j) {
-		let* vj = eval7(p.index(j), true);
-		vec = eval_pool::ep.update_vec_size(vec.get_mut(), j + 1);
-		vec->p_v()[j] = vj;//take ownership
+
+	bool marker_found = false;
+
+	size_t jdx = 0;
+
+	while (jdx < na) {
+		let* vj = eval7(p.index(jdx), true);
+
+		let is_marker = vj && vj->is(ims_val_b::ETP::ast_ptr) &&
+			vj->gp<ast_context>()->h.tt==ETYPE::marker;
+
+		if (is_marker) {
+			marker_found = !marker_found;
+			++jdx;
+			continue;
+		}
+
+		if (vec->get_size() > 1024 * 1024 + na) {
+			vec.reset();
+			update_ref();
+			eval_error("invalid vector");
+			return nullptr;
+		}
+
+		let cur_pos = vec->get_size();
+		vec = eval_pool::ep.update_vec_size(vec.get_mut(), cur_pos + 1);
+		vec->p_v()[cur_pos] = vj;//take ownership
 		update_ref();
+
+		if (!marker_found) {
+			++jdx;
+		}
 	}
+
+	let vsz = vec->get_size();
+
 
 	//try to narrow the type
 	auto common_sbt = ims_val::EST::rational;
@@ -1423,16 +1471,16 @@ const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
 
 	//conversion from Other, numeric scalars
 	if (common_sbt == ims_val::EST::rational) {
-		ret = eval_pool::ep.get_vector_int(na);
+		ret = eval_pool::ep.get_vector_int(vsz);
 		auto* d = ret->p_i();
-		for (size_t j = 0; j < na; ++j) {
+		for (size_t j = 0; j < vsz; ++j) {
 			d[j] = vec->p_v(j)->get_int();
 		};
 	} else {
 		assert(common_sbt == ims_val::EST::real);
-		ret = eval_pool::ep.get_vector_real(na);
+		ret = eval_pool::ep.get_vector_real(vsz);
 		auto* d = ret->p_r();
-		for (size_t j = 0; j < na; ++j) {
+		for (size_t j = 0; j < vsz; ++j) {
 			vec->p_v(j)->to_real(d[j]);
 		};
 	}
@@ -1521,6 +1569,10 @@ const ims_val* eval_context::eval_empty(ast_context, bool)
 	return eval_pool::ep.get_empty_val();
 };
 
+const ims_val* eval_context::eval_marker(ast_context p, bool)
+{
+	return get_ast_val(p);
+};
 
 const ims_val* eval_context::eval_id(ast_context, bool)
 {
@@ -1542,6 +1594,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	switch (p.h.tt) {
 	case ETYPE::empty:			ret = eval_empty(p, is_geom); break;
 	case ETYPE::id:				ret = eval_id(p, is_geom); break;
+	case ETYPE::marker:			ret = eval_marker(p, is_geom); break;
 	case ETYPE::reference:		ret = eval_reference(p, is_geom); break;
 	case ETYPE::exchange:		ret = eval_exchange(p, is_geom); break;
 	case ETYPE::inversion:		ret = eval_inversion(p, is_geom); break;
@@ -1556,6 +1609,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::diagonal:		ret = eval_diagonal(p, is_geom); break;
 	case ETYPE::charpoly:		ret = eval_charpoly(p, is_geom); break;	
 	case ETYPE::csg:			ret = eval_csg(p, is_geom); break;
+	case ETYPE::arr_func:		ret = eval_arr_func(p, is_geom); break;
 	case ETYPE::companion:		ret = eval_companion(p, is_geom); break;
 	case ETYPE::power_imm:		ret = eval_pow(p, is_geom); break;
 	case ETYPE::power:			ret = eval_pow(p, is_geom); break;

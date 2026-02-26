@@ -202,6 +202,7 @@ static void s_init()
 		case ETYPE::distribution_int:	d = "integer";	break;
 		case ETYPE::distribution_real:	d = "real";		break;
 		case ETYPE::companion:			d = "companion";break;
+		case ETYPE::arr_func:			d = "";			break;
 		case ETYPE::charpoly:			d = "charpoly";	break;
 		case ETYPE::diagonal:			d = "diagonal";	break;
 		case ETYPE::exchange:			d = "exchange";	break;
@@ -211,11 +212,9 @@ static void s_init()
 		case ETYPE::thickness:			d = "thickness";break;
 		case ETYPE::condition:			d = "if";		break;
 		case ETYPE::call:				d = "new";		break;
-		default:										break;
+		default:										continue;
 		}
-		if (!d.empty()) {
-			s_map[d] = static_cast<ETYPE>(i);
-		}
+		s_map[d] = static_cast<ETYPE>(i);
 	}
 }
 
@@ -223,7 +222,6 @@ std::string_view  ims_operator::to_string(ETYPE t)
 {
 	s_init();
 	let& ret = s_keywords[static_cast<size_t>(t)];
-	assert(!ret.empty());
 	return ret;
 }
 
@@ -363,6 +361,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::inversion:
 	case ETYPE::id:
 	case ETYPE::empty:
+	case ETYPE::marker:
 		//distribution - the same layout as vector_imm[real, 2]
 	case ETYPE::distribution_int:
 	case ETYPE::distribution_real:
@@ -390,6 +389,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::sum:
 	case ETYPE::uni:
 	case ETYPE::vector:
+	case ETYPE::arr_func:
 	case ETYPE::companion:
 	case ETYPE::diagonal:
 	case ETYPE::index:

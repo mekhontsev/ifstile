@@ -26,6 +26,7 @@ static constexpr char const
 *dim = "$dim",
 *timestamp = "$ts",
 *empty = "$e",
+*marker = "$",
 *parent = "$p",
 *str_id = "$id",
 *subspace = "$subspace",

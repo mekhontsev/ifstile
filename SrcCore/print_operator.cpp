@@ -188,7 +188,11 @@ void print_operator(
 		str << 1;
 		break;
 	}
-
+	case ETYPE::marker:
+	{
+		str << ims_keywords::marker;
+		break;
+	}
 
 	case ETYPE::power:
 	case ETYPE::power_imm:
@@ -460,6 +464,7 @@ void print_operator(
 	case ETYPE::color_style:
 	case ETYPE::thickness:
 	case ETYPE::diagonal:
+	case ETYPE::arr_func:
 	case ETYPE::condition:
 	{
 		let sz = op.num_args();

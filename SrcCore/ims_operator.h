@@ -23,6 +23,9 @@ enum class ETYPE : uint8_t
 	//not defined (maximum priority)
 	undef = 0,//results from clear()
 
+	//$
+	marker,
+
 	//empty
 	empty,
 
@@ -43,6 +46,9 @@ enum class ETYPE : uint8_t
 
 	//vector of numbers
 	vector_imm,
+
+	//$(...)
+	arr_func,
 
 	//vector of operators
 	vector,
@@ -149,6 +155,7 @@ enum class ETYPE : uint8_t
 	uni,		
 
 	csg, //$csg(map: other, with: int, power: int, inv_all_maps: int)
+
 
 	//minimum priority
 

@@ -104,6 +104,15 @@ struct vec_expr
 		t.push_back(rhs);
 
 	}
+
+	void operator()(spirit::utree& t) const
+	{
+		let w = t.which();
+
+		if (w == spirit::utree_type::invalid_type) {
+			t.push_back(spirit::utree(spirit::utf8_symbol_type(&op, 1)));
+		}
+	}
 	const char op;
 };
 
@@ -221,7 +230,8 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 		identifier = qi::as_string[(alpha | char_('_') | char_('$')) >>
 			*(alpha | digit | char_('_') | char_('$'))];
 
-		vector = '[' >> -(expression[vect(_val, _1)] % ',') >> *char_(',') >> ']';
+		vector = '[' >>  ( (expression[vect(_val, _1)] % ',') |
+			qi::eps[vect(_val)]) >> *char_(',') >> ']';
 
 		callable_or_indexable =
 			identifier
@@ -521,7 +531,9 @@ static bool parse_operator(
 				}
 			}
 
-			block.adjust_vector(x);
+			if (vsz > 0) {
+				block.adjust_vector(x);
+			}
 
 			return true;
 		}
@@ -661,6 +673,7 @@ static bool parse_operator(
 				
 					break;
 				}
+				case ETYPE::arr_func:
 				case ETYPE::charpoly:
 				case ETYPE::companion:
 				{
@@ -901,8 +914,6 @@ static bool parse_operator(
 		}
 		case client::s_sym_index:
 		{
-			
-
 			let it_x = std::next(ut.begin());
 			auto it_y = std::next(it_x);
 
@@ -961,6 +972,10 @@ static bool parse_operator(
 		if (str[0] == ims_keywords::builtin) {
 
 			str.erase(0, 1);
+			if (str.empty()) {
+				a[x].hdr.tt = ETYPE::marker;
+				break;
+			}
 
 			let th = ims_operator::from_string(str);
 			switch (th) {
