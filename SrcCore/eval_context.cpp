@@ -221,22 +221,18 @@ const ims_val* eval_context::eval_ref(size_t idx, bool is_geom)
 		if (rf->c.h.tt == ETYPE::vector) {
 			if (!is_geom) {
 				v = get_ast_val(rf->c);
+				rf->v[v_idx].reset(v);//take ownership
 			} else {
-				let na = rf->c.h.num_args();
-				auto& vec = rf->v[v_idx];
-				vec.reset(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
-				pool_ptr vloc = vec;
-				eval_vector_ex(rf->c, vloc);
-				v = vloc.release();
+				v = eval_vector_ex(rf->c, idx);
 			}
 		} else {
 			rf->in_eval = true;
 			v = eval7(rf->c, is_geom);
 			rf = &get_ref4(idx);//restore after eval
 			rf->in_eval = false;
+			rf->v[v_idx].reset(v);//take ownership
 		}
 
-		rf->v[v_idx].reset(v);//take ownership
 
 		if (m_topo_unions > was_unions) {
 			rf->dep_from_unions = true;
@@ -1367,13 +1363,26 @@ const ims_val* eval_context::eval_uni(ast_context p, bool is_geom)
 	return ret;
 };
 
-void eval_context::eval_vector_ex(ast_context p, pool_ptr& vec)
+const ims_val* eval_context::eval_vector(ast_context p, bool)
+{
+	return eval_vector_ex(p, ims_max);
+};
+
+const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
 {
 	let& op = p.h;
-
 	let na = op.num_args();
 
-	assert(vec->get_size() == na);
+	//reserve na elements
+	pool_ptr vec(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
+	//increase during iterations
+	vec.get_mut()->shrink(0);
+
+	auto update_ref = [&] {
+		if (ref_idx != ims_max) {
+			get_ref4(ref_idx).v[get_val_idx(true)] = vec;
+		}
+	};
 
 	//calculate all components of the vector
 	//consider 3 cases
@@ -1384,24 +1393,12 @@ void eval_context::eval_vector_ex(ast_context p, pool_ptr& vec)
 	//some vector elements may be nullptr
 	//this is okay because they may not be needed
 
-	auto* da = vec->p_v();
-
-	bool is_ok = true;
-
 	//calculate the components
 	for (size_t j = 0; j < na; ++j) {
-		//take ownership
-		da[j] = eval7(p.index(j), true);
-
-		if (strict_mode() && !da[j]) {
-			//even in this case, we'll run through the entire cycle
-			//to list all dependencies
-			is_ok = false;
-		}
-	}
-	if (!is_ok) {
-		vec.reset();
-		return;
+		let* vj = eval7(p.index(j), true);
+		vec = eval_pool::ep.update_vec_size(vec.get_mut(), j + 1);
+		vec->p_v()[j] = vj;//take ownership
+		update_ref();
 	}
 
 	//try to narrow the type
@@ -1420,38 +1417,29 @@ void eval_context::eval_vector_ex(ast_context p, pool_ptr& vec)
 	});
 
 	if (common_sbt == ims_val::EST::other) {
-		return;
+		return vec.release();
 	}
+	ims_val* ret = nullptr;
 
 	//conversion from Other, numeric scalars
 	if (common_sbt == ims_val::EST::rational) {
-		auto* ret = eval_pool::ep.get_vector_int(na);
+		ret = eval_pool::ep.get_vector_int(na);
 		auto* d = ret->p_i();
 		for (size_t j = 0; j < na; ++j) {
-			d[j] = da[j]->get_int();
+			d[j] = vec->p_v(j)->get_int();
 		};
-		vec.reset(ret);
-		return;
+	} else {
+		assert(common_sbt == ims_val::EST::real);
+		ret = eval_pool::ep.get_vector_real(na);
+		auto* d = ret->p_r();
+		for (size_t j = 0; j < na; ++j) {
+			vec->p_v(j)->to_real(d[j]);
+		};
 	}
-
-	/////////////////////////////////////////
-	assert(common_sbt == ims_val::EST::real);
-	auto* ret = eval_pool::ep.get_vector_real(na);
-	auto* d = ret->p_r();
-	for (size_t j = 0; j < na; ++j) {
-		da[j]->to_real(d[j]);
-	};
 	vec.reset(ret);
-}
-
-const ims_val* eval_context::eval_vector(ast_context p, bool)
-{
-	let na = p.h.num_args();
-	pool_ptr vec;
-	vec.reset(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
-	eval_vector_ex(p, vec);
+	update_ref();
 	return vec.release();
-};
+}
 
 const ims_val* eval_context::eval_mul(ast_context p, bool is_geom)
 {
