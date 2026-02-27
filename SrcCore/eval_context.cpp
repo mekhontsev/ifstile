@@ -1081,11 +1081,75 @@ const ims_val* eval_context::eval_arr_func(ast_context p, bool is_geom)
 
 	//check for correct types and dimensions
 	let na = op.num_args();
+	if (na == 0) {
+		return nullptr;//its ok
+	}
+	pool_ptr a(eval7(p.index(0), is_geom));
 
 	if (na == 1) {
-		let* arg = eval7(p.index(0), is_geom);
-		if (arg && arg->is(ims_val_b::ETP::vector)) {
-			return eval_pool::ep.get_scalar_int((ims_val_b::Integer)arg->get_size());
+		ims_val_b::Integer val;
+		if (!a) {
+			val = -2;
+		} else if (a->is(ims_val_b::ETP::vector)) {
+			val = (ims_val_b::Integer)a->get_size();
+		} else {
+			val = -1;
+		}
+		return eval_pool::ep.get_scalar_int(val);
+	}
+	if (na == 2 && a && a->is(ims_val_b::ETP::vector)) {
+		pool_ptr a1(eval7(p.index(1), is_geom));//flat depth
+		int64_t d = 0;
+		if (a1 && a1->to_int(d) && d >= 0) {
+			bool ready = false;
+			for (int64_t k = 0; k < d; ++k) {
+				if (ready)break;
+				ready = true;
+				let sz = a->get_size();
+				size_t new_sz = 0;
+				for (size_t i = 0; i < sz; ++i) {
+					let* vi = a->p_v(i);
+					new_sz += vi && vi->is(ims_val_b::ETP::vector) ? vi->get_size() : 1;
+				}
+				pool_ptr ret(eval_pool::ep.get_vector(new_sz));
+				auto* dst = ret->p_v();
+				size_t idx = 0;
+				for (size_t i = 0; i < sz; ++i) {
+					let* vi = a->p_v(i);
+					if (!vi || !vi->is(ims_val_b::ETP::vector)) {
+						dst[idx++] = vi;
+						if (vi)vi->add_ref();
+						continue;
+					}
+					ready = false;
+					let visz = vi->get_size();
+					if (vi->is(ims_val_b::EST::other)) {
+						for (size_t j = 0; j < visz; ++j) {
+							let* vij = vi->p_v(j);
+							dst[idx++] = vij;
+							if (vij)vij->add_ref();
+						}
+					} else if (vi->is(ims_val_b::EST::rational)) {
+						for (size_t j = 0; j < visz; ++j) {
+							dst[idx++] = eval_pool::ep.get_scalar_int(vi->p_i(j));
+						}
+					} else if (vi->is(ims_val_b::EST::real)) {
+						for (size_t j = 0; j < visz; ++j) {
+							dst[idx++] = eval_pool::ep.get_scalar_real(vi->p_r(j));
+						}
+					} else if (vi->is(ims_val_b::EST::big_rational)) {
+						for (size_t j = 0; j < visz; ++j) {
+							auto* b = eval_pool::ep.get_scalar_big_rational();
+							*b->p_b() = vi->p_b(j);
+							dst[idx++] = b;
+						}
+					}
+				}
+				assert(idx == new_sz);
+				a = ret;
+			}
+			a.reset(eval_pool::ep.adjust_vec_type(a.get()));
+			return a.release();
 		}
 	}
 	eval_error("$(...): invalid arguments");
@@ -1446,45 +1510,7 @@ const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
 		}
 	}
 
-	let vsz = vec->get_size();
-
-
-	//try to narrow the type
-	auto common_sbt = ims_val::EST::rational;
-
-	vec->visit_childs([&](const ims_val* v) {
-		if (!v || !v->is(ims_val::ETP::number)) {
-			common_sbt = ims_val::EST::other;
-			return false;
-		}
-		common_sbt = std::max(v->gs(), common_sbt);
-		if (common_sbt == ims_val::EST::other) {
-			return false;
-		}
-		return true;//continue
-	});
-
-	if (common_sbt == ims_val::EST::other) {
-		return vec.release();
-	}
-	ims_val* ret = nullptr;
-
-	//conversion from Other, numeric scalars
-	if (common_sbt == ims_val::EST::rational) {
-		ret = eval_pool::ep.get_vector_int(vsz);
-		auto* d = ret->p_i();
-		for (size_t j = 0; j < vsz; ++j) {
-			d[j] = vec->p_v(j)->get_int();
-		};
-	} else {
-		assert(common_sbt == ims_val::EST::real);
-		ret = eval_pool::ep.get_vector_real(vsz);
-		auto* d = ret->p_r();
-		for (size_t j = 0; j < vsz; ++j) {
-			vec->p_v(j)->to_real(d[j]);
-		};
-	}
-	vec.reset(ret);
+	vec.reset(eval_pool::ep.adjust_vec_type(vec.get()));
 	update_ref();
 	return vec.release();
 }

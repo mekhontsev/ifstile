@@ -65,11 +65,14 @@ struct eval_pool: public boost::noncopyable
 		}
 	}
 
+	const ims_val* adjust_vec_type(const ims_val* vec);
+
 	ims_val* get_affine_int(size_t dim);
 	ims_val* get_affine_real(size_t dim);
 	ims_val* get_affine_big_rational(size_t dim);
 
 	ims_val* get_vector_int(size_t sz);
+	ims_val* get_vector_big_rational(size_t sz);
 	ims_val* get_vector_real(size_t sz);
 	ims_val* get_vector(size_t sz, ETP t = ETP::vector);
 

@@ -272,6 +272,7 @@ TEST(testEval, condition5)
 @
 x=if(-1)
 y=if(7)
+z=if(0)
 a=if(0, 10, 20)
 b=if(1, 10, 20)
 c=if(0, 10, 0, 100, 200)
@@ -282,6 +283,7 @@ e=if(1, 10, 0, 100, 200)
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal("x", 0));
 	EXPECT_TRUE(t.equal("y", 1));
+	EXPECT_TRUE(t.equal("z", 0));
 	EXPECT_TRUE(t.equal("a", 20));
 	EXPECT_TRUE(t.equal("b", 10));
 	EXPECT_TRUE(t.equal("c", 200));
@@ -878,12 +880,14 @@ a2=[0,0]
 s0=$(a0)
 s1=$(a1)
 s2=$(a2)
+s3=$(5)
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal("s0", 0));
 	EXPECT_TRUE(t.equal("s1", 1));
 	EXPECT_TRUE(t.equal("s2", 2));
+	EXPECT_TRUE(t.equal("s3", -1));
 };
 
 TEST(testArrFuncs, ArrGenSimple)
@@ -941,6 +945,34 @@ a=[$, if($(a)-$(b)+1, $, b[$(a)])]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 2,3,5,7,11 }));
+};
+
+TEST(testArrFuncs, ArrFlat)
+{
+	aifs_tester t(R"(
+@
+a=[0, 1, [2, [3, [4, 5]]]]
+a0=$(a,0)
+a1=$(a,1)
+a2=$(a,2)
+a3=$(a,3)
+a4=$(a,4)
+s0=$(a0)
+s1=$(a1)
+s2=$(a2)
+s3=$(a3)
+s4=$(a4)
+a12=a1[2]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("s0", 3));
+	EXPECT_TRUE(t.equal("s1", 4));
+	EXPECT_TRUE(t.equal("s2", 5));
+	EXPECT_TRUE(t.equal("s3", 6));
+	EXPECT_TRUE(t.equal("s4", 6));
+	EXPECT_TRUE(t.equal("a12", 2));
+	EXPECT_TRUE(t.equal_vec("a3", { 0, 1, 2, 3, 4, 5 }));
+	EXPECT_TRUE(t.equal_vec("a4", { 0, 1, 2, 3, 4, 5 }));
 };
 ////////////////////////////////////////////////////////////////////////////////
 TEST(testJS, ConsoleLog)

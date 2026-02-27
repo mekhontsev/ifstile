@@ -202,6 +202,12 @@ ims_val* eval_pool::get_vector_int(size_t sz)
 	return alloc(ETP::vector, EST::rational, sizeof(Rational) * sz, sz);
 }
 
+ims_val* eval_pool::get_vector_big_rational(size_t sz)
+{
+	return alloc(ETP::vector, EST::big_rational, sizeof(ims_val_b::BigRational) * sz, sz);
+}
+
+
 ims_val* eval_pool::get_vector_real(size_t sz)
 {
 	return alloc(ETP::vector, EST::real, sizeof(Real) * sz, sz);
@@ -241,6 +247,56 @@ ims_val* eval_pool::get_matrix_big_rational(size_t rows, size_t cols)
 	return ret;
 }
 
+
+const ims_val* eval_pool::adjust_vec_type(const ims_val* vec)
+{
+	assert(vec && vec->is(ims_val_b::EST::other));
+	//try to narrow the type
+	auto common_sbt = ims_val::EST::rational;
+
+	vec->visit_childs([&](const ims_val* v) {
+		if (!v || !v->is(ims_val::ETP::number)) {
+			common_sbt = ims_val::EST::other;
+			return false;
+		}
+		common_sbt = std::max(v->gs(), common_sbt);
+		if (common_sbt == ims_val::EST::other) {
+			return false;
+		}
+		return true;//continue
+	});
+
+	if (common_sbt == ims_val::EST::other) {
+		vec->add_ref();
+		return vec;
+	}
+
+	ims_val* ret = nullptr;
+	let vsz = vec->get_size();
+
+	//conversion from Other, numeric scalars
+	if (common_sbt == ims_val::EST::rational) {
+		ret = get_vector_int(vsz);
+		auto* d = ret->p_i();
+		for (size_t j = 0; j < vsz; ++j) {
+			d[j] = vec->p_v(j)->get_int();
+		};
+	} else if (common_sbt == ims_val::EST::big_rational) {
+		ret = get_vector_big_rational(vsz);
+		auto* d = ret->p_b();
+		for (size_t j = 0; j < vsz; ++j) {
+			d[j] = vec->p_v(j)->get_big_rational();
+		};
+	} else {
+		assert(common_sbt == ims_val::EST::real);
+		ret = get_vector_real(vsz);
+		auto* d = ret->p_r();
+		for (size_t j = 0; j < vsz; ++j) {
+			vec->p_v(j)->to_real(d[j]);
+		};
+	}
+	return ret;
+}
 
 ims_val* eval_pool::get_affine_int(size_t dim)
 {
