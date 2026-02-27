@@ -202,7 +202,7 @@ static void s_init()
 		case ETYPE::distribution_int:	d = "integer";	break;
 		case ETYPE::distribution_real:	d = "real";		break;
 		case ETYPE::companion:			d = "companion";break;
-		case ETYPE::arr_func:			d = "";			break;
+		case ETYPE::vector_func:		d = "";			break;
 		case ETYPE::charpoly:			d = "charpoly";	break;
 		case ETYPE::diagonal:			d = "diagonal";	break;
 		case ETYPE::exchange:			d = "exchange";	break;
@@ -361,7 +361,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::inversion:
 	case ETYPE::id:
 	case ETYPE::empty:
-	case ETYPE::marker:
+	case ETYPE::this_vector:
 		//distribution - the same layout as vector_imm[real, 2]
 	case ETYPE::distribution_int:
 	case ETYPE::distribution_real:
@@ -389,7 +389,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::sum:
 	case ETYPE::uni:
 	case ETYPE::vector:
-	case ETYPE::arr_func:
+	case ETYPE::vector_func:
 	case ETYPE::companion:
 	case ETYPE::diagonal:
 	case ETYPE::index:

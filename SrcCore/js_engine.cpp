@@ -296,14 +296,14 @@ struct js_aifs_block
 	{
 		assert(!data);
 
-		auto c = get_exports_entry("$constructor");
+		auto c = get_exports_entry(ims_keywords::js_constructor);
 		IMS_SCOPE([&] {JS_FreeValue(m_ctx, c); });
 		if (JS_IsUndefined(c)) {
 			return true;//it's ok
 		}
 
 		if (!JS_IsArray(c) || js_get_arr_size(m_ctx, c) != 2) {
-			ims_error("$constructor must be a 2 elements array");
+			ims_error("{} must be a 2 elements array", ims_keywords::js_constructor);
 			return false;
 		}
 
@@ -311,7 +311,7 @@ struct js_aifs_block
 		m_constructor = JS_GetPropertyUint32(m_ctx, c, 0);
 		if (!JS_IsFunction(m_ctx, m_constructor)) {
 			JS_FreeValue(m_ctx, m_constructor);	m_constructor = JS_UNDEFINED;
-			ims_error("$constructor[0] must be a function");
+			ims_error("{}[0] must be a function", ims_keywords::js_constructor);
 			return false;
 		}
 
@@ -322,7 +322,7 @@ struct js_aifs_block
 		if (!data ||
 			!data->is(ims_val_b::ETP::vector, ims_val_b::EST::other))
 		{
-			ims_error("$constructor[1] must be an array of controls");
+			ims_error("{}[1] must be an array of controls", ims_keywords::js_constructor);
 			return false;
 		}
 

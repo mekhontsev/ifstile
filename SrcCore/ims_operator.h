@@ -24,7 +24,7 @@ enum class ETYPE : uint8_t
 	undef = 0,//results from clear()
 
 	//$
-	marker,
+	this_vector,
 
 	//empty
 	empty,
@@ -48,7 +48,7 @@ enum class ETYPE : uint8_t
 	vector_imm,
 
 	//$(...)
-	arr_func,
+	vector_func,
 
 	//vector of operators
 	vector,
@@ -167,8 +167,10 @@ static_assert((uint8_t)ETYPE::min_priority <= 64);
 
 
 //only 2 bits can be used for subtype
-enum class ESUBTYPE: uint8_t
+enum class ESUBTYPE : uint8_t
 {
+	zero = 0,
+
 	//for number, number_imm, vector_imm
 	integer = 0, //64-bit integer
 	rational = 1, //rational - numerator and denominator are 32 bits each

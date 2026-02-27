@@ -217,22 +217,11 @@ const ims_val* eval_context::eval_ref(size_t idx, bool is_geom)
 		let was_cycles	= m_topo_cycles;
 		let was_templates = m_geom_templates;
 
-		//support for recursive vector initialization
-		if (rf->c.h.tt == ETYPE::vector) {
-			if (!is_geom) {
-				v = get_ast_val(rf->c);
-				rf->v[v_idx].reset(v);//take ownership
-			} else {
-				v = eval_vector_ex(rf->c, idx);
-			}
-		} else {
-			rf->in_eval = true;
-			v = eval7(rf->c, is_geom);
-			rf = &get_ref4(idx);//restore after eval
-			rf->in_eval = false;
-			rf->v[v_idx].reset(v);//take ownership
-		}
-
+		rf->in_eval = true;
+		v = eval7(rf->c, is_geom);
+		rf = &get_ref4(idx);//restore after eval
+		rf->in_eval = false;
+		rf->v[v_idx].reset(v);//take ownership
 
 		if (m_topo_unions > was_unions) {
 			rf->dep_from_unions = true;
@@ -1075,37 +1064,73 @@ const ims_val* eval_context::eval_csg(ast_context p, bool is_geom)
 	return ret.release();
 };
 
-const ims_val* eval_context::eval_arr_func(ast_context p, bool is_geom)
+
+static size_t adjust_index(int64_t idx, size_t arr_sz)
+{
+	if (idx >= 0)return (size_t)idx;
+	let ret = idx + (int64_t)arr_sz;
+	if (ret < 0)return arr_sz;
+	return ret < 0 ? arr_sz : ret;
+}
+
+const ims_val* eval_context::eval_vector_func(ast_context p, bool is_geom)
 {
 	let& op = p.h;
 
-	//check for correct types and dimensions
 	let na = op.num_args();
 	if (na == 0) {
 		return nullptr;//its ok
 	}
+
+	auto reterr = [&]() -> const ims_val*
+	{
+		eval_error("$(...): invalid arguments");
+		return nullptr;
+	};
+
 	pool_ptr a(eval7(p.index(0), is_geom));
 
 	if (na == 1) {
-		ims_val_b::Integer val;
 		if (!a) {
-			val = -2;
-		} else if (a->is(ims_val_b::ETP::vector)) {
-			val = (ims_val_b::Integer)a->get_size();
-		} else {
-			val = -1;
+			return reterr();
 		}
-		return eval_pool::ep.get_scalar_int(val);
+		if (a->is(ims_val_b::ETP::vector)) {
+			return eval_pool::ep.get_scalar_int(
+				(ims_val_b::Integer)a->get_size());
+		}
+
+		int64_t idx = 0;
+		if (!a->to_int(idx) || idx < 0) {
+			return reterr();
+		}
+		let uidx = (size_t)idx;
+		if (uidx >= m_vec_stack.size()) {
+			return reterr();
+		}
+		let* ret = m_vec_stack[m_vec_stack.size() - 1 - uidx].get();
+		ret->add_ref();
+		return ret;
 	}
-	if (na == 2 && a && a->is(ims_val_b::ETP::vector)) {
+
+	if (!a || !a->is(ims_val_b::ETP::vector)) {
+		return reterr();
+	}
+
+	if (na == 2) {
+		if (!a->is(ims_val_b::EST::other)) {
+			return a.release();//ready
+		}
 		pool_ptr a1(eval7(p.index(1), is_geom));//flat depth
 		int64_t d = 0;
 		if (a1 && a1->to_int(d) && d >= 0) {
 			bool ready = false;
 			for (int64_t k = 0; k < d; ++k) {
+
+				let sz = a->get_size();//the variable a changes in the loop
+
 				if (ready)break;
 				ready = true;
-				let sz = a->get_size();
+
 				size_t new_sz = 0;
 				for (size_t i = 0; i < sz; ++i) {
 					let* vi = a->p_v(i);
@@ -1151,9 +1176,77 @@ const ims_val* eval_context::eval_arr_func(ast_context p, bool is_geom)
 			a.reset(eval_pool::ep.adjust_vec_type(a.get()));
 			return a.release();
 		}
+	} else if (na >= 3) {//slice
+		let sz = a->get_size();
+		pool_ptr a2(eval7(p.index(1), is_geom));//start
+		pool_ptr a3(eval7(p.index(2), is_geom));//end
+
+		int64_t istart =0, iend = 0;
+		if (!a2 || !a2->to_int(istart) || !a3 || !a3->to_int(iend)){
+			return reterr();
+		}
+
+		int64_t istep = 1;
+		if (na >= 4) {
+			pool_ptr a4(eval7(p.index(3), is_geom));
+			if (!a4 || !a4->to_int(istep) || istep == 0) {
+				return reterr();
+			}
+		}
+
+		istart = (int64_t)adjust_index(istart, sz);
+		iend = (int64_t)adjust_index(iend, sz);
+		istart = std::max((int64_t)0, istart);
+		iend = std::min((int64_t)sz, iend);
+
+		let astep = std::abs(istep);
+
+		size_t dst_size = 0;//target size
+		for (auto i = istart; i < iend; i += (int64_t)astep) {
+			++dst_size;
+		}
+		
+		size_t idx = 0;
+
+		switch (a->gs()) {
+		case ims_val_b::EST::rational: 
+		{
+			pool_ptr ret(eval_pool::ep.get_vector_int(dst_size));
+			for (auto i = istart; i < iend; i += (int64_t)astep) {
+				ret->p_i()[idx++] = a->p_i(istep > 0 ? i : sz - i - 1);
+			}
+			return ret.release();
+		}
+		case ims_val_b::EST::big_rational:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector_big_rational(dst_size));
+			for (auto i = istart; i < iend; i += (int64_t)astep) {
+				ret->p_b()[idx++] = a->p_b(istep > 0 ? i : sz - i - 1);
+			}
+			return ret.release();
+		}
+		case ims_val_b::EST::real:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector_real(dst_size));
+			for (auto i = istart; i < iend; i += (int64_t)astep) {
+				ret->p_r()[idx++] = a->p_r(istep > 0 ? i : sz - i - 1);
+			}
+			return ret.release();
+		}
+		case ims_val_b::EST::other:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector(dst_size));
+			for (auto i = istart; i < iend; i += (int64_t)astep) {
+				let* vi = a->p_v(istep > 0 ? i : sz - i - 1);
+				if (vi)vi->add_ref();
+				ret->p_v()[idx++] = vi;
+			}
+			return eval_pool::ep.adjust_vec_type(ret.get());
+		}
+		}
 	}
-	eval_error("$(...): invalid arguments");
-	return nullptr;
+
+	return reterr();
 }
 
 const ims_val* eval_context::eval_companion(ast_context p, bool)
@@ -1291,11 +1384,13 @@ const ims_val* eval_context::eval_neg(ast_context p, bool)
 	return ret;
 };
 
+
+
 const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 {
 	let& op = p.h;
 
-	boost::container::small_vector<size_t, 8> idx_arr;
+	boost::container::small_vector<int64_t, 8> idx_arr;
 	if (op.tt == ETYPE::index_imm) {
 		idx_arr.push_back(op.get_elem_index());
 	} else {
@@ -1307,12 +1402,12 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 			//calculate indices
 			pool_ptr ai(eval7(p.index(i), true));
 			int64_t idx;
-			if (!ai || !ai->to_int(idx) || idx < 0) {
+			if (!ai || !ai->to_int(idx)) {
 				if (!is_geom)return get_ast_val(p);
 				eval_error3("Invalid array index {} type {}", i - 1, (ai ? (int)ai->gt() : 0));
 				return nullptr;
 			}
-			idx_arr.push_back((size_t)idx);
+			idx_arr.push_back(idx);
 		}
 	}
 
@@ -1351,15 +1446,16 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 					if (!is_geom)return get_ast_val(p);
 					return  nullptr;
 				}
-
 				//indexing
-				return get_ast_val({ ast->index_imm(idx), ast->call_offset});
+				let idxa = adjust_index(idx, ast->h.num_args());
+				return get_ast_val({ ast->index_imm(idxa), ast->call_offset});
 			}
 			
 			if (ast->h.tt == ETYPE::vector) {
-				v.reset(eval7(ast->index(idx), is_geom));//indexing
+				//indexing
+				let idxa = adjust_index(idx, ast->h.num_args());
+				v.reset(eval7(ast->index(idxa), is_geom));
 				do_next_iter = true;//successfully indexed, let's continue
-				
 			} else {
 				v.reset(eval7(*ast, is_geom));
 			}
@@ -1377,7 +1473,8 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 			return  nullptr;
 		}
 
-		if (idx >= v->get_size()) {
+		let idxa = adjust_index(idx, v->get_size());
+		if (idxa >= v->get_size()) {
 			if (!is_geom)return get_ast_val(p);
 			eval_error3("Subscript out of range: {}, {}", idx, v->get_size());
 			return  nullptr;
@@ -1393,7 +1490,17 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 				if (!is_geom)return get_ast_val(p);
 				return  nullptr;
 			}
-			return eval_pool::ep.get_scalar_int(v->p_i()[idx]);//indexing
+			return eval_pool::ep.get_scalar_int(v->p_i()[idxa]);//indexing
+		}
+		case ims_val::EST::big_rational:
+		{
+			if (j + 1 < idx_arr.size()) {
+				if (!is_geom)return get_ast_val(p);
+				return  nullptr;
+			}
+			auto* ret_big = eval_pool::ep.get_scalar_big_rational();
+			*ret_big->p_b() = v->p_b(idxa);//indexing
+			return ret_big;
 		}
 		case ims_val::EST::real:
 		{
@@ -1401,10 +1508,10 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 				if (!is_geom)return get_ast_val(p);
 				return  nullptr;
 			}
-			return eval_pool::ep.get_scalar_real(v->p_r()[idx]);//indexing
+			return eval_pool::ep.get_scalar_real(v->p_r()[idxa]);//indexing
 		}
 		default:
-			auto* nv = v->p_v()[idx];//indexing
+			auto* nv = v->p_v()[idxa];//indexing
 			if (nv)nv->add_ref();
 			v.reset(nv);
 			break;
@@ -1444,27 +1551,21 @@ const ims_val* eval_context::eval_uni(ast_context p, bool is_geom)
 	return ret;
 };
 
-const ims_val* eval_context::eval_vector(ast_context p, bool)
-{
-	return eval_vector_ex(p, ims_max);
-};
 
-const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
+
+const ims_val* eval_context::eval_vector(ast_context p, bool)
 {
 	let& op = p.h;
 	let na = op.num_args();
 
 	//reserve na elements
-	pool_ptr vec(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
+	m_vec_stack.emplace_back(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
+	IMS_SCOPE([&] {m_vec_stack.pop_back(); });
+
+	pool_ptr vec = m_vec_stack.back();
+
 	//increase during iterations
 	vec.get_mut()->shrink(0);
-
-	auto update_ref = [&] {
-		if (ref_idx != ims_max) {
-			get_ref4(ref_idx).v[get_val_idx(true)] = vec;
-		}
-	};
-	update_ref();
 
 	//calculate all components of the vector
 	//consider 3 cases
@@ -1484,8 +1585,7 @@ const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
 	while (jdx < na) {
 		let* vj = eval7(p.index(jdx), true);
 
-		let is_marker = vj && vj->is(ims_val_b::ETP::ast_ptr) &&
-			vj->gp<ast_context>()->h.tt==ETYPE::marker;
+		let is_marker = (vj == vec.get());
 
 		if (is_marker) {
 			marker_found = !marker_found;
@@ -1495,7 +1595,6 @@ const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
 
 		if (vec->get_size() > 1024 * 1024 + na) {
 			vec.reset();
-			update_ref();
 			eval_error("invalid vector");
 			return nullptr;
 		}
@@ -1503,16 +1602,14 @@ const ims_val* eval_context::eval_vector_ex(ast_context p, size_t ref_idx)
 		let cur_pos = vec->get_size();
 		vec = eval_pool::ep.update_vec_size(vec.get_mut(), cur_pos + 1);
 		vec->p_v()[cur_pos] = vj;//take ownership
-		update_ref();
+		m_vec_stack.back() = vec;
 
 		if (!marker_found) {
 			++jdx;
 		}
 	}
 
-	vec.reset(eval_pool::ep.adjust_vec_type(vec.get()));
-	update_ref();
-	return vec.release();
+	return eval_pool::ep.adjust_vec_type(vec.get());
 }
 
 const ims_val* eval_context::eval_mul(ast_context p, bool is_geom)
@@ -1595,9 +1692,15 @@ const ims_val* eval_context::eval_empty(ast_context, bool)
 	return eval_pool::ep.get_empty_val();
 };
 
-const ims_val* eval_context::eval_marker(ast_context p, bool)
+const ims_val* eval_context::eval_this_vector(ast_context, bool)
 {
-	return get_ast_val(p);
+	if (m_vec_stack.empty()) {
+		return nullptr;
+	}
+	auto* ret = m_vec_stack.back().get();
+	assert(ret);
+	ret->add_ref();
+	return ret;
 };
 
 const ims_val* eval_context::eval_id(ast_context, bool)
@@ -1620,7 +1723,6 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	switch (p.h.tt) {
 	case ETYPE::empty:			ret = eval_empty(p, is_geom); break;
 	case ETYPE::id:				ret = eval_id(p, is_geom); break;
-	case ETYPE::marker:			ret = eval_marker(p, is_geom); break;
 	case ETYPE::reference:		ret = eval_reference(p, is_geom); break;
 	case ETYPE::exchange:		ret = eval_exchange(p, is_geom); break;
 	case ETYPE::inversion:		ret = eval_inversion(p, is_geom); break;
@@ -1635,7 +1737,8 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::diagonal:		ret = eval_diagonal(p, is_geom); break;
 	case ETYPE::charpoly:		ret = eval_charpoly(p, is_geom); break;	
 	case ETYPE::csg:			ret = eval_csg(p, is_geom); break;
-	case ETYPE::arr_func:		ret = eval_arr_func(p, is_geom); break;
+	case ETYPE::vector_func:	ret = eval_vector_func(p, is_geom); break;
+	case ETYPE::this_vector:	ret = eval_this_vector(p, is_geom); break;
 	case ETYPE::companion:		ret = eval_companion(p, is_geom); break;
 	case ETYPE::power_imm:		ret = eval_pow(p, is_geom); break;
 	case ETYPE::power:			ret = eval_pow(p, is_geom); break;

@@ -188,9 +188,9 @@ void print_operator(
 		str << 1;
 		break;
 	}
-	case ETYPE::marker:
+	case ETYPE::this_vector:
 	{
-		str << ims_keywords::marker;
+		str << ims_keywords::this_arr;
 		break;
 	}
 
@@ -464,11 +464,10 @@ void print_operator(
 	case ETYPE::color_style:
 	case ETYPE::thickness:
 	case ETYPE::diagonal:
-	case ETYPE::arr_func:
+	case ETYPE::vector_func:
 	case ETYPE::condition:
 	{
 		let sz = op.num_args();
-
 
 		if (t != ETYPE::condition) {
 			str << ims_keywords::builtin;
@@ -476,12 +475,21 @@ void print_operator(
 		
 		str << ims_operator::to_string(t);
 
-		str << "(";
-		for (size_t i = 0; i < sz; ++i) {
-			print_operator(lst, str, b.get_ptr(ofs + i), t, fmt);
-			if (i + 1 < sz)str << ",";
+		if (op.ts == ESUBTYPE::call_normal) {
+			str << "(";
+			for (size_t i = 0; i < sz; ++i) {
+				print_operator(lst, str, b.get_ptr(ofs + i), t, fmt);
+				if (i + 1 < sz)str << ",";
+			}
+			str << ")";
+		} else {
+			assert(op.ts == ESUBTYPE::call_fields);
+			for (size_t i = 0; i < sz; ++i) {
+				str << ".";
+				let unk_id = b.get_ptr(ofs + i).h.get_offset();
+				str << lst.m_idf.get_str_from_unk(unk_id);
+			}
 		}
-		str << ")";
 
 		break;
 	}

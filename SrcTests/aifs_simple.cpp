@@ -150,19 +150,12 @@ TEST(testEval, recursive_vectors)
 {
 	aifs_tester t(R"(
 @
-t=[0, t[0]+10, t[1]+15, t[1]+t[2]]
-a=[2, b[0]+3]
-b=[3, a[0]+2]
-
+t=[0, $[0]+10, $[1]+15, $[1]+$[2]]
 t3=t[3]
-a1=a[1]
-b1=b[1]
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal("t3", 35));
-	EXPECT_TRUE(t.equal("a1", 6));
-	EXPECT_TRUE(t.equal("b1", 4));
 };
 
 
@@ -349,9 +342,9 @@ z=func2()
 y=z[0]
 func=func2
 t=func()
-a=[10, 11, 12, 13][1] 
-#h=(func2())[1] 
-#g=func2()[1] 
+a=[10, 11, 12, 13][1]
+g=func2()[1]
+#h=(func2())[1]
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
@@ -363,6 +356,7 @@ a=[10, 11, 12, 13][1]
 	EXPECT_EQ(t.eval_as_str("func"), "@func2");
 	EXPECT_TRUE(t.equal_vec("t", { 7,8 }));
 	EXPECT_TRUE(t.equal("a", 11));
+	EXPECT_TRUE(t.equal("g", 8));
 };
 
 TEST(testEval, call_in_parent)
@@ -869,6 +863,16 @@ b=(a^-1)^2
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+TEST(testArrFuncs, NegativeIndex)
+{
+	aifs_tester t(R"(
+@
+a=[1,2,3]
+b=a[-1]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("b", 3));
+};
 
 TEST(testArrFuncs, ArrSize)
 {
@@ -880,14 +884,12 @@ a2=[0,0]
 s0=$(a0)
 s1=$(a1)
 s2=$(a2)
-s3=$(5)
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal("s0", 0));
 	EXPECT_TRUE(t.equal("s1", 1));
 	EXPECT_TRUE(t.equal("s2", 2));
-	EXPECT_TRUE(t.equal("s3", -1));
 };
 
 TEST(testArrFuncs, ArrGenSimple)
@@ -906,7 +908,7 @@ TEST(testArrFuncs, ArrGenSeq)
 {
 	aifs_tester t(R"(
 @
-a=[$, if ($(a)-3, $, $(a))]
+a=[$, if (4-$($), $($), $)]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 0,1,2,3 }));
@@ -916,7 +918,7 @@ TEST(testArrFuncs, ArrGenSeq2)
 {
 	aifs_tester t(R"(
 @
-a=[$, if ($(a)-3, $, [$(a),$(a)*$(a)])]
+a=[$, if (4-$($), [$($(1)),$($(1))*$($(1))], $)]
 sa=$(a)
 a3=a[3]
 )");
@@ -926,11 +928,23 @@ a3=a[3]
 };
 
 
+TEST(testArrFuncs, ArrPar)
+{
+	aifs_tester t(R"(
+@
+a=[7,[11,[13,$(0)[0], $(1)[0], $(2)[0]]]]
+b=a[1][1]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("b", { 13,13,11,7 }));
+};
+
+
 TEST(testArrFuncs, ArrGenFib)
 {
 	aifs_tester t(R"(
 @
-a=[0, 1, $, if ($(a)-6, $, a[$(a)-1]+a[$(a)-2])]
+a=[0, 1, $, if (7-$($), $[-1]+$[-2], $)]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 0,1,1,2,3,5,8 }));
@@ -941,7 +955,7 @@ TEST(testArrFuncs, ArrGenCopy)
 	aifs_tester t(R"(
 @
 b=[2,3,5,7,11]
-a=[$, if($(a)-$(b)+1, $, b[$(a)])]
+a=[$, if($(b) - $($), b[$($)], $)]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 2,3,5,7,11 }));
@@ -973,6 +987,29 @@ a12=a1[2]
 	EXPECT_TRUE(t.equal("a12", 2));
 	EXPECT_TRUE(t.equal_vec("a3", { 0, 1, 2, 3, 4, 5 }));
 	EXPECT_TRUE(t.equal_vec("a4", { 0, 1, 2, 3, 4, 5 }));
+};
+
+TEST(testArrFuncs, ArrSlice)
+{
+	aifs_tester t(R"(
+@
+a=[2,3,5,7,11,13,17,19]
+a0=$(a, 0, 3)
+a1=$(a, -3, $(a))
+a2=$(a, 1, $(a), 2)
+a3=$(a, 0, $(a), -1)
+a4=$(a, 20, 30)
+b=[1, [2,3], 4]
+b0=$(b, 1, $(b))
+b1=b0[0]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("a0", { 2,3,5 }));
+	EXPECT_TRUE(t.equal_vec("a1", { 13,17,19 }));
+	EXPECT_TRUE(t.equal_vec("a2", { 3,7,13,19 }));
+	EXPECT_TRUE(t.equal_vec("a3", { 19,17,13,11,7,5,3,2 }));
+	EXPECT_TRUE(t.equal_vec("a4", { }));
+	EXPECT_TRUE(t.equal_vec("b1", { 2, 3 }));
 };
 ////////////////////////////////////////////////////////////////////////////////
 TEST(testJS, ConsoleLog)

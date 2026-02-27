@@ -26,7 +26,7 @@ static constexpr char const
 *dim = "$dim",
 *timestamp = "$ts",
 *empty = "$e",
-*marker = "$",
+*this_arr = "$",
 *parent = "$p",
 *str_id = "$id",
 *subspace = "$subspace",
@@ -46,6 +46,7 @@ static constexpr char const
 *js_init = "$init",
 *js_info = "$info",
 *js_export_blocks = "$aifs",
+*js_constructor = "$constructor",
 
 *autoprefix = "_",
 *version = "version",//ignored

@@ -58,6 +58,8 @@ struct eval_context
 	//rebuilt references for evaluation
 	std::vector<variable> m_refs5;
 
+	std::vector<pool_ptr> m_vec_stack;
+
 	eval_stack* m_stack = nullptr;
 
 	const ifs_list* m_lst = nullptr;//get_func_for_call
@@ -190,7 +192,7 @@ private:
 	def_ec_method2(eval_diagonal);
 	def_ec_method2(eval_charpoly);
 	def_ec_method2(eval_csg);
-	def_ec_method2(eval_arr_func);
+	def_ec_method2(eval_vector_func);
 	def_ec_method2(eval_companion);
 	def_ec_method2(eval_neg);
 	def_ec_method2(eval_index);
@@ -199,7 +201,7 @@ private:
 	def_ec_method2(eval_mul);
 	def_ec_method2(eval_sum);
 	def_ec_method2(eval_empty);
-	def_ec_method2(eval_marker);
+	def_ec_method2(eval_this_vector);
 	def_ec_method2(eval_id);
 #undef def_ec_method2
 };

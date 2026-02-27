@@ -215,9 +215,9 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 			('-' >> xfactor[neg(_val, _1)]) |
 			strict_double[_val = _1] |
 			int_[_val = _1] |
-			function_call[_val = _1] |
 			index[_val = _1] |
 			field_call[_val = _1] |
+			function_call[_val = _1] |
 			identifier[_val = _1] |
 			vector[_val = _1] |
 			('(' >> expression[_val = _1] >> ')') |
@@ -249,8 +249,7 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 		function_call = callable_or_indexable[fune(_val, _1)]
 			>> '(' >> -(expression[fune(_val, _1)] % ',') >> ')';
 
-
-		index = callable_or_indexable[idxe(_val, _1)]
+		index = (function_call | callable_or_indexable)[idxe(_val, _1)]
 			>> +('[' >> expression[idxe(_val, _1)] % ',' >> ']');
 
 		field_call = callable_or_indexable[field(_val, _1)] >>
@@ -541,7 +540,8 @@ static bool parse_operator(
 		case client::s_sym_funct:
 		{
 			//function call
-
+			auto ts = c == client::s_sym_funct ?
+				ESUBTYPE::call_normal : ESUBTYPE::call_fields;
 
 			let fn = std::next(ut.begin());
 			let r = fn->get<spirit::utf8_symbol_range_type>();
@@ -549,8 +549,6 @@ static bool parse_operator(
 			let nit = std::next(fn);
 
 			let na = sz - 2;
-
-
 
 			let bt = built_in_func::from_string(func_name);
 			if (bt != BUILTIN_FUNC::invalid) {
@@ -597,15 +595,15 @@ static bool parse_operator(
 					};
 
 					auto ar = block.add_args(x, th, na);
-					block.m_ops[x].hdr.ts = ESUBTYPE::call_new;
+					a[x].hdr.ts = ESUBTYPE::call_new;
 
 					size_t arg_pos = 0;
 					for (auto it = nit; it != ut.end(); ++it, ++arg_pos) {
-						//each odd argument can be an identifier
+						//each odd argument should be an identifier
 						if ((arg_pos & 1) && it->which() == spirit::utree_type::string_type) {
 							let sr = it->get<spirit::utf8_symbol_range_type>();
 							let unk_id = pfo.unk->get_unk_id({ sr.begin(), sr.end() });
-							auto& h = block.m_ops[ar + arg_pos].hdr;
+							auto& h = a[ar + arg_pos].hdr;
 							h.tt = ETYPE::unk_reference;
 							h.set_u32(unk_id);
 						} else {
@@ -673,12 +671,13 @@ static bool parse_operator(
 				
 					break;
 				}
-				case ETYPE::arr_func:
+				case ETYPE::vector_func:
 				case ETYPE::charpoly:
 				case ETYPE::companion:
 				{
+					
 					size_t ar = block.add_args(x, th, na);
-
+					a[x].hdr.ts = ts;
 					for (auto it = nit; it != ut.end(); ++it) {
 						if (!parse_operator(*it, pfo, block, ar++)) {
 							return reter() ;
@@ -768,7 +767,7 @@ static bool parse_operator(
 					let ar = block.add_args(x, th, 1);//semigroup
 
 					let unk_id = pfo.unk->create_unique_identifier("O");
-					block.m_ops[ar].hdr.set_reference(unk_id, ESUBTYPE::ref_unknown);
+					a[ar].hdr.set_reference(unk_id, ESUBTYPE::ref_unknown);
 
 					let offset = block.add_var(pfo.m_pos2, unk_id, false);
 
@@ -856,8 +855,7 @@ static bool parse_operator(
 			} else {
 
 				size_t ar = block.add_args(x, ETYPE::call, na + 1);
-				a[x].hdr.ts = c == client::s_sym_funct ?
-					ESUBTYPE::call_normal : ESUBTYPE::call_fields;
+				a[x].hdr.ts = ts;
 
 				let unk_id = pfo.unk->get_unk_id(func_name);
 				a[ar++].hdr.set_reference(unk_id, ESUBTYPE::ref_unknown);
@@ -973,7 +971,7 @@ static bool parse_operator(
 
 			str.erase(0, 1);
 			if (str.empty()) {
-				a[x].hdr.tt = ETYPE::marker;
+				a[x].hdr.tt = ETYPE::this_vector;
 				break;
 			}
 
