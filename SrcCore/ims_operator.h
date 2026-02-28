@@ -145,6 +145,9 @@ enum class ETYPE : uint8_t
 	//degree (the first argument is the base, the second is the exponent)
 	power,
 
+	//modulus: a%b
+	mod,
+
 	//composition and multiplication
 	mul,
 

@@ -386,6 +386,7 @@ size_t ims_operator::oper_args() const
 		return get_builtin_args();
 	case ETYPE::call:
 	case ETYPE::mul:
+	case ETYPE::mod:
 	case ETYPE::sum:
 	case ETYPE::uni:
 	case ETYPE::vector:

@@ -165,6 +165,7 @@ using fexpr = boost::phoenix::function<expr>;
 static const boost::phoenix::function<negate_expr> neg;
 static const fexpr sunion = expr('|');
 static const fexpr powop = expr('^');
+static const fexpr modop = expr('%');
 static constexpr char s_sym_vector = 'v';
 static constexpr char s_sym_index = 'i';
 static constexpr char s_sym_funct = 'f';
@@ -203,7 +204,10 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 			*(('+' >> hmul[plus(_val, _1)]) |('-' >> hmul[minus(_val, _1)]));
 
 		hmul = factor[_val = _1] >>
-			*(('*'>>factor[times(_val, _1)])|('/'>>factor[divide(_val, _1)]));
+			*(	('*'>>factor[times(_val, _1)])	|
+				('/'>>factor[divide(_val, _1)]) |
+				('%' >> factor[modop(_val, _1)])
+				);
 
 		factor = xfactor | simple;
 
@@ -908,6 +912,16 @@ static bool parse_operator(
 				return reter() ;
 			}
 
+			return true;
+		}
+		case '%':
+		{
+			auto ar = block.add_args(x, ETYPE::mod, sz - 1);
+			for (auto it = std::next(ut.begin()); it != ut.end(); ++it) {
+				if (!parse_operator(*it, pfo, block, ar++)) {
+					return reter();
+				}
+			}
 			return true;
 		}
 		case client::s_sym_index:

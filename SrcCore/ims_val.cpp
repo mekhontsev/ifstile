@@ -49,6 +49,26 @@ bool ims_val::is_true() const
 	}
 }
 
+bool ims_val::to_big_rational(ims_val_b::BigRational& v) const
+{
+	switch (gs())
+	{
+	case EST::rational:
+	{
+		let& rv = get_int();
+		v = ims_val_b::BigRational(rv.numerator(), rv.denominator());
+		return true;
+	}
+	case EST::big_rational:
+		v = get_big_rational();
+		return true;
+	default:
+		return false;
+		break;
+	}
+}
+
+
 bool ims_val::to_int(int64_t& v) const
 {
 	if (!is(ETP::number, EST::rational)) return false;

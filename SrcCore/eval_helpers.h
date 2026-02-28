@@ -44,6 +44,8 @@ const ims_val* sum_affine(
 	const ims_val* right,
 	size_t dim);
 
+const ims_val* eval_mod(const ims_val* left, const ims_val* right);
+
 //result, if possible - affine, otherwise composition
 const ims_val* mulx(
 	const ims_val* left,

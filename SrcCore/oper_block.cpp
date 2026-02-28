@@ -878,6 +878,7 @@ size_t oper_block::set_neg(size_t idx)
 	return ni;
 }
 
+
 size_t oper_block::set_power(size_t idx, intptr_t e)
 {
 	if (e == 1)return idx;
@@ -921,7 +922,6 @@ void oper_block::set_mobius(size_t idx)
 	h.set_u24(0);
 };
 
-
 size_t oper_block::set_power_ref(size_t idx)
 {
 	let ni = add(2);//where the argument will be located
@@ -934,6 +934,17 @@ size_t oper_block::set_power_ref(size_t idx)
 	return ni;
 }
 
+size_t oper_block::set_mod_ref(size_t idx)
+{
+	let ni = add(2);//where the argument will be located
+
+	auto& h = m_ops[idx].hdr;
+
+	h.tt = ETYPE::mod;
+	h.set_u32(ni);
+
+	return ni;
+}
 
 void oper_block::set_distribution(
 	size_t idx, ETYPE t, ESUBTYPE s, double v1, double v2)

@@ -488,6 +488,30 @@ c=$charpoly([5,6.2,1,7,8,3,9,2,3]);
 };
 
 
+TEST(testEval, modules)
+{
+	aifs_tester t(R"(
+@
+a=-11%5
+b=11%-5
+c=11%6%3
+d=6.3%4
+e=-11.0%5
+f=11.0%-5
+g =(5/3)%(4/7)
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 4));
+	EXPECT_TRUE(t.equal("b", -4));
+	EXPECT_TRUE(t.equal("c", 2));
+	EXPECT_TRUE(t.approx("d", 2.3));
+	EXPECT_TRUE(t.approx("e", 4));
+	EXPECT_TRUE(t.approx("f", -4));
+	EXPECT_TRUE(t.equal("g", {11,21}));
+};
+
+
 TEST(testEval, powers)
 {
 	aifs_tester t(R"(
@@ -848,18 +872,20 @@ n=7
 ////////////////////////////////////////////////////////////////////////////////
 
 
-TEST(testPrintOp, PowImm)
+TEST(testPrintOp, Test1)
 {	
 	aifs_tester t(R"(
 @
 a=2
 b=(a^-1)^2
+c=9%8%7
 )");
 	
 	if (!t.init())FAIL() << t.err_msg;
 	
 	EXPECT_EQ(t.get_def("b"), "(a^-1)^2");
 	EXPECT_TRUE(t.equal("b", { 1, 4 }));
+	EXPECT_EQ(t.get_def("c"), "9%8%7");
 };
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -178,6 +178,7 @@ private:
 
 #define def_ec_method2(func) const ims_val* func(ast_context c, bool is_geom)
 	def_ec_method2(eval_pow);
+	def_ec_method2(eval_mod);
 	def_ec_method2(eval_reference);
 	def_ec_method2(eval_call);
 	def_ec_method2(eval_thickness);

@@ -210,6 +210,7 @@ public:
 	bool is_true() const;//for the ternary operator
 
 
+	bool to_big_rational(ims_val_b::BigRational& v) const;
 	bool to_int(int64_t& v) const;
 	bool to_real(Real& v) const;
 

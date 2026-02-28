@@ -298,12 +298,13 @@ struct oper_block
 	size_t find_default_ref() const;
 
 	size_t set_neg(size_t idx);
+
 	//returns the argument index
 	size_t set_power(size_t idx, intptr_t e);
 	void set_exchange(size_t idx);
 	void set_mobius(size_t idx);
 	size_t set_power_ref(size_t idx);
-
+	size_t set_mod_ref(size_t idx);
 
 	void set_distribution(size_t idx, ETYPE t, ESUBTYPE s, double v1, double v2);
 	void set_distribution_def(size_t idx);

@@ -331,6 +331,30 @@ ESUBTYPE eval_context::eval_pow_exponent(
 	return ESUBTYPE::real;
 }
 
+
+const ims_val* eval_context::eval_mod(ast_context p, bool)
+{
+	let& op = p.h;
+	let na = op.num_args();
+
+	//accumulate the result here
+	pool_ptr res(eval7(p.index(0), true));
+
+	for (size_t i = 1; i < na; ++i) {
+		if (!res) {
+			return nullptr;
+		}
+		pool_ptr ai(eval7(p.index(i), true));
+		if (!ai) {
+			return nullptr;
+		}
+
+		res.reset(eval_helpers::eval_mod(res.get(), ai.get()));
+	}
+
+	return res.release();
+}
+
 const ims_val* eval_context::eval_pow(ast_context p, bool is_geom)
 {
 	intptr_t ipw;
@@ -1116,11 +1140,11 @@ const ims_val* eval_context::eval_vector_func(ast_context p, bool is_geom)
 		return reterr();
 	}
 
-	if (na == 2) {
+	if (na == 2) {//flat
 		if (!a->is(ims_val_b::EST::other)) {
 			return a.release();//ready
 		}
-		pool_ptr a1(eval7(p.index(1), is_geom));//flat depth
+		pool_ptr a1(eval7(p.index(1), is_geom));//depth
 		int64_t d = 0;
 		if (a1 && a1->to_int(d) && d >= 0) {
 			bool ready = false;
@@ -1188,7 +1212,7 @@ const ims_val* eval_context::eval_vector_func(ast_context p, bool is_geom)
 
 		int64_t istep = 1;
 		if (na >= 4) {
-			pool_ptr a4(eval7(p.index(3), is_geom));
+			pool_ptr a4(eval7(p.index(3), is_geom));//step
 			if (!a4 || !a4->to_int(istep) || istep == 0) {
 				return reterr();
 			}
@@ -1578,17 +1602,17 @@ const ims_val* eval_context::eval_vector(ast_context p, bool)
 
 	//calculate the components
 
-	bool marker_found = false;
+	bool generator_mode = false;
 
 	size_t jdx = 0;
 
 	while (jdx < na) {
 		let* vj = eval7(p.index(jdx), true);
 
-		let is_marker = (vj == vec.get());
+		let is_gen_marker = (vj == vec.get());
 
-		if (is_marker) {
-			marker_found = !marker_found;
+		if (is_gen_marker) {
+			generator_mode = !generator_mode;
 			++jdx;
 			continue;
 		}
@@ -1602,9 +1626,9 @@ const ims_val* eval_context::eval_vector(ast_context p, bool)
 		let cur_pos = vec->get_size();
 		vec = eval_pool::ep.update_vec_size(vec.get_mut(), cur_pos + 1);
 		vec->p_v()[cur_pos] = vj;//take ownership
-		m_vec_stack.back() = vec;
+		m_vec_stack.back() = vec;//update
 
-		if (!marker_found) {
+		if (!generator_mode) {
 			++jdx;
 		}
 	}
@@ -1740,6 +1764,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::vector_func:	ret = eval_vector_func(p, is_geom); break;
 	case ETYPE::this_vector:	ret = eval_this_vector(p, is_geom); break;
 	case ETYPE::companion:		ret = eval_companion(p, is_geom); break;
+	case ETYPE::mod:			ret = eval_mod(p, is_geom); break;
 	case ETYPE::power_imm:		ret = eval_pow(p, is_geom); break;
 	case ETYPE::power:			ret = eval_pow(p, is_geom); break;
 	case ETYPE::inv:			ret = eval_pow(p, is_geom); break;

@@ -688,7 +688,69 @@ sum_affine(const ims_val* left, const ims_val* right, size_t dim)
 	return nullptr;
 }
 
+template<typename Number>
+void eval_mod_t(Number& res, const Number& lv, const Number& rv)
+{
+	assert(rv != 0);
+	// (a/b) mod (c/d) = a/b - (c/d) * floor((a*d) / (b*c))
+	using IT = ims_get<Number>::int_type;
+	IT ad = numerator(lv) * denominator(rv);
+	IT bc = denominator(lv) * numerator(rv);
+	IT q = ad / bc;
+	// adjust truncation toward negative infinity (floor division)
+	if ((ad < 0) != (bc < 0) && q * bc != ad) --q;
+	res = lv - Number(q) * rv;
+}
 
+const ims_val* eval_mod(const ims_val* left, const ims_val* right)
+{
+	if (!right->is(ims_val_b::ETP::number)) {
+		return nullptr;
+	}
+
+	//todo: support vectors and matrices
+	if (!left->is(ims_val_b::ETP::number)) {
+		return nullptr;
+	}
+
+	let st = left->common_subtype(right->gs());
+	switch (st) {
+
+	case ims_val::EST::rational: {
+		let& lv = left->get_int();
+		let& rv = right->get_int();
+		if (rv == 0) {
+			left->add_ref();
+			return left;
+		}
+		Rational res;
+		eval_mod_t(res, lv, rv);
+		return eval_pool::ep.get_scalar_int(res);
+	}
+	case ims_val::EST::big_rational: {
+		using BigRational = ims_val_b::BigRational;
+		BigRational lv, rv;
+		left->to_big_rational(lv);
+		right->to_big_rational(rv);
+		auto* res = eval_pool::ep.get_scalar_big_rational();
+		eval_mod_t(*res->p_b(), lv, rv);
+		return res;
+	}
+	case ims_val::EST::real: {
+		ims_val_b::Real lv, rv;
+		if (!left->to_real(lv) || !right->to_real(rv)) {
+			return nullptr;
+		}
+		if (rv == 0.0) {
+			left->add_ref();
+			return left;
+		}
+		return eval_pool::ep.get_scalar_real(lv - rv * floor(lv/rv));
+	}
+	default:
+		return nullptr;
+	}
+}
 
 const ims_val* edge_mul(const ims_val* A, const ims_val* B, bool geom_only)
 {

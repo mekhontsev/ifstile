@@ -80,9 +80,9 @@ struct ims_val_b
 	{
 		//order is important
 		rational,
-		real,
-		pod,	//POD subtype, does not require special processing
-		other,	//starting from here, non-trivial creation and deletion is required
 		big_rational,
+		real,
+		other,	//other ims_val
+		pod,	//POD subtype, does not require special processing
 	};
 };

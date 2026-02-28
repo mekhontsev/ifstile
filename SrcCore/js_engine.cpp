@@ -941,6 +941,7 @@ bool js_aifs_block::parse_var(
 			case '+':t = ETYPE::sum; break;
 			case '|':t = ETYPE::uni; break;
 			case '^':t = ETYPE::power; break;
+			case '%':t = ETYPE::mod; break;
 			case '/':t = ETYPE::inv; break;//conditionally
 			}
 

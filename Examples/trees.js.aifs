@@ -95,7 +95,7 @@ function create() {
 		for (let i = 0; i < M; ++i) {
 			if (i > 0)
 				y += ","
-				y += i < N ? i : `if (b[${i - N}] - ${i}, b[${i - N}] - ${i + 1}, b[${i - N}]  )`
+				y += i < N ? i : `b[${i - N}] % ${i + 1}`
 		}
 		y += "]"
 		T.y = y;

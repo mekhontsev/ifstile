@@ -201,7 +201,7 @@ void print_operator(
 		if (pr_bra)str << "(";
 		
 		print_operator(lst, str, b.get_ptr(ofs), t, fmt);
-	
+
 		str << "^";
 		if (t == ETYPE::power_imm) {
 			str << op.get_pow_exponent_imm();
@@ -400,6 +400,7 @@ void print_operator(
 	case ETYPE::uni:
 	case ETYPE::mul:
 	case ETYPE::sum:
+	case ETYPE::mod:
 	{
 		let sz = op.num_args();
 
@@ -410,20 +411,20 @@ void print_operator(
 				break;
 			}
 			delim = "*";
-		}
-		else if (t == ETYPE::uni) {
+		}else if (t == ETYPE::uni) {
 			if (sz == 0) {
 				str << "$e";
 				break;
 			}
 			delim = "|";
-		}
-		else if (t == ETYPE::sum) {
+		}else if (t == ETYPE::sum) {
 			if (sz == 0) {
 				str << "0";
 				break;
 			}
 			delim = "+";
+		}else if (t == ETYPE::mod) {
+			delim = "%";
 		}
 		else {
 			assert(false);
