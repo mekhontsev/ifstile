@@ -103,7 +103,9 @@ struct eval_context
 	//the result does not need to be freed
 	const ims_val* eval_ref(size_t idx, bool is_geom = true);
 
-	const ims_val* eval_vector_ex(ast_context p, size_t ref_idx);
+	const ims_val* vector_uni(ast_context p, bool is_geom);
+	const ims_val* vector_flat(ast_context p, bool is_geom);
+	const ast_context* resolve_topo_reference(const ast_context* ast);
 	//numeric conversions
 	//indexing
 	//traversing references
@@ -134,10 +136,6 @@ private:
 	
 	//returns ESUBTYPE::integer, real, or other
 	ESUBTYPE eval_pow_exponent(ast_context p, intptr_t& e, double& v);
-
-	
-	static const ims_val* get_ast_val(const ast_context& p);
-	
 
 	const oper_block* get_func_for_call(
 		const ims_val* v, 

@@ -309,6 +309,9 @@ struct ims_operator
 		set(ETYPE::index_imm);
 		set(ETYPE::index);			//indices are calculated geometrically
 		set(ETYPE::reference);
+		set(ETYPE::vector_func);
+		set(ETYPE::this_vector);
+		//set(ETYPE::vector);
 		set(ETYPE::uni);
 		set(ETYPE::mul);
 		return ret;

@@ -50,7 +50,7 @@ bool graph_builder::create(
 	for (size_t i = 0; i < user_vars; ++i) {
 		let* q = ec[i].get_topo_val();
 		if (!q)continue;
-		
+
 		m_stack.emplace_back(q, s_empty_ver, s_empty_ver - 1);
 			
 		//assign the vertex immediately - for numbering stability
@@ -132,6 +132,7 @@ bool graph_builder::create(
 					return false;
 				}
 				m_stack.emplace_back(ec[idx].v[1].get(), q.vt, v);
+				assert(m_stack.back().val);
 				continue;
 			}
 
@@ -156,6 +157,7 @@ bool graph_builder::create(
 			//insert in reverse order so they are processed in forward order
 			for (size_t i = na; i > 0; --i) {
 				m_stack.emplace_back(a[i - 1], q.vt, v);
+				assert(m_stack.back().val);
 			}
 			continue;
 		}
@@ -165,13 +167,13 @@ bool graph_builder::create(
 			let* a = q.val->p_v();
 			for (size_t i = 0; i < na; ++i) {
 				m_stack.emplace_back(a[i], q.vt, i == 0 ? v : s_empty_ver);
+				assert(m_stack.back().val);
 			}
 			continue;
 		}
 		default:
 		{
 			assert(false);
-			//std::unreachable(); //c++23
 			continue;
 		}
 		}
