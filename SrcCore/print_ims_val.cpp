@@ -197,7 +197,7 @@ void print_ims_val_ex(std::ostream& str, const ims_val* v, const ifs_list* lst)
 			let unk_id = ast->h.get_offset();
 			str << ims_keywords::block << lst->m_idf.get_str_from_unk(unk_id);
 		} else {
-			str << "$" << ast->call_offset << "{";
+			str << "@" << ast->call_offset << "{";
 			print_operator(*lst, str, *ast, ETYPE::min_priority, nullptr);
 			//str<< (int)v->m_ast.h.tt << ", " <<	(int)v->m_ast.h.ts;
 			str << "}";

@@ -90,18 +90,50 @@ bool block_info::init4(
 	ims_resize(m_atom_data, am.m_atoms.size());
 
 	for (size_t i = 0; i < m_atom_data.size(); ++i) {
-		let& ast = am.m_atoms[i];
-		if (!ast_maps::atom_is_used(ast)) continue;
+		if (!am.atom_is_used(i)) continue;
 
 		auto& a = m_atom_data[i];
+		auto& v = am.m_atoms[i];
 
-		if (i < am.m_num_refs) {
-			a.m_v = ec.m_refs5[i].v[0];
+		ast_context* ast = nullptr;
+
+		if (!v->is(ims_val_b::ETP::ast_ptr)) {
+			a.m_v = v;
+		} else {
+			ast = v->gp<ast_context>();
+			a.m_ast = ast;
+			if (i < am.m_num_refs) {
+				a.m_v = ec.m_refs5[i].v[0];
+			}
+			if (!a.m_v) {
+				if (ast->h.is_xundef()) {
+					a.m_v = eval_pool::ep.get_empty_val();
+					continue;
+				}
+				a.m_v = ec.eval7(*ast, true);
+				if (!a.m_v) {
+					continue;
+				}
+			}
 		}
 
-		a.eval(ec, ast);
-		a.project(ec, ast, m_proj_data, true);
+		let dim = ast ? ast->a->get_dim(): b.get_dim();
+
+		pool_ptr va(eval_helpers::to_affine_or_scalar(a.m_v.get(), dim));
+		if (va) {
+			a.m_v = va;
+		}
+
+		ast_context proj;
+		if (ast) {
+			proj = ast_context(ast->a->m_subspace, ast->call_offset);
+		} else {
+			proj = ast_context(b.m_subspace, 0);
+		}
+
+		a.project(ec, proj, m_proj_data, true);
 	}
+
 
 	////////////////////////////////////////////////////////////////////////////
 
@@ -480,30 +512,30 @@ void block_info::get_affine(Real* dst, const Real* src, alg_id_t id) const
 
 void block_info::atom_data::eval(eval_context& ec, ast_context ast)
 {
-	pool_ptr v;
+	pool_ptr q;
 
 	if (!m_v) {
 		if (ast.h.is_xundef()) {
 			m_v = eval_pool::ep.get_empty_val();
 			return;
 		}
-		v = ec.eval7(ast, true);
-		if (!v) {
+		q = ec.eval7(ast, true);
+		if (!q) {
 			return;
 		}
 	} else {
 #if defined(DEVELOPER_VERSION)
 		assert(!m_v->is(ims_val::ETP::compos));
 #endif
-		v = m_v;
+		q = m_v;
 	}
 	
-	pool_ptr va(eval_helpers::to_affine_or_scalar(v.get(), ast.a->get_dim()));
-	m_v = va ? va : v;
+	pool_ptr va(eval_helpers::to_affine_or_scalar(q.get(), ast.a->get_dim()));
+	m_v = va ? va : q;
 }
 
 
-void block_info::atom_data::project(eval_context& ec, ast_context ast, proj_data& pd, bool checked)
+void block_info::atom_data::project(eval_context& ec, ast_context proj, proj_data& pd, bool checked)
 {
 	assert(!m_v_proj);
 
@@ -513,13 +545,12 @@ void block_info::atom_data::project(eval_context& ec, ast_context ast, proj_data
 
 	pool_ptr afr(eval_helpers::to_real3(m_v.get()));
 
-	let proj_ptr = ast.a->m_subspace;
-	if (!proj_ptr.is_def()) {
+	if (!proj.is_def()) {
 		m_v_proj = afr;//trivial projector, everything is fine
 		return;
 	}
 
-	m_proj_id = pd.get_proj(ast_context(proj_ptr, ast.call_offset), ec);
+	m_proj_id = pd.get_proj(proj, ec);
 
 	let& fp = pd.m_projs[m_proj_id].m_projector;
 

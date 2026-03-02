@@ -772,7 +772,7 @@ B=A[0]
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_EQ(t.eval_as_str("B", false), "$0{A[0]}");
+	EXPECT_EQ(t.eval_as_str("B", false), "@0{A[0]}");
 };
 
 

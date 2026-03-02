@@ -167,10 +167,11 @@ private:
 		//ims_max means the trivial projector (for a scalar - always)
 		size_t m_proj_id = ims_max;
 
+		ast_context* m_ast = nullptr;
 	
 		void eval(eval_context& ec, ast_context ast);
 
-		void project(eval_context& ec, ast_context ast, proj_data& pd, bool checked);
+		void project(eval_context& ec, ast_context proj, proj_data& pd, bool checked);
 
 		//projection dimension, 0 - any
 		size_t get_dim() const;

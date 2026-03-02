@@ -28,7 +28,6 @@ private:
 	//can be temporarily used for other purposes if reference counting is not needed
 	mutable std::atomic<size_t> m_use_count;
 
-	
 	//for scalars it can be used for other purposes
 	union {
 		//for vectors: number of elements
@@ -40,8 +39,9 @@ private:
 	};
 	
 	//32-bit block
-	uint8_t m_reserved;//if necessary, m_size can be expanded to 40 bits
-	uint8_t m_bucket;//bucket index in the pool, capacity for data
+	uint8_t m_reserved;	//if necessary, m_size can be expanded to 40 bits
+	uint8_t m_bucket:5;	//bucket index in the pool, capacity for data
+	uint8_t m_flags:3;	//for various purposes
 	ETP	m_t;
 	EST	m_s;
 
@@ -68,7 +68,6 @@ public:
 		else
 			return EST::other;
 	}
-
 
 	//returns whether the ball can be modified under its action
 	//cutting is not a change!
@@ -136,6 +135,9 @@ public:
 		assert(is_affine());
 		return p_r();
 	}
+
+	void set_flags(uint8_t f) { m_flags = f; };
+	uint8_t get_flags() const { return m_flags; };
 
 	//for debugging purposes
 	bool is_normal() const;
@@ -363,6 +365,7 @@ public:
 		m_size{ static_cast<uint32_t>(size) },
 		m_reserved{ 0 },
 		m_bucket{ bucket },
+		m_flags{ 0 },
 		m_t{ t },
 		m_s{ s } {};
 

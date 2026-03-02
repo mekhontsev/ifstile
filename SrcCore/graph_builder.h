@@ -21,6 +21,7 @@ struct block_graph;
 struct ast_context;
 struct variable;
 struct indexed_maps;
+struct ast_maps;
 
 //operators can act not only on sets in the space,
 //but also on the vertices of the graph, generating new vertices
@@ -35,6 +36,8 @@ struct graph_builder
 	graph_builder() : m_umap_compos(0, ihasher(&m_pixm), ihasher(&m_pixm)) {}
 
 private:
+
+	size_t add_val_atom(ast_maps& am, const ims_val*);
 
 	using vertex = size_t;
 
@@ -56,8 +59,8 @@ private:
 
 	struct ahasher
 	{
-		bool operator()(const ast_context* c1, const ast_context* c2) const;
-		size_t operator()(const ast_context* c) const;
+		bool operator()(const ims_val* v1, const ims_val* v2) const;
+		size_t operator()(const ims_val* v) const;
 	};
 
 	struct ihasher
@@ -89,6 +92,6 @@ private:
 	ankerl::unordered_dense::map<size_t, size_t, ihasher, ihasher> 
 		m_umap_compos;
 	//to eliminate duplicates within compositions
-	ankerl::unordered_dense::map<const ast_context*, size_t, ahasher, ahasher> 
+	ankerl::unordered_dense::map<const ims_val*, size_t, ahasher, ahasher>
 		m_umap;
 };

@@ -202,6 +202,7 @@ static void s_init()
 		case ETYPE::distribution_int:	d = "integer";	break;
 		case ETYPE::distribution_real:	d = "real";		break;
 		case ETYPE::companion:			d = "companion";break;
+		case ETYPE::vector_union:		d = "union";	break;
 		case ETYPE::vector_func:		d = "";			break;
 		case ETYPE::charpoly:			d = "charpoly";	break;
 		case ETYPE::diagonal:			d = "diagonal";	break;
@@ -391,6 +392,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::uni:
 	case ETYPE::vector:
 	case ETYPE::vector_func:
+	case ETYPE::vector_union:
 	case ETYPE::companion:
 	case ETYPE::diagonal:
 	case ETYPE::index:

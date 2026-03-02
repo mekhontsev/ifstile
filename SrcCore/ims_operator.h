@@ -50,6 +50,9 @@ enum class ETYPE : uint8_t
 	//$(...)
 	vector_func,
 
+	//$union
+	vector_union,
+
 	//vector of operators
 	vector,
 
@@ -155,7 +158,7 @@ enum class ETYPE : uint8_t
 	sum,
 
 	//union
-	uni,		
+	uni,
 
 	csg, //$csg(map: other, with: int, power: int, inv_all_maps: int)
 
@@ -309,9 +312,7 @@ struct ims_operator
 		set(ETYPE::index_imm);
 		set(ETYPE::index);			//indices are calculated geometrically
 		set(ETYPE::reference);
-		set(ETYPE::vector_func);
-		set(ETYPE::this_vector);
-		//set(ETYPE::vector);
+		set(ETYPE::vector_union);
 		set(ETYPE::uni);
 		set(ETYPE::mul);
 		return ret;

@@ -27,6 +27,145 @@
 #include "block_graph.h"
 #include "eval_context.h"
 #include "variable.h"
+#include "ims_val.h"
+
+void put_scalar(oper_block& dst,
+	size_t pos, const ims_val* q, size_t idx)
+{
+	switch (q->gs())
+	{
+	case ims_val_b::EST::rational:
+	{
+		let& v = q->p_i(idx);
+		if (denominator(v) == 1) {
+			dst.set_integer(pos, numerator(v));
+		} else {
+			let ar = dst.add_args(pos, ETYPE::mul, 2);
+			dst.set_integer(ar, numerator(v));
+			let apos = dst.add_args(ar + 1, ETYPE::inv, 1);
+			dst.set_integer(apos, denominator(v));
+		}
+		break;
+	}
+	case ims_val_b::EST::real:
+		dst.set_double(pos, q->p_r(idx));
+		break;
+	case ims_val_b::EST::other:
+	{
+		put_scalar(dst, pos, q->p_v(idx), 0);
+		break;
+	}
+	default:
+		assert(false);//TODO: not implemented
+		dst.m_ops[pos].hdr.set_xempty();
+		break;
+	}
+}
+
+static bool is_zero_scalar(const ims_val* q, size_t idx)
+{
+	switch (q->gs())
+	{
+	case ims_val_b::EST::rational:	return q->p_i(idx) == 0;
+	case ims_val_b::EST::real:		return q->p_r(idx) == 0;
+	case ims_val_b::EST::other:		return is_zero_scalar(q->p_v(idx), 0);
+	default:						return false;
+	}
+}
+
+static void put_graph_atom(
+	oper_block& dst,
+	size_t pos,
+	const ast_maps& am,
+	size_t idx,
+	const eval_context& ec)
+{
+	let ai = am.m_ixm.get_atom(idx);
+	if (ai < am.m_num_refs) {
+		ast_context ret;
+		ret.call_offset = 0;
+		ret.h.set_reference(ai);
+		ret.a = nullptr;
+		dst.insert_op_ex(pos, ret, ec);
+		return;
+	}
+
+	let* a = am.m_atoms[ai - am.m_num_refs].get();
+	if (!a) {
+		assert(false);
+		return;
+	}
+	if (a->is(ims_val_b::ETP::ast_ptr)) {
+		dst.insert_op_ex(pos, *a->gp<ast_context>(), ec);
+		return;
+	}
+	//scalars, vectors, affine_maps...
+	switch (a->gt())
+	{
+	case ims_val_b::ETP::number:
+	{
+		put_scalar(dst, pos, a, 0);
+		break;
+	}
+	case ims_val_b::ETP::vector:
+	{
+		size_t sz = a->get_size();
+		auto ar = dst.set_vector(pos, sz);
+		for (size_t i = 0; i < sz; ++i) {
+			put_scalar(dst, ar + i, a, i);
+		}
+		dst.adjust_vector(pos);
+		break;
+	}
+	case ims_val_b::ETP::matrix:
+	{
+		if (!a->is_affine()) {
+			assert(false);
+			return;
+		}
+
+		let dim = a->rows();
+
+		assert(dim + 1 == a->cols());
+
+		auto get_idx = [&](size_t r, size_t c)
+			{
+				return r + c * dim;
+			};
+
+		bool has_translate = false;
+		for (size_t i = 0; i < dim; ++i) {
+			if (!is_zero_scalar(a, get_idx(i, dim))) {
+				has_translate = true;
+				break;
+			}
+		}
+
+		size_t mat_pos = pos;
+		if (has_translate) {
+			let tr_pos = dst.add_args(pos, ETYPE::mul, 2);
+			mat_pos = tr_pos + 1;
+			let ar = dst.set_vector(tr_pos, dim);
+			for (size_t i = 0; i < dim; ++i) {
+				put_scalar(dst, ar + i, a, get_idx(i, dim));
+			}
+			dst.adjust_vector(tr_pos);
+		}
+
+		auto ar = dst.set_vector(mat_pos, dim * dim);
+		for (size_t r = 0; r < dim; ++r) {
+			for (size_t c = 0; c < dim; ++c) {
+				put_scalar(dst, ar++, a, get_idx(r, c));//as row major
+			}
+		}
+		dst.adjust_vector(mat_pos);
+		break;
+	}
+	default:
+		assert(false);
+		break;
+	}
+};
 
 bool create_neghbours(
 	ims_identifiers& idf,
@@ -328,7 +467,6 @@ bool create_neghbours(
 	//start adding additional variables
 
 
-
 	let start_maps = next_var;
 	for (size_t i = 0; i < nm; ++i) {
 
@@ -339,11 +477,11 @@ bool create_neghbours(
 		if (a.num == 0) {
 			dst.m_ops[ds].hdr.set_id();
 		} else if (a.num == 1) {
-			dst.insert_op_ex(ds, bg.m_am.get_graph_atom(a.start), ec);
+			put_graph_atom(dst, ds, bg.m_am, a.start, ec);
 		} else {
 			let na = dst.add_args(ds, ETYPE::mul, a.num);
 			for (size_t j = 0; j < a.num; ++j) {
-				dst.insert_op_ex(na + j, bg.m_am.get_graph_atom(j + a.start), ec);
+				put_graph_atom(dst, na + j, bg.m_am, j + a.start, ec);
 			}
 		}
 	}

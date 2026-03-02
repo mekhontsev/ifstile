@@ -467,6 +467,7 @@ void print_operator(
 	case ETYPE::diagonal:
 	case ETYPE::vector_func:
 	case ETYPE::condition:
+	case ETYPE::vector_union:
 	{
 		let sz = op.num_args();
 

@@ -18,16 +18,18 @@
 #include "ast_maps.h"
 #include "ims_val.h"
 #include "variable.h"
+#include "eval_pool.h"
 
 
-static constexpr size_t max_co = ims_max >> 1;
 
-
+bool ast_maps::atom_is_used(size_t idx) const
+{
+	return m_atoms[idx]->get_flags() == 0;
+}
 
 void ast_maps::inherit(const ast_maps& other, std::span<const variable> ec)
 {
 	m_ixm.m_compos.clear();
-
 
 	let nmaps = other.m_ixm.m_maps.size();
 
@@ -46,7 +48,7 @@ void ast_maps::inherit(const ast_maps& other, std::span<const variable> ec)
 
 	//beginning reserved for atom-references
 	for (size_t i = 0; i < nvars; ++i) {
-		m_atoms[i] = ec[i].c;
+		m_atoms[i] = get_ast_val(ec[i].c);
 	}
 
 	//then come the edge atoms, then the remaining atoms (fills put_atom below)
@@ -75,24 +77,16 @@ void ast_maps::inherit(const ast_maps& other, std::span<const variable> ec)
 	//fill in the usage flag
 	
 	for (auto& a : m_atoms) {
-		a.call_offset += max_co;
+		a.get_mut()->set_flags(1);//mark all as not used
 	}
 
 	for (size_t i = 0; i < nmaps; ++i) {
 		let& m = get_map(i);
 		for (size_t j = 0; j < m.num; ++j) {
 			auto& a = m_atoms[m_ixm.get_atom(j + m.start)];
-			if (a.call_offset >= max_co) {
-				a.call_offset -= max_co;//restore for useful
-			}
+			a.get_mut()->set_flags(0);//mark as used
 		}
 	}
-}
-
-
-bool ast_maps::atom_is_used(const ast_context& c)
-{
-	return c.call_offset < max_co;
 }
 
 void ast_maps::put_value(const ims_val* v, std::span<const variable> ec)
@@ -115,13 +109,14 @@ void ast_maps::put_value(const ims_val* v, std::span<const variable> ec)
 			put_atom(ast->get_ref_idx(), ec);
 			return;
 		}
-		m_atoms.emplace_back(*ast);
+		v->add_ref();
+		m_atoms.emplace_back(v);
 	}else if (v->is(ims_val_b::ETP::uni)) {//empty union
 		assert(v->is_empty());
 		m_atoms.emplace_back();
 	} else {
-		m_atoms.emplace_back();
-		assert(false);
+		v->add_ref();
+		m_atoms.emplace_back(v);
 	}
 
 	put_atom(idx, ec);
@@ -130,8 +125,8 @@ void ast_maps::put_value(const ims_val* v, std::span<const variable> ec)
 bool ast_maps::has_tempaltes() const
 {
 	for (size_t i = 0; i < m_atoms.size(); ++i) {
-		let& ast = m_atoms[i];
-		if (!ast_maps::atom_is_used(ast)) continue;
+		let& ast = *m_atoms[i]->gp<ast_context>();
+		if (!atom_is_used(i)) continue;
 
 		if (ast.h.is_template()) {//a new variation has appeared
 			return true;

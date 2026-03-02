@@ -106,6 +106,7 @@ struct eval_context
 	const ims_val* vector_uni(ast_context p, bool is_geom);
 	const ims_val* vector_flat(ast_context p, bool is_geom);
 	const ast_context* resolve_topo_reference(const ast_context* ast);
+
 	//numeric conversions
 	//indexing
 	//traversing references
@@ -192,6 +193,7 @@ private:
 	def_ec_method2(eval_charpoly);
 	def_ec_method2(eval_csg);
 	def_ec_method2(eval_vector_func);
+	def_ec_method2(eval_vector_uni);
 	def_ec_method2(eval_companion);
 	def_ec_method2(eval_neg);
 	def_ec_method2(eval_index);

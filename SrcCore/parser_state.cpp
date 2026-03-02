@@ -678,6 +678,7 @@ static bool parse_operator(
 				case ETYPE::vector_func:
 				case ETYPE::charpoly:
 				case ETYPE::companion:
+				case ETYPE::vector_union:
 				{
 					
 					size_t ar = block.add_args(x, th, na);

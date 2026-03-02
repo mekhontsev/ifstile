@@ -493,12 +493,18 @@ void print_ast(const oper_block& sr, const block_info& bi, const ast_maps& am)
 		for (size_t j = 0; j < im.num; ++j) {
 			let aidx = am.m_ixm.get_atom(im.start + j);
 
-			let& a = am.m_atoms[aidx];
-			if (a.h.tt == ETYPE::reference && aidx < sr.num_vars()) {
-				std::cout << g->get_var_name(aidx);
+			let* v = am.m_atoms[aidx].get();
+			if (v->is(ims_val_b::ETP::ast_ptr)) {
+				let& a = *v->gp<ast_context>();
+
+				if (a.h.tt == ETYPE::reference && aidx < sr.num_vars()) {
+					std::cout << g->get_var_name(aidx);
+				} else {
+					print_operator(
+						sr.get_list(), std::cout, a, ETYPE::vector, nullptr);
+				}
 			} else {
-				print_operator(
-					sr.get_list(), std::cout, a, ETYPE::vector, nullptr);
+				print_ims_val(v, &sr.get_list());
 			}
 
 			if (j + 1 < im.num)std::cout << "*";

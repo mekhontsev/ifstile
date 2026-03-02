@@ -31,7 +31,7 @@
 #define eval_error3(msg, a1, a2) if (!m_stack) { ims_error (msg, a1, a2);}
 
 
-static const ims_val* get_ast_val(const ast_context& p)
+const ims_val* get_ast_val(const ast_context & p)
 {
 	auto* ret = eval_pool::ep.alloc_scalar(
 		ims_val::ETP::ast_ptr,
@@ -1097,48 +1097,6 @@ static size_t adjust_index(int64_t idx, size_t arr_sz)
 	return ret < 0 ? arr_sz : ret;
 }
 
-const ims_val* eval_context::vector_uni(ast_context p, bool is_geom)
-{
-	pool_ptr a;
-	if (is_geom) {
-		return nullptr;
-	}
-	let* ast = resolve_topo_reference(&p);
-	if (!ast) {
-		return nullptr;
-	}
-	if (ast->h.tt == ETYPE::vector) {
-		a.reset(eval_vector(*ast, false));
-	}
-
-	if (!a || !a->is(ims_val_b::ETP::vector, ims_val_b::EST::other)) {
-		return a.release();//ready
-	}
-
-	let sz = a->get_size();
-
-	if (sz == 0) {
-		return eval_pool::ep.get_empty_val();
-	}
-	if (sz == 1) {
-		let* vi = a->p_v(0);
-		if (vi)vi->add_ref();
-		return vi;
-	}
-
-	++m_topo_unions;//even in geometric mode - we will take it into account
-
-	//create a union
-	pool_ptr res(eval_pool::ep.get_vector(sz, ims_val::ETP::uni));
-	auto* dst = res->p_v();
-	for (size_t i = 0; i < sz; ++i) {
-		let* vi = a->p_v(i);
-		if (vi)vi->add_ref();
-		dst[i] = vi;
-	}
-	return res.release();
-}
-
 const ims_val* eval_context::vector_flat(ast_context p, bool is_geom)
 {
 	pool_ptr a;
@@ -1196,6 +1154,7 @@ const ims_val* eval_context::vector_flat(ast_context p, bool is_geom)
 
 const ims_val* eval_context::eval_vector_func(ast_context p, bool is_geom)
 {
+	assert(is_geom);
 	let& op = p.h;
 
 	let na = op.num_args();
@@ -1235,7 +1194,6 @@ const ims_val* eval_context::eval_vector_func(ast_context p, bool is_geom)
 	enum ftype: int64_t
 	{
 		flat = 0,
-		uni = 1,
 		num_types,
 	};
 
@@ -1252,7 +1210,6 @@ const ims_val* eval_context::eval_vector_func(ast_context p, bool is_geom)
 		switch (d)
 		{
 		case flat:	return vector_flat(arg0, is_geom);
-		case uni:	return vector_uni(arg0, is_geom);
 		default:	return nullptr;
 		}
 
@@ -1605,6 +1562,78 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 	return  v.release();
 };
 
+static const ims_val*
+convert_vector_to_operator(const ims_val* a, size_t level)
+{
+	if (!a) {
+		return nullptr;
+	}
+
+	if (!a->is(ims_val_b::ETP::vector) || !a->is(ims_val_b::EST::other)) {
+		a->add_ref();
+		return a;
+	}
+
+	let sz = a->get_size();
+	if (sz == 0) {
+		return eval_pool::ep.get_empty_val();
+	}
+
+	bool has_vectors = false;
+	for (size_t i = 0; i < sz; ++i) {
+		let* ai = a->p_v(i);
+		if (ai && ai->is(ims_val_b::ETP::vector)) {
+			has_vectors = true;
+			break;
+		}
+	}
+
+	if (!has_vectors) {
+		a->add_ref();
+		return a;
+	}
+
+	if (sz == 1) {
+		return convert_vector_to_operator(a->p_v(0), level + 1);
+	}
+
+	//create an operator
+	pool_ptr res(eval_pool::ep.get_vector(sz,
+		(level%2==0)? ims_val::ETP::uni: ims_val::ETP::compos));
+
+	auto* dst = res->p_v();
+	for (size_t i = 0; i < sz; ++i) {
+		let* vi = convert_vector_to_operator(a->p_v(i), level+1);
+		if (vi)vi->add_ref();
+		dst[i] = vi;
+	}
+	return res.release();
+}
+
+const ims_val* eval_context::eval_vector_uni(ast_context p, bool is_geom)
+{
+	if (is_geom) {
+		return nullptr;
+	}
+
+	pool_ptr a(eval7(p.index(0), true));//in the geometric mode
+
+	if (!a || !a->is(ims_val_b::ETP::vector, ims_val_b::EST::other)) {
+		return a.release();//ready
+	}
+
+	if (a->get_size() == 0) {
+		return eval_pool::ep.get_empty_val();
+	}
+
+	let* ret = convert_vector_to_operator(a.get(), 0);
+	if (ret && !ret->is_empty()) {
+		++m_topo_unions;//even in geometric mode - we will take it into account
+	}
+
+	return ret;
+}
+
 
 const ims_val* eval_context::eval_uni(ast_context p, bool is_geom)
 {
@@ -1828,6 +1857,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::charpoly:		ret = eval_charpoly(p, is_geom); break;	
 	case ETYPE::csg:			ret = eval_csg(p, is_geom); break;
 	case ETYPE::vector_func:	ret = eval_vector_func(p, is_geom); break;
+	case ETYPE::vector_union:	ret = eval_vector_uni(p, is_geom); break;
 	case ETYPE::vector:			ret = eval_vector(p, is_geom); break;
 	case ETYPE::vector_imm:		ret = eval_vector_imm(p, is_geom); break;
 	case ETYPE::this_vector:	ret = eval_this_vector(p, is_geom); break;

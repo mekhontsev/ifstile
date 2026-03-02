@@ -17,14 +17,14 @@
 #pragma once
 #include "indexed_maps.h"
 #include "operator_ptr.h"
+#include "pool_ptr.h"
 
 struct variable;
 struct ims_val;
 
 struct ast_maps: public boost::noncopyable
 {
-	
-	std::vector<ast_context> m_atoms;
+	std::vector<pool_ptr> m_atoms;
 	indexed_maps m_ixm;
 	size_t m_num_refs = 0;
 
@@ -37,21 +37,8 @@ struct ast_maps: public boost::noncopyable
 		m_num_refs = 0;
 	};
 
-	ast_context get_graph_atom(size_t idx) const
-	{
-		let ai = m_ixm.get_atom(idx);
-		if (ai >= m_num_refs) {
-			return m_atoms[ai - m_num_refs];
-		}
-		ast_context ret;
-		ret.call_offset = 0;
-		ret.h.set_reference(ai);
-		ret.a = nullptr;
-		return ret;
-	};
 
-
-	static bool atom_is_used(const ast_context& c);
+	bool atom_is_used(size_t idx) const;
 
 	void inherit(const ast_maps& other, std::span<const variable> ec);
 

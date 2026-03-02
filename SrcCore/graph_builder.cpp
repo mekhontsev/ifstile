@@ -21,6 +21,16 @@
 #include "block_graph.h"
 #include "indexed_maps.h"
 
+
+size_t graph_builder::add_val_atom(ast_maps& am, const ims_val* v)
+{
+	let ur = m_umap.emplace(v, m_umap.size() + am.m_num_refs);
+	if (ur.second) {
+		v->add_ref();
+		am.m_atoms.emplace_back(v);
+	}
+	return ur.first->second;
+};
 bool graph_builder::create(
 	block_graph& dst, size_t user_vars, std::span<const variable> ec)
 {
@@ -142,11 +152,7 @@ bool graph_builder::create(
 			}
 			//don't create tasks here, just add an edge
 			if (q.vt != s_empty_ver) {
-				let ur = m_umap.emplace(ast, m_umap.size() + dst.m_am.m_num_refs);
-				if (ur.second) {
-					dst.m_am.m_atoms.emplace_back(*ast);
-				}
-				dg.create_edge(v, q.vt, ur.first->second);
+				dg.create_edge(v, q.vt, add_val_atom(dst.m_am, q.val));
 			} 
 			continue;
 		}
@@ -173,7 +179,9 @@ bool graph_builder::create(
 		}
 		default:
 		{
-			assert(false);
+			if (q.vt != s_empty_ver) {
+				dg.create_edge(v, q.vt, add_val_atom(dst.m_am, q.val));
+			}
 			continue;
 		}
 		}
@@ -404,15 +412,23 @@ bool graph_builder::create(
 }
 
 bool graph_builder::ahasher::operator()
-(const ast_context* c1, const ast_context* c2) const
+(const ims_val* v1, const ims_val* v2) const
 {
-	return ast_context::lexic_compare(*c1, *c2) == 0;
+	if (v1->is(ims_val_b::ETP::ast_ptr) && v2->is(ims_val_b::ETP::ast_ptr)) {
+		return ast_context::lexic_compare(
+			*v1->gp<ast_context>(), *v2->gp<ast_context>()) == 0;
+	}
+	return v1 == v2;
 }
 
-size_t graph_builder::ahasher::operator()(const ast_context* c) const
+size_t graph_builder::ahasher::operator()(const ims_val* v) const
 {
 	size_t ret = 0;
-	ast_context::hash_combine(*c, ret);
+	if (v->is(ims_val_b::ETP::ast_ptr)) {
+		ast_context::hash_combine(*v->gp<ast_context>(), ret);
+	} else {
+		boost::hash_combine(ret, v);
+	}
 	return ret;
 }
 

@@ -21,6 +21,9 @@
 
 struct ims_val;
 
+struct ast_context;
+const ims_val* get_ast_val(const ast_context& p);
+
 //can allocate values
 struct eval_pool: public boost::noncopyable
 {
