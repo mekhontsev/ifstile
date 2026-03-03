@@ -172,12 +172,24 @@ bool eval_context::set_block(const oper_block& block)
 
 	//topological calculations of former geometric
 	for (size_t i = 0; i < m_refs5.size(); ++i) {
-		let& r = m_refs5[i];
+		auto& r = m_refs5[i];
 		
 		if (r.v[0])continue;//can be used without breaking it into atoms
-		if (!r.is_geom())continue;
+
+		if (!r.is_geom() && r.v[1])continue;
 		
+		bool was_invalid = !r.v[1] && r.ready[1];
+		if (was_invalid) {
+			r.ready[1] = false;
+		}
+
 		eval_ref(i, false);
+
+		//r is invalidated here
+
+		if (m_refs5[i].v[1] && was_invalid) {
+			return false;
+		}
 
 		if (!m_refs5[i].is_geom() && r.overriden) {
 			return false;//someone overriden by topological one
@@ -278,11 +290,12 @@ const ims_val* eval_context::eval_reference(ast_context p, bool is_geom)
 	let idx = p.get_ref_idx();
 	//calculate in any case to enumerate dependencies!
 	let* v = eval_ref(idx, is_geom);
-	if (!is_geom) {
-		return get_ast_val(p);
+
+	if (is_geom && v) {
+		v->add_ref();
+		return v;
 	}
-	if (v)v->add_ref();
-	return v;
+	return get_ast_val(p);
 };
 
 ESUBTYPE eval_context::eval_pow_exponent(
@@ -406,7 +419,7 @@ const ims_val* eval_context::eval_pow(ast_context p, bool is_geom)
 		return arg.release();
 	}
 
-	if (!arg || arg->is(ims_val::EST::other)) {
+	if (!arg || arg->gs() >= ims_val::EST::nan) {
 		eval_error("pow: invalid base");
 		return nullptr;
 	}
@@ -1317,7 +1330,7 @@ const ims_val* eval_context::eval_companion(ast_context p, bool)
 
 		auto* ni = da[i];
 
-		if (!ni->is(ims_val::ETP::vector) || ni->is(ims_val::EST::other))
+		if (!ni->is(ims_val::ETP::vector) || ni->gs()>=ims_val::EST::nan)
 		{
 			eval_error("$companion arguments must be vectors");
 			return nullptr;
@@ -1582,7 +1595,8 @@ convert_vector_to_operator(const ims_val* a, size_t level)
 	bool has_vectors = false;
 	for (size_t i = 0; i < sz; ++i) {
 		let* ai = a->p_v(i);
-		if (ai && ai->is(ims_val_b::ETP::vector)) {
+		if (!ai)return nullptr;
+		if (ai->is(ims_val_b::ETP::vector)) {
 			has_vectors = true;
 			break;
 		}
@@ -1604,7 +1618,8 @@ convert_vector_to_operator(const ims_val* a, size_t level)
 	auto* dst = res->p_v();
 	for (size_t i = 0; i < sz; ++i) {
 		let* vi = convert_vector_to_operator(a->p_v(i), level+1);
-		if (vi)vi->add_ref();
+		if (!vi)return nullptr;
+		vi->add_ref();
 		dst[i] = vi;
 	}
 	return res.release();
@@ -1701,6 +1716,11 @@ const ims_val* eval_context::eval_vector(ast_context p, bool is_geom)
 	while (jdx < na) {
 		
 		pool_ptr vj(eval7(p.index(jdx), generator_mode || is_geom));
+
+		if (!vj && generator_mode) {
+			++jdx;
+			continue;
+		}
 
 		let is_gen_marker = (vj.get() == vec.get());
 

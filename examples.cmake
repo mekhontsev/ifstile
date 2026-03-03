@@ -1,0 +1,57 @@
+set (Examples
+	"Barnsley fern.aifs"
+	"Cantor set.aifs"
+	"Jerusalem cross.aifs"
+	[3a.b-2a.b][x+1][C12].aifs
+	[3D]_Animation.aifs
+	[3D]_SelfSim2.aifs
+	[3D]_Sierpinski.aifs
+	[3D]_Simple.aifs
+	[3D]_Trees.aifs
+	[3D]_Various.aifs
+	[a2.b2-b.2a.b2]B4[x^4+x^2-2x+1].aifs
+	4Gen.aifs
+	Ammann_A3.aifs
+	Ammannn_Beenker.aifs
+	Animation.aifs
+	basic.js.aifs
+	Cube.aifs
+	trees.js.aifs
+	disk_like.js.aifs
+	IR3.aifs
+	IR3-211111-90.aifs
+	IR4-31111111-90.aifs
+	IR4-32111-60.aifs
+	IR5-32221111-90.aifs
+	julia.js.aifs
+	Misc.aifs
+	PedalTriangle.aifs
+	Pentadentrite.aifs
+	Quaquaversal.aifs
+	Square.aifs
+	Segment.aifs
+	Tesseract.aifs
+	x^2+2.aifs
+	x^2-2x+2_Twin_Dragon.aifs
+	x^2-3x+3_Koch_Snowflake.aifs
+	x^2-4x+5_Pinwheel.aifs
+	x^2-5x+7_Gosper_Island.aifs
+	x^2-x+2_Tame_Twin_Dragon.aifs
+	x^3+2x-1.aifs
+	x^3+3x-1.aifs
+	x^3+x^2-1.aifs
+	x^3+x-1.aifs
+	x^3-2.aifs
+	x^3-2x^2+3x-1.aifs
+	x^3-2x^2+x+1.aifs
+	x^3-3x^2+4x-1.aifs
+	x^3-N.aifs
+	x^3-x^2+2x+1[1].aifs
+	x^3-x^2+2x-1[2].aifs
+	x^3-x^2+x+1.aifs
+	x^4+x^2-1_Golden.aifs
+	x^4+x+1.aifs
+	x^4-2x^3-x^2+2x+1_Robinson.aifs
+	x^4-2x^3-x^2+2x+1_Robinson_90.aifs
+	x^4-x^3+1.aifs
+)

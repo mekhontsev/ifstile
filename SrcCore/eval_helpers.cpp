@@ -606,7 +606,7 @@ const ims_val* convert_numeric(
 	ims_val::EST s,
 	size_t dim)
 {
-	if (src->is(ims_val::EST::other) || s < src->gs()) {
+	if (src->gs()>= ims_val::EST::nan || s < src->gs() || s>= ims_val::EST::nan) {
 		return nullptr;
 	}
 

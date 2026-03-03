@@ -83,6 +83,7 @@ struct ims_val_b
 		big_rational,
 		real,
 		other,	//other ims_val
+		nan = other,
 		pod,	//POD subtype, does not require special processing
 	};
 };

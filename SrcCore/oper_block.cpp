@@ -162,8 +162,9 @@ bool oper_block::can_exists() const
 		return true;//potentially - maybe
 	}
 	
-	let* g = get_graph();
-	return g && !g->m_g1.empty();
+	return get_graph();
+	//let* g = get_graph();
+	//return g && !g->m_g1.empty();
 }
 
 operator_ptr oper_block::get_ptr(size_t idx) const

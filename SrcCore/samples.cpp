@@ -74,6 +74,7 @@ samples::samples()
 		ME("IR3",ir3),
 		ME("PedalTriangle",pedaltriangle),
 		ME("Cantor set",cantor_set),
+		ME("Segment",segment),
 		ME("Jerusalem cross",jerusalem_cross),
 		ME("4Gen",_4gen),
 		ME("[3D]_Simple",_3d__simple),
