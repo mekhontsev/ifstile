@@ -28,6 +28,19 @@ operator_ptr operator_ptr::index_base(size_t idx) const
 	return  a->get_ptr(h.u32 + idx);
 }
 
+std::span<const uint64_t> operator_ptr::get_permutation_params(size_t& dim) const
+{
+	assert(h.tt == ETYPE::set_permutation);
+	let svec = index_base(0);
+	let sz = svec.h.num_args();
+	let* p = svec.a->m_ops.data() + svec.h.get_offset();
+	dim = 0;
+	for (size_t i = 0; i < sz; ++i) {
+		dim += p[i].u64;
+	}
+	return { &p->u64, sz };
+}
+
 template<typename T>
 bool cmp_int(T v1, T v2, intptr_t& res)
 {

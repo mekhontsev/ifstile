@@ -99,15 +99,18 @@ enum class ETYPE : uint8_t
 	//stores the index of the semigroup + distribution in the graph
 	set_semigroup,
 
-	//a set of vectors with integer or real components
+	//set of vectors with integer or real components
 	//stores the distribution index in the graph
 	set_vector,
 
-	//a set of vectors with components equal to empty or identity maps
+	//set of vectors with components equal to empty or identity maps
 	//stores the distribution index in the graph
 	set_binary,
 
-	template_last = set_binary,
+	//set of permutations of a multiset
+	set_permutation,
+
+	template_last = set_permutation,
 	////////////////////////////////////////////////////////////////////////////
 
 	//distribution and type for set operators (integer)

@@ -26,7 +26,11 @@ full_search::status full_search::next(oper_block& dst)
 {
 	if (m_next_idx == 0) {
 		for (auto& q : m_state) {
-			q.v = q.b;
+			if (q.idx != ims_max) {
+				m_ps[q.idx].reset();
+			} else {
+				q.v = q.b;
+			}
 		}
 	} else {
 		if (!next_vec()) {//completed
@@ -42,7 +46,6 @@ full_search::status full_search::next(oper_block& dst)
 
 	let sz = src.num_vars();
 
-
 	dst.set_parent(src.get_parent());
 	dst.m_class.reset();
 	dst.m_ops = src.m_ops;//copy all operators
@@ -57,6 +60,27 @@ full_search::status full_search::next(oper_block& dst)
 			let& op = qs.h;
 			let dst_idx = q.dst_idx9;
 			assert(dst_idx < dst.m_ops.size());
+
+			if (op.tt == ETYPE::set_permutation) {
+				let& s = m_state[vidx++];
+				assert(s.idx != ims_max);
+				let& p = m_ps[s.idx];
+				let dim = p.s.size();
+
+				let nidx = dst.add(dim);//allocate memory first
+
+				auto& h = dst.m_ops[dst_idx].hdr;
+				h.tt = ETYPE::vector_imm;
+				h.ts = ESUBTYPE::integer;
+				h.u32 = static_cast<uint32_t>(nidx);
+				h.set_u24(dim);
+
+				for (size_t k = 0; k < dim; ++k) {
+					dst.m_ops[nidx + k].i64 = p.s[k];
+				}
+
+				continue;
+			}
 
 			distrib_info di;
 			src.get_distrib(di, qs);
@@ -75,7 +99,6 @@ full_search::status full_search::next(oper_block& dst)
 				h.u32 = static_cast<uint32_t>(nidx);
 				h.set_u24(dim);
 
-				
 				for (size_t k = 0; k < dim; ++k) {
 					dst.m_ops[nidx + k].i64 = m_state[vidx++].v;
 				}
@@ -193,8 +216,6 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 	dst.clear_ops();
 	uint32_t pos = 0;
 
-	state_elem e;
-
 	
 
 	for (size_t vi = 0; vi < sz; ++vi) {
@@ -208,20 +229,31 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 		dst.insert_op_ex(ds, ecr[vi].c, *g, &cv);
 
 		for (let& q : cv.data) {
+			state_elem e;
+
 			let& qs = q.src;
 			let& op = qs.h;
-			
+
+			if (op.tt == ETYPE::set_permutation) {
+				size_t dim = 0;
+				let p = qs.get_permutation_params(dim);
+				e.idx = m_ps.size();
+				m_ps.emplace_back();
+				m_ps.back().p = p;
+				m_ps.back().s.resize(dim);
+				m_state.emplace_back(e);
+				continue;
+			}
 
 			distrib_info di;
 			src.get_distrib(di, qs);
-
 
 			switch (op.tt) {
 			
 			case ETYPE::set_interval:
 			case ETYPE::set_vector:
 			{
-			
+
 				//convert normal distribution to uniform
 				if (di.s == ESUBTYPE::dist_normal_def ||
 					di.s == ESUBTYPE::dist_normal)
@@ -267,12 +299,11 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 
 				break;
 			}
+
 			default:
 				return false;
 			}
 		}
-
-
 	}
 
 	return true;
@@ -283,12 +314,30 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 bool full_search::next_vec()
 {
 	for (auto& q : m_state) {
-		++q.v;
-		if (q.v < q.e) {
-			return true;
+		if (q.idx == ims_max) {
+			++q.v;
+			if (q.v < q.e) {
+				return true;
+			}
+			q.v = q.b;
+		} else {
+			auto& s = m_ps[q.idx];
+			if (std::next_permutation(s.s.begin(), s.s.end())) {
+				return true;
+			}
+			s.reset();
 		}
-		q.v = q.b;
 	}
 	return false;
 }
 
+void full_search::permutation_state::reset()
+{
+	size_t idx = 0;
+	for (size_t i = 0; i < p.size(); ++i) {
+		let nj = p[i];
+		for (size_t j = 0; j < nj; ++j) {
+			s[idx++] = i;
+		}
+	}
+}

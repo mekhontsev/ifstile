@@ -55,6 +55,8 @@ struct operator_ptr
 
 	operator_ptr index_base(size_t idx) const;
 
+	std::span<const uint64_t> get_permutation_params(size_t& dim) const;
+
 };
 
 

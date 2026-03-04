@@ -331,11 +331,15 @@ bool oper_block::apply_templates(
 		let& op = src.h;
 		let dst_idx = q.dst_idx9;
 
+		if (op.tt == ETYPE::set_permutation) {
+			generate_random_permutation(dst_idx, src);
+			ret = true;
+			continue;
+		}
 
 		distrib_info di;
 		get_distrib(di, src);
 
-		
 		//convert the default distribution
 		if (di.s == ESUBTYPE::dist_normal_def) {
 			di.s = ESUBTYPE::dist_normal;
@@ -477,6 +481,34 @@ void oper_block::generate_random_vector(size_t dst_idx,
 	generate_random_vector(dst_idx, dim, di, proto);
 }
 
+
+void oper_block::generate_random_permutation(size_t dst_idx,
+	const operator_ptr& src)
+{
+	size_t dim = 0;
+	let p = src.get_permutation_params(dim);
+	let nidx = add(dim);
+
+	auto& h = m_ops[dst_idx].hdr;
+	h.tt = ETYPE::vector_imm;
+	h.ts = ESUBTYPE::integer;
+	h.u32 = static_cast<uint32_t>(nidx);
+	h.set_u24(dim);
+
+	auto* d = m_ops.data() + nidx;
+	size_t idx = 0;
+	for (size_t i = 0; i < p.size(); ++i) {
+		let nj = p[i];
+		for (size_t j = 0; j < nj; ++j) {
+			d[idx++].u64 = i;
+		}
+	}
+	assert(idx == dim);
+
+	auto& irn = ims_random::getR();
+	std::shuffle(&d[0].u64, &d[dim].u64, irn.rng);
+}
+
 void oper_block::generate_random_binary(size_t dst_idx,
 	const operator_ptr& src, const distrib_info& di)
 {
@@ -582,6 +614,7 @@ void oper_block::insert_op_ex(
 	case ETYPE::set_interval:
 	case ETYPE::set_vector:
 	case ETYPE::set_binary:
+	case ETYPE::set_permutation:
 	{
 		if (arr) {
 			//remember the position for future filling
@@ -815,13 +848,22 @@ void oper_block::set_int_poly(
 size_t oper_block::set_vector_ex(size_t idx, ETYPE t, ESUBTYPE st, size_t narg)
 {
 	let ni = add(narg);//where the arguments will be
-
 	auto& h = m_ops[idx].hdr;
 	h.tt = t;
 	h.ts = st;
-	h.u32 = static_cast<uint32_t>(ni);
+	h.set_u32(ni);
 	h.set_u24(narg);
+	return ni;
+}
 
+size_t oper_block::set_binary_or_vector(size_t idx, ETYPE t)
+{
+	let ni = add(1);
+	auto& h = m_ops[idx].hdr;
+	h.tt = t;
+	h.ts = ESUBTYPE::integer;
+	h.set_u32(ni);
+	h.set_u24(0);
 	return ni;
 }
 
@@ -960,16 +1002,6 @@ void oper_block::set_distribution(
 }
 
 
-size_t oper_block::set_binary_or_vector(size_t idx, ETYPE t, size_t sz)
-{
-	let ni = add(1);
-	auto& h = m_ops[idx].hdr;
-	h.tt = t;
-	h.ts = ESUBTYPE::integer;
-	h.set_u32(ni);
-	h.set_u24(sz);
-	return ni;
-}
 
 
 void oper_block::set_distribution_def(size_t idx)

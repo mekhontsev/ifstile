@@ -189,34 +189,20 @@ void ws_editor::show()
 		IMS_SCOPE([] {ImGui::EndDisabled(); });
 
 		if (ims_button("+Block", "Save changes as a new block", &id)) {
-
-			//move to the list of the inherited block
+			let* b = xd->m_block_sq.get();
 			auto nb = std::make_unique<oper_block>();
-
-			if (xd->m_bi.exists()) {
-
-				xd->get_block().simple_copy(*nb);
-
-				//fix parent
-				nb->fix_js_parent();
-				
-				let* p = nb->get_parent();
-				if (p && p->m_ops.empty()) {
-					nb->set_parent(p->get_parent());
-				}
-			
-				sv.sync_builtins(false, *nb);
-
-				add_block2(nb, "");
+			b->simple_copy(*nb);
+			nb->fix_js_parent();
+			let* p = nb->get_parent();
+			if (p && p->m_ops.empty()) {
+				nb->set_parent(p->get_parent());
 			}
+			sv.sync_builtins(false, *nb);
+			add_block2(nb, "");
 		}
 	}
 
-	
-
 	if (m_eidt_type == EDITOR_CONTROLS) {
-
-		
 		{
 			SAME_LINE();
 			ImGui::PushID(id++);
@@ -399,12 +385,68 @@ void ws_editor::show()
 			ctl_ptr = e->m_refs5[ctl_ptr.h.get_offset()].c;
 		}
 
-		distrib_info di;
-		if (!sr.get_distrib(di, ctl_ptr)) {
+		distrib_info di{};
+		if (ctl_ptr.h.tt != ETYPE::set_permutation) {
+			if (!sr.get_distrib(di, ctl_ptr)) {
+				continue;
+			}
+		}
+
+		if (ctl_ptr.h.tt == ETYPE::set_permutation &&
+			q.tt == ETYPE::vector_imm && q.ts == ESUBTYPE::integer && q.num_args()>0)
+		{
+			let sz = q.num_args();
+
+			auto* p = &sr.m_ops[q.get_offset()].i64;
+
+			{
+				ImGui::PushID(id++);
+				IMS_SCOPE([] {ImGui::PopID(); });
+
+				SAME_LINE();
+				if (ImGui::Button("<")) {
+					std::prev_permutation(&p[0], &p[sz]);
+				}
+			}
+			{
+				ImGui::PushID(id++);
+				IMS_SCOPE([] {ImGui::PopID(); });
+				SAME_LINE();
+				if (ImGui::Button(">")) {
+					std::next_permutation(&p[0], &p[sz]);
+				}
+			}
+
+			std::string label;
+			static size_t s_last_pushed = ims_max;
+			if (s_last_pushed >= sz)s_last_pushed = ims_max;
+
+			static std::vector<line_helper> lh;
+			lh.resize(sz);
+
+			for (size_t i = 0; i < sz; ++i) {
+				label.clear();
+				fmt::format_to(std::back_inserter(label), "{}", p[i]);
+				let& fg_color = ImGui::GetStyle().Colors[
+					s_last_pushed != i ? ImGuiCol_Text : ImGuiCol_TextDisabled];
+				ImGui::PushStyleColor(ImGuiCol_Text, fg_color);
+				lh[i].begin();
+				ImGui::PushID(id++);
+				if (ImGui::Button(label.c_str())) {
+					if (s_last_pushed == ims_max) {
+						s_last_pushed = i;
+					} else {//swap
+						std::swap(p[i], p[s_last_pushed]);
+						s_last_pushed = ims_max;
+					}
+				}
+				ImGui::PopID();
+				lh[i].end();
+				ImGui::PopStyleColor();
+			}
 			continue;
 		}
 
-	
 		size_t num_el;
 
 		if (ctl_ptr.h.tt == ETYPE::set_interval &&
@@ -421,7 +463,7 @@ void ws_editor::show()
 			if (q.get_u24() != num_el) {
 				continue;
 			}
-		}else {
+		}  else {
 			continue;
 		}
 

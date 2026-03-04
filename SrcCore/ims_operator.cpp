@@ -193,27 +193,28 @@ static void s_init()
 	for (size_t i = 0; i < s_keywords.size(); ++i) {
 		auto& d = s_keywords[i];
 		switch ((ETYPE)i) {
-		case ETYPE::empty:				d = "e";		break;
-		case ETYPE::id:					d = "i";		break;
-		case ETYPE::set_interval:		d = "number";	break;
-		case ETYPE::set_semigroup:		d = "semigroup";break;
-		case ETYPE::set_vector:			d = "vector";	break;
-		case ETYPE::set_binary:			d = "binary";	break;
-		case ETYPE::distribution_int:	d = "integer";	break;
-		case ETYPE::distribution_real:	d = "real";		break;
-		case ETYPE::companion:			d = "companion";break;
-		case ETYPE::vector_union:		d = "union";	break;
-		case ETYPE::vector_func:		d = "";			break;
-		case ETYPE::charpoly:			d = "charpoly";	break;
-		case ETYPE::diagonal:			d = "diagonal";	break;
-		case ETYPE::exchange:			d = "exchange";	break;
-		case ETYPE::csg:				d = "csg";		break;
-		case ETYPE::inversion:			d = "inversion";break;
-		case ETYPE::color_style:		d = "style";	break;
-		case ETYPE::thickness:			d = "thickness";break;
-		case ETYPE::condition:			d = "if";		break;
-		case ETYPE::call:				d = "new";		break;
-		default:										continue;
+		case ETYPE::empty:				d = "e";			break;
+		case ETYPE::id:					d = "i";			break;
+		case ETYPE::set_interval:		d = "number";		break;
+		case ETYPE::set_semigroup:		d = "semigroup";	break;
+		case ETYPE::set_vector:			d = "vector";		break;
+		case ETYPE::set_binary:			d = "binary";		break;
+		case ETYPE::set_permutation:	d = "permutation";	break;
+		case ETYPE::distribution_int:	d = "integer";		break;
+		case ETYPE::distribution_real:	d = "real";			break;
+		case ETYPE::companion:			d = "companion";	break;
+		case ETYPE::vector_union:		d = "union";		break;
+		case ETYPE::vector_func:		d = "";				break;
+		case ETYPE::charpoly:			d = "charpoly";		break;
+		case ETYPE::diagonal:			d = "diagonal";		break;
+		case ETYPE::exchange:			d = "exchange";		break;
+		case ETYPE::csg:				d = "csg";			break;
+		case ETYPE::inversion:			d = "inversion";	break;
+		case ETYPE::color_style:		d = "style";		break;
+		case ETYPE::thickness:			d = "thickness";	break;
+		case ETYPE::condition:			d = "if";			break;
+		case ETYPE::call:				d = "new";			break;
+		default:											continue;
 		}
 		s_map[d] = static_cast<ETYPE>(i);
 	}
@@ -282,6 +283,7 @@ void ims_operator::hash_combine(size_t& ret) const
 		break;
 	case ETYPE::set_vector:
 	case ETYPE::set_binary:
+	case ETYPE::set_permutation:
 	case ETYPE::call_built_in:
 	case ETYPE::power_imm:
 	case ETYPE::index_imm:
@@ -317,6 +319,7 @@ intptr_t ims_operator::lexic_compare(ims_operator h1, ims_operator h2)
 		break;
 	case ETYPE::set_vector:
 	case ETYPE::set_binary:
+	case ETYPE::set_permutation:
 	case ETYPE::call_built_in:
 	case ETYPE::power_imm:
 	case ETYPE::index_imm:
@@ -375,6 +378,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::set_interval://argument - distribution
 	case ETYPE::set_vector:
 	case ETYPE::set_binary:
+	case ETYPE::set_permutation:
 	case ETYPE::color_style:
 	case ETYPE::thickness:
 	case ETYPE::set_semigroup://vector

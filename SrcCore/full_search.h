@@ -40,10 +40,23 @@ private:
 
 	uint64_t m_next_idx = 0;
 
+
+	struct permutation_state
+	{
+		std::span<const uint64_t> p;
+		std::vector<uint64_t> s;
+
+		void reset();
+	};
+
+	std::vector<permutation_state> m_ps;
+
 	struct state_elem
 	{
 		int64_t v, b, e;//b<=v<e
+		size_t idx = ims_max;//index in m_ps
 	};
+
 	std::vector<state_elem> m_state;
 
 	std::unique_ptr<oper_block> m_tm;

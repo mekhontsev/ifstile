@@ -813,7 +813,27 @@ static bool parse_operator(
 						}
 					} 
 					break;
+				}
+				case ETYPE::set_permutation:
+				{
+					if (na != 1) {
+						pfo.err << INV_NARG;
+						return reter();
+					};
 
+					let ar = block.add_args(x, th, 1);
+
+					if (!parse_operator(*nit, pfo, block, ar)) {
+						return reter();
+					}
+					let& h = block.m_ops[ar].hdr;
+					let ok = (h.tt == ETYPE::vector_imm && h.ts == ESUBTYPE::integer) ||
+						(h.tt == ETYPE::vector && h.num_args() == 0);
+					if (!ok) {
+						pfo.err << "invalid $permuatation argument type";
+						return reter();
+					}
+					break;
 				}
 				case ETYPE::distribution_real:
 				case ETYPE::distribution_int:
