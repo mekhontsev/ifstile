@@ -1022,6 +1022,9 @@ static bool parse_operator(
 			case ETYPE::id:
 				a[x].hdr.set_id();
 				break;
+			case ETYPE::pi:
+				a[x].hdr.tt=ETYPE::pi;
+				break;
 			case ETYPE::color_style:
 				a[x].hdr.set_color();
 				break;

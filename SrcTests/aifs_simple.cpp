@@ -130,6 +130,19 @@ A=A*B^-1
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+TEST(testEval, pi)
+{
+	aifs_tester t(R"(
+@
+a=$pi
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+
+	EXPECT_TRUE(t.approx("a", boost::math::constants::pi<ims_val_b::Real>()));
+};
+
+
 TEST(testEval, simple_call)
 {
 	aifs_tester t(R"(

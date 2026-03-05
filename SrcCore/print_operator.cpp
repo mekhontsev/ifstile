@@ -179,13 +179,10 @@ void print_operator(
 		break;
 	}
 	case ETYPE::empty:
-	{
-		str << ims_keywords::builtin << ims_operator::to_string(t);
-		break;
-	}
+	case ETYPE::pi:
 	case ETYPE::id:
 	{
-		str << 1;
+		str << ims_keywords::builtin << ims_operator::to_string(t);
 		break;
 	}
 	case ETYPE::this_vector:

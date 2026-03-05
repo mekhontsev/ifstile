@@ -32,6 +32,9 @@ enum class ETYPE : uint8_t
 	//identity
 	id,
 
+	//pi constant
+	pi,
+
 	//small nunber (in header)	
 	number_imm,
 

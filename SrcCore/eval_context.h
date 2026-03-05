@@ -204,6 +204,7 @@ private:
 	def_ec_method2(eval_empty);
 	def_ec_method2(eval_this_vector);
 	def_ec_method2(eval_id);
+	def_ec_method2(eval_pi);
 #undef def_ec_method2
 };
 

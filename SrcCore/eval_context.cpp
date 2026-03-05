@@ -1849,6 +1849,11 @@ const ims_val* eval_context::eval_id(ast_context, bool)
 	return eval_pool::ep.get_id_val();
 };
 
+const ims_val* eval_context::eval_pi(ast_context, bool)
+{
+	return eval_pool::ep.get_scalar_real(boost::math::constants::pi<ims_val_b::Real>());
+};
+
 const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 {
 	if (!is_geom && !ims_operator::is_topo_eval(p.h.tt)) {
@@ -1863,6 +1868,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	switch (p.h.tt) {
 	case ETYPE::empty:			ret = eval_empty(p, is_geom); break;
 	case ETYPE::id:				ret = eval_id(p, is_geom); break;
+	case ETYPE::pi:				ret = eval_pi(p, is_geom); break;
 	case ETYPE::reference:		ret = eval_reference(p, is_geom); break;
 	case ETYPE::exchange:		ret = eval_exchange(p, is_geom); break;
 	case ETYPE::inversion:		ret = eval_inversion(p, is_geom); break;

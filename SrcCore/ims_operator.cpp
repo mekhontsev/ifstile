@@ -195,6 +195,7 @@ static void s_init()
 		switch ((ETYPE)i) {
 		case ETYPE::empty:				d = "e";			break;
 		case ETYPE::id:					d = "i";			break;
+		case ETYPE::pi:					d = "pi";			break;
 		case ETYPE::set_interval:		d = "number";		break;
 		case ETYPE::set_semigroup:		d = "semigroup";	break;
 		case ETYPE::set_vector:			d = "vector";		break;
@@ -363,6 +364,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::vector_imm:
 	case ETYPE::exchange:
 	case ETYPE::inversion:
+	case ETYPE::pi:
 	case ETYPE::id:
 	case ETYPE::empty:
 	case ETYPE::this_vector:
