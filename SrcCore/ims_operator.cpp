@@ -283,7 +283,6 @@ void ims_operator::hash_combine(size_t& ret) const
 		boost::hash_combine(ret, u32);
 		break;
 	case ETYPE::set_vector:
-	case ETYPE::set_binary:
 	case ETYPE::set_permutation:
 	case ETYPE::call_built_in:
 	case ETYPE::power_imm:
@@ -319,7 +318,6 @@ intptr_t ims_operator::lexic_compare(ims_operator h1, ims_operator h2)
 		if (cmp_int(h1.u32, h2.u32, v))return v;
 		break;
 	case ETYPE::set_vector:
-	case ETYPE::set_binary:
 	case ETYPE::set_permutation:
 	case ETYPE::call_built_in:
 	case ETYPE::power_imm:
@@ -379,7 +377,6 @@ size_t ims_operator::oper_args() const
 	case ETYPE::charpoly:
 	case ETYPE::set_interval://argument - distribution
 	case ETYPE::set_vector:
-	case ETYPE::set_binary:
 	case ETYPE::set_permutation:
 	case ETYPE::color_style:
 	case ETYPE::thickness:

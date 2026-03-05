@@ -109,15 +109,9 @@ void ast_maps::put_value(const ims_val* v, std::span<const variable> ec)
 			put_atom(ast->get_ref_idx(), ec);
 			return;
 		}
-		v->add_ref();
-		m_atoms.emplace_back(v);
-	}else if (v->is(ims_val_b::ETP::uni)) {//empty union
-		assert(v->is_empty());
-		m_atoms.emplace_back();
-	} else {
-		v->add_ref();
-		m_atoms.emplace_back(v);
 	}
+	v->add_ref();
+	m_atoms.emplace_back(v);
 
 	put_atom(idx, ec);
 };

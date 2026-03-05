@@ -314,17 +314,13 @@ void print_operator(
 	}
 	case ETYPE::set_interval:
 	case ETYPE::set_vector:
-	case ETYPE::set_binary:
 	{
 		str << ims_keywords::builtin << ims_operator::to_string(t) << "(";
 
 		size_t idx = 0;
 		bool has_arg = false;
 
-		if (t == ETYPE::set_vector ||
-			t == ETYPE::set_binary ||
-			t == ETYPE::set_permutation)
-		{
+		if (t == ETYPE::set_vector || t == ETYPE::set_permutation) {
 			let d = op.get_u24();
 			if (d > 0) {
 				str << op.get_u24();

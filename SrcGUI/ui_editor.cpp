@@ -59,8 +59,13 @@ void ws_editor::show()
 	
 	////////////////////////////////////////////////////////////////////////
 
-
 	int id = 0;
+	static std::vector<line_helper> lha;
+	auto get_lh = [&](size_t i) ->line_helper&
+	{
+		if (lha.size() <= i)lha.resize(i + 1);
+		return lha[i];
+	};
 
 	static bool controls_advanced = false;
 
@@ -405,7 +410,13 @@ void ws_editor::show()
 
 				SAME_LINE();
 				if (ImGui::Button("<")) {
-					std::prev_permutation(&p[0], &p[sz]);
+					stop_build_then([xd, p, sz]() {
+						std::prev_permutation(&p[0], &p[sz]);
+						auto& b = xd->get_block();
+						b.m_flags.ready = false;
+						ui_update_maps();
+						do_rebuild_sync();
+					});
 				}
 			}
 			{
@@ -413,7 +424,13 @@ void ws_editor::show()
 				IMS_SCOPE([] {ImGui::PopID(); });
 				SAME_LINE();
 				if (ImGui::Button(">")) {
-					std::next_permutation(&p[0], &p[sz]);
+					stop_build_then([xd, p, sz]() {
+						std::next_permutation(&p[0], &p[sz]);
+						auto& b = xd->get_block();
+						b.m_flags.ready = false;
+						ui_update_maps();
+						do_rebuild_sync();
+					});
 				}
 			}
 
@@ -421,29 +438,37 @@ void ws_editor::show()
 			static size_t s_last_pushed = ims_max;
 			if (s_last_pushed >= sz)s_last_pushed = ims_max;
 
-			static std::vector<line_helper> lh;
-			lh.resize(sz);
-
 			for (size_t i = 0; i < sz; ++i) {
 				label.clear();
 				fmt::format_to(std::back_inserter(label), "{}", p[i]);
 				let& fg_color = ImGui::GetStyle().Colors[
 					s_last_pushed != i ? ImGuiCol_Text : ImGuiCol_TextDisabled];
 				ImGui::PushStyleColor(ImGuiCol_Text, fg_color);
-				lh[i].begin();
+				auto& lh = get_lh(id);
+				lh.begin();
 				ImGui::PushID(id++);
 				if (ImGui::Button(label.c_str())) {
 					if (s_last_pushed == ims_max) {
 						s_last_pushed = i;
 					} else {//swap
-						std::swap(p[i], p[s_last_pushed]);
+						if (p[i] != p[s_last_pushed]) {
+							stop_build_then([xd, p, i, i2 = s_last_pushed]() {
+								auto& b = xd->get_block();
+								std::swap(p[i], p[i2]);
+
+								b.m_flags.ready = false;
+								ui_update_maps();
+								do_rebuild_sync();
+							});
+						}
 						s_last_pushed = ims_max;
 					}
 				}
 				ImGui::PopID();
-				lh[i].end();
+				lh.end();
 				ImGui::PopStyleColor();
 			}
+
 			continue;
 		}
 
@@ -453,10 +478,7 @@ void ws_editor::show()
 			(q.tt == ETYPE::number || q.tt == ETYPE::number_imm))
 		{
 			num_el = 1;
-		} else if (	
-			(ctl_ptr.h.tt == ETYPE::set_vector && q.tt == ETYPE::vector_imm) || 
-			(ctl_ptr.h.tt == ETYPE::set_binary && 
-				(q.tt == ETYPE::vector || q.tt == ETYPE::vector_imm)))
+		} else if (ctl_ptr.h.tt == ETYPE::set_vector && q.tt == ETYPE::vector_imm)
 		{
 			num_el = ctl_ptr.h.get_u24();
 			if (num_el == 0)num_el = sr.get_dim();
@@ -474,203 +496,160 @@ void ws_editor::show()
 		ImGui::BeginDisabled(cref.var_is_locked);
 		IMS_SCOPE([] {ImGui::EndDisabled(); });
 
-		static std::vector<line_helper> lh;
-		lh.resize(num_el);
-
 		let checkboxes = (di.t == ETYPE::distribution_int) &&
 			(di.s == ESUBTYPE::dist_uniform) && (di.d[0] + 1 == di.d[1]);
 
 		for (size_t i = 0; i < num_el; ++i) {
 
+			auto& lh = get_lh(id);
 			ImGui::PushID(id++);
 			IMS_SCOPE([] {ImGui::PopID(); });
 
 			bool changed = false;
 
-			if (ctl_ptr.h.tt == ETYPE::set_binary) {
-				let& hx = sr.m_ops[q.get_offset() + i];
-				bool v = hx.hdr.tt != ETYPE::empty;
+			///////////////////////////////////////////////
+			//read the current value
+			double dv;
+			int64_t iv = 0, denominator = 0;
+			bool is_int = false;
 
+			ims_operator op = q;
+			if (op.tt == ETYPE::vector_imm) {
+				op.tt = ETYPE::number;
+				op.set_offset(op.get_offset() + i);
+			};
+
+			bool res = sr.get_val(op, is_int, dv, iv, denominator);
+
+			if (checkboxes) {
 				if (i == 0 && num_el > 1) {
 					ImGui::NewLine();
 				}
-
-				let sl = i > 0;
-				if (sl)lh[i].begin();
-				IMS_SCOPE([&] {if (sl)lh[i].end(); });
-
-				//ImGui::Text("%3zu", i); ImGui::SameLine();
-				changed = ImGui::Checkbox("", &v);
-				if (ImGui::IsItemActive() || ImGui::IsItemHovered()) {
-					ImGui::SetTooltip("%zu", i);
+			} else {
+				if (i > 0) {
+					ImGui::NewLine();
+					ImGui::SameLine(control_pos);
 				}
-				if (changed && w_ch.allow()) {
+			}
 
-					//change in the GUI thread
-					stop_build_then([xd, v, i, em]() {
+			if (di.t == ETYPE::distribution_real) {
+				if (!res) {
+					dv = 0;
+				} else if (is_int) {
+					dv = double(iv) / denominator;
+				}
 
-						auto& b = xd->get_block();
-						auto& q = b.m_ops[em.pos].hdr;
 
-						b.m_ops[q.get_offset() + i].hdr.tt
-							= v ? ETYPE::id : ETYPE::empty;
-
-						b.m_flags.ready = false;
-
-						ui_update_maps();
-						do_rebuild_sync();
-					});
-				};
-		
-			} else {//vector of numbers
-				///////////////////////////////////////////////
-				//read the current value
-				double dv;
-				int64_t iv = 0, denominator = 0;
-				bool is_int = false;
-
-				ims_operator op = q;
-				if (op.tt == ETYPE::vector_imm) {
-					op.tt = ETYPE::number;
-					op.set_offset(op.get_offset() + i);
-				};
-
-				bool res = sr.get_val(op, is_int, dv, iv, denominator);
-
+				double mi;
+				double ma;
 				
-
-				if (checkboxes) {
-					if (i == 0 && num_el > 1) {
-						ImGui::NewLine();
-					}
+				if (di.s == ESUBTYPE::dist_uniform) {
+					ma = di.d[1];
+					mi = di.d[0];
 				} else {
-					if (i > 0) {
-						ImGui::NewLine();
-						ImGui::SameLine(control_pos);
-					}
-				}
-				
-
-				if (di.t == ETYPE::distribution_real) {
-					if (!res) {
-						dv = 0;
-					} else if (is_int) {
-						dv = double(iv) / denominator;
-					}
-
-
-					double mi;
-					double ma;
-				
-					if (di.s == ESUBTYPE::dist_uniform) {
-						ma = di.d[1];
-						mi = di.d[0];
-					} else {
-						ma = -1;
-						mi = 0;
-					};
+					ma = -1;
+					mi = 0;
+				};
 					
-					changed = input_double2(dv, mi, ma);
-					is_int = false;
-				} else if (di.t == ETYPE::distribution_int) {
-					if (!res) {
-						iv = 0;
-					} else if (is_int) {
-						iv = iv / denominator;
+				changed = input_double2(dv, mi, ma);
+				is_int = false;
+			} else if (di.t == ETYPE::distribution_int) {
+				if (!res) {
+					iv = 0;
+				} else if (is_int) {
+					iv = iv / denominator;
+				} else {
+					iv = (int64_t)std::round(dv);
+				}
+
+				if (di.s == ESUBTYPE::dist_uniform) {
+					let vmi = (int64_t)di.d[0];
+					let vma = (int64_t)di.d[1];
+
+					if (vma == vmi + 1) {
+						bool bv = (iv == vma);
+
+						assert(checkboxes);
+
+						let sl = i > 0;
+						if (sl)lh.begin();
+						IMS_SCOPE([&] {if (sl)lh.end(); });
+
+						changed = ImGui::Checkbox("", &bv);
+
+						if (ImGui::IsItemActive() || ImGui::IsItemHovered()) {
+							ImGui::SetTooltip("%zu", i);
+						}
+						if (changed) {
+							iv = bv ? vma : vmi;
+						};
 					} else {
-						iv = (int64_t)std::round(dv);
+
+						assert(!checkboxes);
+						let ws = 10.0 / ImGui::GetWindowWidth();
+						changed = ImGui::DragScalar("", ImGuiDataType_S64, &iv,
+							float((vma - vmi) * ws), &vmi, &vma);
 					}
 
-					if (di.s == ESUBTYPE::dist_uniform) {
-						let vmi = (int64_t)di.d[0];
-						let vma = (int64_t)di.d[1];
+				} else {
+					const int64_t step1 = 1;
+					changed = ImGui::InputScalar("", ImGuiDataType_S64, &iv, &step1);
+				};
+				is_int = true;
+			}
 
-						if (vma == vmi + 1) {
-							bool bv = (iv == vma);
+			if (com) {
+				set_tooltip(com->c_str());
+			}
+			///////////////////////////////////////////////
 
-							assert(checkboxes);
+			if (changed && w_ch.allow()) {
 
-							let sl = i > 0;
-							if (sl)lh[i].begin();
-							IMS_SCOPE([&] {if (sl)lh[i].end(); });
+				//change in the GUI thread
+				stop_build_then([xd, iv, dv, is_int, em, i]() {
 
-							changed = ImGui::Checkbox("", &bv);
+					auto& b = xd->get_block();
+					auto& q = b.m_ops[em.pos].hdr;
 
-							if (ImGui::IsItemActive() || ImGui::IsItemHovered()) {
-								ImGui::SetTooltip("%zu", i);
-							}
-							if (changed) {
-								iv = bv ? vma : vmi;
-							};
-						} else {
+					size_t offs;
 
-							assert(!checkboxes);
-							let ws = 10.0 / ImGui::GetWindowWidth();
-							changed = ImGui::DragScalar("", ImGuiDataType_S64, &iv,
-								float((vma - vmi) * ws), &vmi, &vma);
-						}
-
-					} else {
-						const int64_t step1 = 1;
-						changed = ImGui::InputScalar("", ImGuiDataType_S64, &iv, &step1);
-					};
-					is_int = true;
-				}
-
-				if (com) {
-					set_tooltip(com->c_str());
-				}
-				///////////////////////////////////////////////
-
-				if (changed && w_ch.allow()) {
-
-					//change in the GUI thread
-					stop_build_then([xd, iv, dv, is_int, em, i]() {
-
-						auto& b = xd->get_block();
-						auto& q = b.m_ops[em.pos].hdr;
-
-						size_t offs;
-
-						if (q.tt == ETYPE::number_imm) {//->number
-							q.tt = ETYPE::number;
-							offs = b.m_ops.size();
-							q.set_offset(offs);
-
-							if (is_int) {
-								q.ts = ESUBTYPE::integer;
-							} else {
-								q.ts = ESUBTYPE::real;
-							}
-
-							b.add(1);//q is spoiled here
-
-						} else {
-
-							b.convert_type_inplace(q, is_int);
-
-							offs = q.u32 + i;
-
-						}
-
-
-						////////////////////////////////////////////////////////////
-						//q is invalid here
-#define q
+					if (q.tt == ETYPE::number_imm) {//->number
+						q.tt = ETYPE::number;
+						offs = b.m_ops.size();
+						q.set_offset(offs);
 
 						if (is_int) {
-							b.m_ops[offs].i64 = iv;
+							q.ts = ESUBTYPE::integer;
 						} else {
-							b.m_ops[offs].f64 = dv;
+							q.ts = ESUBTYPE::real;
 						}
 
-						b.m_flags.ready = false;
-			
-						ui_update_maps();
-						do_rebuild_sync();
-					});
-				};//if
-			}
+						b.add(1);//q is invalidated here
+
+					} else {
+
+						b.convert_type_inplace(q, is_int);
+
+						offs = q.u32 + i;
+
+					}
+
+
+					////////////////////////////////////////////////////////////
+					//q is invalid here
+#define q
+
+					if (is_int) {
+						b.m_ops[offs].i64 = iv;
+					} else {
+						b.m_ops[offs].f64 = dv;
+					}
+
+					b.m_flags.ready = false;
+					ui_update_maps();
+					do_rebuild_sync();
+				});
+			};//if
 		};//for i
 	};
 	ImGui::EndChild();

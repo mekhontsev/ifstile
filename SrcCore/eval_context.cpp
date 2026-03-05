@@ -1901,7 +1901,6 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::unk_reference:	ret = get_ast_val(p); break;
 	case ETYPE::set_interval:
 	case ETYPE::set_vector:
-	case ETYPE::set_binary:
 	case ETYPE::set_permutation:
 	{
 		if (!is_geom) {

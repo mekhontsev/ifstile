@@ -782,9 +782,84 @@ static bool parse_operator(
 
 					break;
 
+				}case ETYPE::set_binary:
+				{
+					//replace with $permutation
+
+					//	b = $binary(27,$integer(19,19))
+					//		==========>
+					//  p = $permutation(19, 27-19)
+					//	a = [$e, $i]
+					//	b = [a[p[0]], a[p[1]], ...]
+
+					if (na != 2) {
+						pfo.err << INV_NARG;
+						return reter();
+					};
+
+					//size first
+					if (nit->which() != spirit::utree_type::int_type) {
+						pfo.err << "invalid argument 1";
+						return reter();
+					}
+
+					let ival = nit->get<int>();
+					if (ival < 1 || ival > 1023) {
+						pfo.err << "invalid argument 1";
+						return reter();
+					}
+
+					let dim = (size_t)ival;
+
+					if (!parse_operator(*std::next(nit), pfo, block, x)) {
+						pfo.err << "invalid argument 2";
+						return reter();
+					}
+
+					let& h = block.m_ops[x].hdr;
+					if (h.tt != ETYPE::distribution_int ||
+						h.ts != ESUBTYPE::dist_uniform)
+					{
+						pfo.err << "invalid argument 2";
+						return reter();
+					}
+
+					let* d = &block.m_ops[h.get_offset()].f64;
+
+					let a2 = (size_t)d[0];
+
+					if (dim < a2 || d[0] != d[1] || d[0] != (double)a2) {
+						pfo.err << "invalid argument 2";
+						return reter();
+					}
+
+					let p_id = pfo.unk->create_unique_identifier("p");
+					let p_offset = block.add_var(pfo.m_pos2, p_id, false);
+
+					let a_id = pfo.unk->create_unique_identifier("a");
+					let a_offset = block.add_var(pfo.m_pos2, a_id, false);
+
+					let p_args = block.set_vector_ex(
+						block.add_args(p_offset, ETYPE::set_permutation, 1),
+						ETYPE::vector_imm, ESUBTYPE::integer, 2);
+
+					a[p_args].i64 = a2;
+					a[p_args+1].i64 = dim - a2;
+
+					let a_args = block.set_vector(a_offset, ETYPE::vector, 2);
+					a[a_args].hdr.set_xempty();
+					a[a_args + 1].hdr.set_id();
+
+					let ar = block.set_vector(x, dim);
+					for (size_t i = 0; i < dim; ++i) {
+						let i1 = block.add_args(ar + i, ETYPE::index, 2);
+						a[i1].hdr.set_reference(a_id, ESUBTYPE::ref_unknown);
+						let i2 = block.set_index_imm(i1 + 1, int(i));
+						a[i2].hdr.set_reference(p_id, ESUBTYPE::ref_unknown);
+					}
+					break;
 				}
 				case ETYPE::set_vector:
-				case ETYPE::set_binary:
 				{
 					if (na > 2) {
 						pfo.err << INV_NARG;
@@ -953,8 +1028,7 @@ static bool parse_operator(
 			if (sz==3 && it_y->which() == spirit::utree_type::int_type &&
 				ims_operator::is_i24(it_y->get<int>())) 
 			{
-				let ar = block.add_args(x, ETYPE::index_imm, 1);
-				a[x].hdr.set_i24(it_y->get<int>());
+				let ar = block.set_index_imm(x, it_y->get<int>());
 				if (!parse_operator(*it_x, pfo, block, ar)) {
 					return reter() ;
 				};

@@ -17,10 +17,7 @@
 #include "pch.h"
 #include "full_search.h"
 #include "oper_block.h"
-#include "block_class.h"
-#include "ims_info.h"
 #include "eval_context.h"
-#include "variable.h"
 
 full_search::status full_search::next(oper_block& dst)
 {
@@ -104,44 +101,6 @@ full_search::status full_search::next(oper_block& dst)
 				}
 				break;
 			}
-			case ETYPE::set_binary:
-			{
-				size_t dim = op.get_u24();
-				if (dim == 0)dim = src.get_dim();
-				
-				let d0 = (size_t)di.d[0];
-				let d1 = (size_t)di.d[1];
-
-			
-				size_t num_emp = 0;
-				for (size_t k = 0; k < dim; ++k) {
-					if (m_state[vidx+k].v == 0) {
-						++num_emp;
-					}
-				}
-
-				if (num_emp < d0 || num_emp > d1) {
-					return status::ignore;
-				}
-			
-
-				let nx=dst.add(dim);//allocate memory first
-
-				auto& h = dst.m_ops[dst_idx].hdr;
-
-				h.tt = ETYPE::vector;
-				h.u32 = static_cast<uint32_t>(nx);
-				h.set_u24(dim);
-
-				for (size_t k = 0; k < dim; ++k) {
-					if (m_state[vidx++].v) {
-						dst.m_ops[nx + k].hdr.set_id();
-					} else {
-						dst.m_ops[nx + k].hdr.set_xempty();
-					}
-				}
-				break;
-			}
 			case ETYPE::set_interval:
 			{
 				let nidx = dst.add(1);//allocate memory first
@@ -175,7 +134,6 @@ full_search::status full_search::next(oper_block& dst)
 	f.checked = false;
 	f.hidden = false;
 	f.ready = false;
-	
 
 	return status::ok;
 
@@ -187,6 +145,7 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 {
 	m_next_idx = 0;
 	m_state.clear();
+	m_ps.clear();
 
 	if (!m_tm) {
 		m_tm = std::make_unique<oper_block>();
@@ -198,7 +157,6 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 
 	////////////////////////////////////////////////////////////////////////
 	let* g = src.ctx();
-
 
 	let sz = src.num_vars();
 
@@ -215,8 +173,6 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 
 	dst.clear_ops();
 	uint32_t pos = 0;
-
-	
 
 	for (size_t vi = 0; vi < sz; ++vi) {
 		let& rf = g->m_refs5[vi];
@@ -253,7 +209,6 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 			case ETYPE::set_interval:
 			case ETYPE::set_vector:
 			{
-
 				//convert normal distribution to uniform
 				if (di.s == ESUBTYPE::dist_normal_def ||
 					di.s == ESUBTYPE::dist_normal)
@@ -272,7 +227,6 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 					return false;
 				}
 
-
 				size_t dim;
 				if (op.tt == ETYPE::set_interval) {
 					dim = 1;
@@ -280,18 +234,6 @@ bool full_search::reset(const oper_block& src, int64_t fall_back_rad)
 					dim = op.get_u24();
 					if (dim == 0)dim = src.get_dim();
 				}
-
-				for (size_t k = 0; k < dim; ++k) {
-					m_state.emplace_back(e);
-				}
-
-				break;
-			}case ETYPE::set_binary:
-			{
-				e.b = 0;
-				e.e = 2;
-				auto dim = op.get_u24();
-				if (dim == 0)dim = src.get_dim();
 
 				for (size_t k = 0; k < dim; ++k) {
 					m_state.emplace_back(e);

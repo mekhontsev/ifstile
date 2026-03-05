@@ -237,8 +237,6 @@ struct oper_block
 		size_t dim, const distrib_info& di, const int_arr_ref* proto = nullptr);
 
 	void generate_random_permutation(size_t dst_idx, const operator_ptr& src);
-	void generate_random_binary(size_t dst_idx,
-		const operator_ptr& src, const distrib_info& di);
 	void generate_random_number(size_t dst_idx, const distrib_info& dim);
 
 	void remove_search();
@@ -288,7 +286,9 @@ struct oper_block
 	size_t set_vector_ex(size_t idx, ETYPE t, ESUBTYPE st, size_t narg);
 	size_t set_vector(size_t idx, ETYPE t, size_t narg);
 	size_t set_vector(size_t idx, size_t narg);
-	size_t set_binary_or_vector(size_t idx, ETYPE t);
+	size_t set_vector_template(size_t idx, ETYPE t);
+
+	size_t set_index_imm(size_t offset, int arg_idx);
 
 	void set_int_poly(std::span<const int64_t> p, int64_t denom, size_t ds, size_t arg);
 

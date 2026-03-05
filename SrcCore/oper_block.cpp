@@ -296,10 +296,7 @@ bool oper_block::get_distrib(distrib_info& di, const operator_ptr& src) const
 {
 	let t = src.h.tt;
 
-	if (t != ETYPE::set_interval && 
-		t != ETYPE::set_binary && 
-		t != ETYPE::set_vector) 
-	{
+	if (t != ETYPE::set_interval &&  t != ETYPE::set_vector) {
 		return false;
 	}
 	
@@ -356,10 +353,6 @@ bool oper_block::apply_templates(
 		}
 		case ETYPE::set_interval:
 			generate_random_number(dst_idx, di);
-			ret = true;
-			break;
-		case ETYPE::set_binary:
-			generate_random_binary(dst_idx, src, di);
 			ret = true;
 			break;
 		default:
@@ -509,71 +502,12 @@ void oper_block::generate_random_permutation(size_t dst_idx,
 	std::shuffle(&d[0].u64, &d[dim].u64, irn.rng);
 }
 
-void oper_block::generate_random_binary(size_t dst_idx,
-	const operator_ptr& src, const distrib_info& di)
-{
-
-	auto& irn = ims_random::getR();
-
-	let& op = src.h;
-	auto dim = op.get_u24();
-
-	let nidx = add(dim);
-
-
-	auto& h = m_ops[dst_idx].hdr;
-	h.tt = ETYPE::vector;
-	h.u32 = static_cast<uint32_t>(nidx);
-	h.set_u24(dim);
-
-
-	if (di.t == ETYPE::distribution_int && di.s == ESUBTYPE::dist_uniform) {
-
-		auto d0 = static_cast<size_t>(di.d[0]);
-		auto d1 = static_cast<size_t>(di.d[1]);
-
-		if (d1 > dim)d1 = dim;
-		if (d0 > d1)d0 = d1;
-
-		std::uniform_int_distribution<size_t> distribution(d0, d1);
-
-		let v = distribution(irn.rng);
-
-		boost::container::small_vector<size_t, 64> iarr;
-		iarr.resize(dim);
-		for (size_t i = 0; i < dim; ++i) {
-			iarr[i] = i;
-		}
-
-
-		std::shuffle(iarr.begin(), iarr.end(), irn.rng);
-
-
-		for (size_t i = 0; i < dim; ++i) {
-			m_ops[nidx + i].hdr.set_id();
-		}
-
-		for (size_t i = 0; i < v; ++i) {
-			m_ops[nidx + iarr[i]].hdr.set_xempty();
-		};
-	}
-	else {
-		assert(false);
-		m_ops[dst_idx].hdr.ts = ESUBTYPE::integer;
-		for (size_t i = 0; i < dim; ++i) {
-			m_ops[nidx + i].hdr.set_xempty();
-		}
-	}
-}
-
 void oper_block::generate_random_number(size_t dst_idx,
 	const distrib_info& di)
 {
 	m_ops[dst_idx].hdr.tt = ETYPE::number;
 	generate_random_vector(dst_idx, 1, di);
 }
-
-
 
 void oper_block::insert_op_ex(
 	size_t dst_idx,
@@ -613,7 +547,6 @@ void oper_block::insert_op_ex(
 #endif
 	case ETYPE::set_interval:
 	case ETYPE::set_vector:
-	case ETYPE::set_binary:
 	case ETYPE::set_permutation:
 	{
 		if (arr) {
@@ -856,7 +789,7 @@ size_t oper_block::set_vector_ex(size_t idx, ETYPE t, ESUBTYPE st, size_t narg)
 	return ni;
 }
 
-size_t oper_block::set_binary_or_vector(size_t idx, ETYPE t)
+size_t oper_block::set_vector_template(size_t idx, ETYPE t)
 {
 	let ni = add(1);
 	auto& h = m_ops[idx].hdr;
@@ -865,6 +798,13 @@ size_t oper_block::set_binary_or_vector(size_t idx, ETYPE t)
 	h.set_u32(ni);
 	h.set_u24(0);
 	return ni;
+}
+
+size_t oper_block::set_index_imm(size_t offset, int arg_idx)
+{
+	let ar = add_args(offset, ETYPE::index_imm, 1);
+	m_ops[offset].hdr.set_i24(arg_idx);
+	return ar;
 }
 
 size_t oper_block::set_vector(size_t idx, ETYPE t, size_t narg)

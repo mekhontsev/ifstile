@@ -21,7 +21,7 @@
 
 //generalized value for computations, usually immutable
 //changes can only be made by the owner when the reference count == 1
-struct alignas(8) ims_val : public ims_val_b
+struct alignas(16) ims_val : public ims_val_b
 {
 private:
 

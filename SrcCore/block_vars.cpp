@@ -83,7 +83,7 @@ static bool replace_semigroups(oper_block& b)
 				let ar = b.add_args(spos, ETYPE::index, 2);
 				b.m_ops[ar].hdr.set_reference(ref_idx);
 
-				let da = b.set_binary_or_vector(ar + 1, ETYPE::set_interval);
+				let da = b.set_vector_template(ar + 1, ETYPE::set_interval);
 				b.set_distribution(da, ETYPE::distribution_int,
 					ESUBTYPE::dist_uniform, 0, double(order) - 1);
 			}

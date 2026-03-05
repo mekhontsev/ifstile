@@ -340,11 +340,11 @@ void creator_state::create_block2(
 		let arx = b.add_args(qidx, ETYPE::mul, 2);
 		let ar = b.add_args(arx, ETYPE::index, 2);
 		make_ref(ar, oref);
-		let dax = b.set_binary_or_vector(ar + 1, ETYPE::set_interval);
+		let dax = b.set_vector_template(ar + 1, ETYPE::set_interval);
 		b.set_distribution(dax, ETYPE::distribution_int,
 			ESUBTYPE::dist_uniform, 0, double(num_el) - 1);
 
-		let da = b.set_binary_or_vector(arx + 1, ETYPE::set_vector);
+		let da = b.set_vector_template(arx + 1, ETYPE::set_vector);
 		b.set_distribution_def(da);
 	}
 

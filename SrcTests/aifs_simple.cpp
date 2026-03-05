@@ -512,6 +512,7 @@ d=6.3%4
 e=-11.0%5
 f=11.0%-5
 g =(5/3)%(4/7)
+h =7%0
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
@@ -522,6 +523,7 @@ g =(5/3)%(4/7)
 	EXPECT_TRUE(t.approx("e", 4));
 	EXPECT_TRUE(t.approx("f", -4));
 	EXPECT_TRUE(t.equal("g", {11,21}));
+	EXPECT_TRUE(t.equal("h", 7));
 };
 
 
