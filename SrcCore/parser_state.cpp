@@ -170,10 +170,12 @@ static constexpr char s_sym_vector = 'v';
 static constexpr char s_sym_index = 'i';
 static constexpr char s_sym_funct = 'f';
 static constexpr char s_sym_field = 'g';
+static constexpr char s_sym_slice = 's';
 static const boost::phoenix::function<vec_expr> vect(s_sym_vector);
 static const boost::phoenix::function<vec_expr> idxe(s_sym_index);
 static const boost::phoenix::function<vec_expr> fune(s_sym_funct);
 static const boost::phoenix::function<vec_expr> field(s_sym_field);
+static const boost::phoenix::function<vec_expr> slice(s_sym_slice);
 static const boost::phoenix::function<arith_expr> times = arith_expr('*', '/', false);
 static const boost::phoenix::function<arith_expr> divide = arith_expr('*', '/', true);
 static const boost::phoenix::function<arith_expr> plus = arith_expr('+', '-', false);
@@ -250,11 +252,13 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 		//expr_suffix_call = '(' >> -(expression[fune(_val, _1)] % ',') >> ')';
 		//expr_suffix_index = +('[' >> expression[idxe(_val, _1)] % ',' >> ']');
 
+		xslice = -(expression[slice(_val, _1)] % ':');
+
 		function_call = callable_or_indexable[fune(_val, _1)]
 			>> '(' >> -(expression[fune(_val, _1)] % ',') >> ')';
 
 		index = (function_call | callable_or_indexable)[idxe(_val, _1)]
-			>> +('[' >> expression[idxe(_val, _1)] % ',' >> ']');
+			>> +('[' >> xslice[idxe(_val, _1)] >> ']');
 
 		field_call = callable_or_indexable[field(_val, _1)] >>
 			'.' >> -(identifier[field(_val, _1)] % '.');
@@ -285,7 +289,7 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 
 	qi::rule<Iterator, ascii::space_type, spirit::utree()>
 		expression, hmul, hsum, simple, vector, identifier,
-		factor, xfactor, function_call, field_call, index, tindex, tindex2,
+		factor, xfactor, function_call, xslice, field_call, index, tindex, tindex2,
 		//, expr_suffix_call, expr_suffix_index,
 		callable_or_indexable;
 
@@ -1020,32 +1024,64 @@ static bool parse_operator(
 			}
 			return true;
 		}
+		case client::s_sym_slice:
+		{
+			auto ar = block.add(sz - 1);
+			for (auto it = std::next(ut.begin()); it != ut.end(); ++it) {
+				if (!parse_operator(*it, pfo, block, ar++)) {
+					return reter();
+				}
+			}
+			return true;
+		}
 		case client::s_sym_index:
 		{
-			let it_x = std::next(ut.begin());
-			auto it_y = std::next(it_x);
+			//traverse in the reverse order
+			auto it_x = std::prev(ut.end());
+			for (size_t i = 2; i < sz; ++i) {
+				if (it_x->which() == spirit::utree_type::invalid_type) {
+					//empty index []
+					x = block.add_args(x, ETYPE::index, 1);
+				}else {
+					assert(it_x->which() == spirit::utree_type::list_type);
+					let num_args = it_x->size() - 1;
 
-			if (sz==3 && it_y->which() == spirit::utree_type::int_type &&
-				ims_operator::is_i24(it_y->get<int>())) 
-			{
-				let ar = block.set_index_imm(x, it_y->get<int>());
-				if (!parse_operator(*it_x, pfo, block, ar)) {
-					return reter() ;
-				};
-			} else {
-				let ar = block.add_args(x, ETYPE::index, sz-1);
-				if (!parse_operator(*it_x, pfo, block, ar)) {
-					return reter() ;
-				}
-				
-				for (size_t i = 1; i < sz-1; ++i) {
-					if (!parse_operator(*it_y, pfo, block, ar + i)) {
+					let next_x = block.add(1);//reserve
+
+					//put slice arguments after last_pos
+					if (!parse_operator(*it_x, pfo, block, next_x)) {
 						return reter();
-					};
-					it_y = std::next(it_y);
+					}
+
+					bool imm = false;
+					if (next_x + 1 == a.size()) {
+						assert(num_args == 1);
+						let& h = a.back().hdr;
+						if (h.tt == ETYPE::number_imm &&
+							h.ts == ESUBTYPE::integer &&
+							h.is_i24(h.i32))
+						{
+							auto& hi = a[x].hdr;
+							hi.set(ETYPE::index_imm, next_x, h.i32);
+							imm = true;
+							a.pop_back();
+						}
+					}
+
+					if (!imm) {
+						auto& h = a[x].hdr;
+						h.set(ETYPE::index, next_x, num_args + 1);
+					}
+
+					x = next_x;
 				}
-				
+
+				it_x = std::prev(it_x);
 			}
+
+			if (!parse_operator(*it_x, pfo, block, x)) {
+				return reter();
+			};
 
 			return true;
 		}

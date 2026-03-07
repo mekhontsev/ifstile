@@ -645,7 +645,8 @@ TEST(testEval, index)
 @
 s=[[[7]]]
 a=s[0][0][0]
-b=s[0,0,0]
+n=1
+b=s[n-1][n-1][n-1]
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
@@ -653,8 +654,6 @@ b=s[0,0,0]
 	EXPECT_TRUE(t.equal("a", 7));
 	EXPECT_TRUE(t.equal("b", 7));
 };
-
-
 
 TEST(testEval, parser)
 {
