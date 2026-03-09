@@ -93,7 +93,7 @@ void affine_mul_real(const ims_val* dst, const ims_val* left, const ims_val* rig
 
 Real norm_adet(const ims_val* m, Real* adet = nullptr);
 
-
+const ims_val* flat(const ims_val* src);
 ////////////////////////////////////////////////////////////////////////////////
 
 

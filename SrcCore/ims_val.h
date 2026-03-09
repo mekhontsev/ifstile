@@ -254,6 +254,12 @@ public:
 		return p_r()[affine_index(row, col)];
 	}
 
+	BigRational& affine_big_rational_get_elem(size_t row, size_t col) const
+	{
+		assert(is(EST::big_rational));
+		return p_b()[affine_index(row, col)];
+	}
+
 	////////////////////////////////////////////////////////////////////////////
 
 	MMatInt MI() const

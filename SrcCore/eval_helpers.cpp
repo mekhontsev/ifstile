@@ -1270,4 +1270,94 @@ Real norm_adet(const ims_val* m, Real* adet)
 	return 1.0;
 }
 
+const ims_val* flat(const ims_val* a)
+{
+	if (a->is(ims_val_b::ETP::matrix)) {
+		let r = a->rows();
+		let c = a->cols();
+		pool_ptr ret(eval_pool::ep.get_vector(c));
+		for (size_t i = 0; i < c; ++i) {
+			const ims_val* v = nullptr;
+			switch (a->gs()) {
+			case ims_val_b::EST::rational:
+				v = eval_pool::ep.get_vector_int(r);
+				for (size_t j = 0; j < r; ++j) {
+					v->p_i()[j] = a->affine_int_get_elem(j, i);
+				}
+				break;
+			case ims_val_b::EST::big_rational:
+				v = eval_pool::ep.get_vector_big_rational(r);
+				for (size_t j = 0; j < r; ++j) {
+					v->p_b()[j] = a->affine_big_rational_get_elem(j, i);
+				}
+				break;
+			case ims_val_b::EST::real:
+				v = eval_pool::ep.get_vector_real(r);
+				for (size_t j = 0; j < r; ++j) {
+					v->p_r()[j] = a->affine_real_get_elem(j, i);
+				}
+				break;
+			}
+			ret->p_v()[i] = v;
+		}
+		return ret.release();
+	}
+
+	if (!a->is(ims_val_b::ETP::vector, ims_val_b::EST::other)) {
+		a->add_ref();
+		return a;
+	}
+
+	let sz = a->get_size();
+
+	size_t new_sz = 0;
+	for (size_t i = 0; i < sz; ++i) {
+		let* vi = a->p_v(i);
+		new_sz += vi && vi->is(ims_val_b::ETP::vector) ? vi->get_size() : 1;
+	}
+	pool_ptr ret(eval_pool::ep.get_vector(new_sz));
+	auto* dst = ret->p_v();
+	size_t idx = 0;
+	for (size_t i = 0; i < sz; ++i) {
+		let* vi = a->p_v(i);
+		if (!vi) {
+			dst[idx++] = vi;
+			continue;
+		}
+		if (vi->is(ims_val_b::ETP::matrix)) {
+			dst[idx++] = flat(vi);
+			continue;
+		}
+		if (!vi->is(ims_val_b::ETP::vector)) {
+			dst[idx++] = vi;
+			if (vi)vi->add_ref();
+			continue;
+		}
+		let visz = vi->get_size();
+		if (vi->is(ims_val_b::EST::other)) {
+			for (size_t j = 0; j < visz; ++j) {
+				let* vij = vi->p_v(j);
+				dst[idx++] = vij;
+				if (vij)vij->add_ref();
+			}
+		} else if (vi->is(ims_val_b::EST::rational)) {
+			for (size_t j = 0; j < visz; ++j) {
+				dst[idx++] = eval_pool::ep.get_scalar_int(vi->p_i(j));
+			}
+		} else if (vi->is(ims_val_b::EST::real)) {
+			for (size_t j = 0; j < visz; ++j) {
+				dst[idx++] = eval_pool::ep.get_scalar_real(vi->p_r(j));
+			}
+		} else if (vi->is(ims_val_b::EST::big_rational)) {
+			for (size_t j = 0; j < visz; ++j) {
+				auto* b = eval_pool::ep.get_scalar_big_rational();
+				*b->p_b() = vi->p_b(j);
+				dst[idx++] = b;
+			}
+		}
+	}
+	assert(idx == new_sz);
+	return eval_pool::ep.adjust_vec_type(ret.get());
+}
+
 }//namespace eval_helpers

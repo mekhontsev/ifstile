@@ -1035,6 +1035,22 @@ a12=a1[2]
 	EXPECT_TRUE(t.equal_vec("a4", { 0, 1, 2, 3, 4, 5 }));
 };
 
+TEST(testArrFuncs, MatrixFlat)
+{
+	aifs_tester t(R"(
+@
+a = $companion([5,6,7])[]
+a0=a[0]
+a1=a[1]
+a2=a[2]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("a0", { 0,1,0 }));
+	EXPECT_TRUE(t.equal_vec("a1", { 0,0,1 }));
+	EXPECT_TRUE(t.equal_vec("a2", { -5,-6,-7 }));
+};
+
+
 TEST(testArrFuncs, ArrSlice)
 {
 	aifs_tester t(R"(

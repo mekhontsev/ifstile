@@ -1144,54 +1144,11 @@ const ims_val* eval_context::vector_flat(ast_context p, bool is_geom)
 	pool_ptr a;
 
 	a.reset(eval7(p, is_geom));
-
-	if (!a || !a->is(ims_val_b::ETP::vector, ims_val_b::EST::other)) {
-		return a.release();//ready
+	if (!a) {
+		return nullptr;
 	}
 
-	let sz = a->get_size();
-
-	size_t new_sz = 0;
-	for (size_t i = 0; i < sz; ++i) {
-		let* vi = a->p_v(i);
-		new_sz += vi && vi->is(ims_val_b::ETP::vector) ? vi->get_size() : 1;
-	}
-	pool_ptr ret(eval_pool::ep.get_vector(new_sz));
-	auto* dst = ret->p_v();
-	size_t idx = 0;
-	for (size_t i = 0; i < sz; ++i) {
-		let* vi = a->p_v(i);
-		if (!vi || !vi->is(ims_val_b::ETP::vector)) {
-			dst[idx++] = vi;
-			if (vi)vi->add_ref();
-			continue;
-		}
-		let visz = vi->get_size();
-		if (vi->is(ims_val_b::EST::other)) {
-			for (size_t j = 0; j < visz; ++j) {
-				let* vij = vi->p_v(j);
-				dst[idx++] = vij;
-				if (vij)vij->add_ref();
-			}
-		} else if (vi->is(ims_val_b::EST::rational)) {
-			for (size_t j = 0; j < visz; ++j) {
-				dst[idx++] = eval_pool::ep.get_scalar_int(vi->p_i(j));
-			}
-		} else if (vi->is(ims_val_b::EST::real)) {
-			for (size_t j = 0; j < visz; ++j) {
-				dst[idx++] = eval_pool::ep.get_scalar_real(vi->p_r(j));
-			}
-		} else if (vi->is(ims_val_b::EST::big_rational)) {
-			for (size_t j = 0; j < visz; ++j) {
-				auto* b = eval_pool::ep.get_scalar_big_rational();
-				*b->p_b() = vi->p_b(j);
-				dst[idx++] = b;
-			}
-		}
-	}
-	assert(idx == new_sz);
-	ret.reset(eval_pool::ep.adjust_vec_type(ret.get()));
-	return ret.release();
+	return eval_helpers::flat(a.get());
 }
 
 const ims_val* eval_context::eval_companion(ast_context p, bool)
@@ -1235,8 +1192,6 @@ const ims_val* eval_context::eval_companion(ast_context p, bool)
 		sum_dim += nv;
 
 	}
-
-	
 
 	auto common_sbt = ims_val::EST::rational;
 	for (size_t j = 0; j < na; ++j) {
