@@ -334,6 +334,15 @@ c=if(a1, 4, 5)
 	EXPECT_TRUE(t.equal("c", 4));
 };
 
+TEST(testEval, simpe_index)
+{
+	aifs_tester t(R"(
+@
+a=[10, 11, 12, 13][1]
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 11));
+};
 
 TEST(testEval, parent_call)
 {
@@ -355,7 +364,6 @@ z=func2()
 y=z[0]
 func=func2
 t=func()
-a=[10, 11, 12, 13][1]
 g=func2()[1]
 #h=(func2())[1]
 )");
@@ -368,7 +376,6 @@ g=func2()[1]
 	EXPECT_TRUE(t.equal("y", 7));
 	EXPECT_EQ(t.eval_as_str("func"), "@func2");
 	EXPECT_TRUE(t.equal_vec("t", { 7,8 }));
-	EXPECT_TRUE(t.equal("a", 11));
 	EXPECT_TRUE(t.equal("g", 8));
 };
 
@@ -921,9 +928,9 @@ TEST(testArrFuncs, ArrSize)
 a0=[]
 a1=[0]
 a2=[0,0]
-s0=$(a0)
-s1=$(a1)
-s2=$(a2)
+s0=a0()
+s1=a1()
+s2=a2()
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
@@ -948,7 +955,7 @@ TEST(testArrFuncs, ArrGenSeq)
 {
 	aifs_tester t(R"(
 @
-a=[$, if (4-$($), $($), $)]
+a=[$, if (4-$(), $(), $)]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 0,1,2,3 }));
@@ -958,8 +965,8 @@ TEST(testArrFuncs, ArrGenSeq2)
 {
 	aifs_tester t(R"(
 @
-a=[$, if (4-$($), [$($(1)),$($(1))*$($(1))], $)]
-sa=$(a)
+a=[$, if (4-$(), [$(1)(),$(1)()*$(1)()], $)]
+sa=a()
 a3=a[3]
 )");
 	if (!t.init())FAIL() << t.err_msg;
@@ -984,7 +991,7 @@ TEST(testArrFuncs, ArrGenFib)
 {
 	aifs_tester t(R"(
 @
-a=[0, 1, $, if (7-$($), $[-1]+$[-2], $)]
+a=[0, 1, $, if (7-$(), $[-1]+$[-2], $)]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 0,1,1,2,3,5,8 }));
@@ -995,7 +1002,7 @@ TEST(testArrFuncs, ArrGenCopy)
 	aifs_tester t(R"(
 @
 b=[2,3,5,7,11]
-a=[$, if($(b) - $($), b[$($)], $)]
+a=[$, if(b() - $(), b[$()], $)]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 2,3,5,7,11 }));
@@ -1006,15 +1013,15 @@ TEST(testArrFuncs, ArrFlat)
 	aifs_tester t(R"(
 @
 a=[0, 1, [2, [3, [4, 5]]]]
-a1=$(a,0)
-a2=$(a1,0)
-a3=$(a2,0)
-a4=$(a3,0)
-s0=$(a)
-s1=$(a1)
-s2=$(a2)
-s3=$(a3)
-s4=$(a4)
+a1=a[]
+a2=a1[]
+a3=a2[]
+a4=a3[]
+s0=a()
+s1=a1()
+s2=a2()
+s3=a3()
+s4=a4()
 a12=a1[2]
 )");
 	if (!t.init())FAIL() << t.err_msg;
@@ -1032,22 +1039,42 @@ TEST(testArrFuncs, ArrSlice)
 {
 	aifs_tester t(R"(
 @
-a=[2,3,5,7,11,13,17,19]
-a0=$(a, 0, 3)
-a1=$(a, -3, $(a))
-a2=$(a, 1, $(a), 2)
-a3=$(a, 0, $(a), -1)
-a4=$(a, 20, 30)
-b=[1, [2,3], 4]
-b0=$(b, 1, $(b))
+a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+p1=a[:]
+p2=a[:4]
+p3=a[4:]
+p4=a[2:7]
+
+n1=a[::-1]
+n2=a[8:2:-1]
+n3=a[:4:-1]
+n4=a[7::-1]
+n5=a[-2:-6:-1]
+n6=a[-1:-11:-1]
+n7=a[0:5:-1]
+n8=a[2:8:-2]
+n9=a[8:2:-2]
+
+b=[1,[2,3], 4]
+b0=b[1:b()]
 b1=b0[0]
 )");
 	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a0", { 2,3,5 }));
-	EXPECT_TRUE(t.equal_vec("a1", { 13,17,19 }));
-	EXPECT_TRUE(t.equal_vec("a2", { 3,7,13,19 }));
-	EXPECT_TRUE(t.equal_vec("a3", { 19,17,13,11,7,5,3,2 }));
-	EXPECT_TRUE(t.equal_vec("a4", { }));
+	EXPECT_TRUE(t.equal_vec("p1", { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+	EXPECT_TRUE(t.equal_vec("p2", { 0, 1, 2, 3 }));
+	EXPECT_TRUE(t.equal_vec("p3", { 4, 5, 6, 7, 8, 9 }));
+	EXPECT_TRUE(t.equal_vec("p4", { 2, 3, 4, 5, 6 }));
+
+	EXPECT_TRUE(t.equal_vec("n1", { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }));
+	EXPECT_TRUE(t.equal_vec("n2", { 8, 7, 6, 5, 4, 3 }));
+	EXPECT_TRUE(t.equal_vec("n3", { 9, 8, 7, 6, 5 }));
+	EXPECT_TRUE(t.equal_vec("n4", { 7, 6, 5, 4, 3, 2, 1, 0 }));
+	EXPECT_TRUE(t.equal_vec("n5", { 8, 7, 6, 5 }));
+	EXPECT_TRUE(t.equal_vec("n6", { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }));
+	EXPECT_TRUE(t.equal_vec("n7", {}));
+	EXPECT_TRUE(t.equal_vec("n8", {}));
+	EXPECT_TRUE(t.equal_vec("n9", { 8, 6, 4 }));
+
 	EXPECT_TRUE(t.equal_vec("b1", { 2, 3 }));
 };
 ////////////////////////////////////////////////////////////////////////////////

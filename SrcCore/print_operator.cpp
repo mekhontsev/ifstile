@@ -178,6 +178,8 @@ void print_operator(
 		
 		break;
 	}
+	case ETYPE::def:
+		break;//nothing
 	case ETYPE::empty:
 	case ETYPE::pi:
 	case ETYPE::id:
@@ -223,7 +225,7 @@ void print_operator(
 			let sz = op.num_args();
 			for (size_t i = 1; i < sz; ++i) {
 				print_operator(lst, str, b.get_ptr(ofs + i), t, fmt);
-				if (i + 1 < sz)str << ",";
+				if (i + 1 < sz)str << ":";
 			}
 		}
 		str << "]";
@@ -287,8 +289,7 @@ void print_operator(
 			break;
 		}
 
-		let& h = a[ofs].hdr;
-		str << lst.m_idf.get_str_from_unk(h.get_offset());
+		print_operator(lst, str, b.get_ptr(ofs), t, fmt);
 
 		if (op.ts == ESUBTYPE::call_normal) {
 			str << "(";
@@ -306,8 +307,6 @@ void print_operator(
 				str << lst.m_idf.get_str_from_unk(unk_id);
 			}
 		}
-
-		
 
 
 		break;
@@ -459,7 +458,6 @@ void print_operator(
 	case ETYPE::color_style:
 	case ETYPE::thickness:
 	case ETYPE::diagonal:
-	case ETYPE::vector_func:
 	case ETYPE::condition:
 	case ETYPE::vector_union:
 	case ETYPE::set_permutation:

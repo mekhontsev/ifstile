@@ -1,5 +1,5 @@
 @Segment
 $dim=1
 n=$number($integer(2,20))
-x=[$, if (n-$($), [$($(1))], $)]
+x=[$, if (n-$(), [$(1)()], $)]
 S=$union([[1/n, x, S]])

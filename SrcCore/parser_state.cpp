@@ -170,12 +170,12 @@ static constexpr char s_sym_vector = 'v';
 static constexpr char s_sym_index = 'i';
 static constexpr char s_sym_funct = 'f';
 static constexpr char s_sym_field = 'g';
-static constexpr char s_sym_slice = 's';
+static constexpr char s_sym_list = ',';
 static const boost::phoenix::function<vec_expr> vect(s_sym_vector);
 static const boost::phoenix::function<vec_expr> idxe(s_sym_index);
 static const boost::phoenix::function<vec_expr> fune(s_sym_funct);
 static const boost::phoenix::function<vec_expr> field(s_sym_field);
-static const boost::phoenix::function<vec_expr> slice(s_sym_slice);
+static const boost::phoenix::function<vec_expr> list(s_sym_list);
 static const boost::phoenix::function<arith_expr> times = arith_expr('*', '/', false);
 static const boost::phoenix::function<arith_expr> divide = arith_expr('*', '/', true);
 static const boost::phoenix::function<arith_expr> plus = arith_expr('+', '-', false);
@@ -198,6 +198,8 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 		using qi::digit;
 		using qi::_val;
 		using qi::_1;
+
+		using ut = boost::spirit::utree;
 
 
 		expression = hsum[_val = _1] >> *('|' >> hsum[sunion(_val, _1)]);
@@ -252,10 +254,14 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 		//expr_suffix_call = '(' >> -(expression[fune(_val, _1)] % ',') >> ')';
 		//expr_suffix_index = +('[' >> expression[idxe(_val, _1)] % ',' >> ']');
 
-		xslice = -(expression[slice(_val, _1)] % ':');
+		xslice = -((expression | qi::attr(ut(boost::spirit::nil)))[list(_val, _1)] % ':');
+		xlist = -(expression[list(_val, _1)] % ',');
+
+		//function_call = callable_or_indexable[fune(_val, _1)]
+		//	>> '(' >> -(expression[fune(_val, _1)] % ',') >> ')';
 
 		function_call = callable_or_indexable[fune(_val, _1)]
-			>> '(' >> -(expression[fune(_val, _1)] % ',') >> ')';
+			>> +('(' >> xlist[fune(_val, _1)] >> ')');
 
 		index = (function_call | callable_or_indexable)[idxe(_val, _1)]
 			>> +('[' >> xslice[idxe(_val, _1)] >> ']');
@@ -275,6 +281,8 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 		BOOST_SPIRIT_DEBUG_NODE(index);
 		BOOST_SPIRIT_DEBUG_NODE(factor);
 		BOOST_SPIRIT_DEBUG_NODE(xfactor);
+		BOOST_SPIRIT_DEBUG_NODE(xslice);
+		BOOST_SPIRIT_DEBUG_NODE(xlist);
 		BOOST_SPIRIT_DEBUG_NODE(callable_or_indexable);
 		//BOOST_SPIRIT_DEBUG_NODE(expr_suffix_call);
 		//BOOST_SPIRIT_DEBUG_NODE(expr_suffix_index);
@@ -288,7 +296,7 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 	qi::real_parser<double, qi::strict_real_policies<double>> strict_double;
 
 	qi::rule<Iterator, ascii::space_type, spirit::utree()>
-		expression, hmul, hsum, simple, vector, identifier,
+		expression, hmul, hsum, simple, vector, identifier, xlist,
 		factor, xfactor, function_call, xslice, field_call, index, tindex, tindex2,
 		//, expr_suffix_call, expr_suffix_index,
 		callable_or_indexable;
@@ -330,7 +338,7 @@ static bool reter()
 
 static constexpr std::string_view INV_NARG = "invalid number of arguments";
 
-//parse the operator with index x in array arr
+//parse the operator with index x in the array block.m_ops
 static bool parse_operator(
 	const boost::spirit::utree& ut, 
 	parser_state& pfo, 
@@ -340,12 +348,14 @@ static bool parse_operator(
 	
 	namespace spirit = boost::spirit;
 	
+	let tp = ut.which();
 
 	auto& a = block.m_ops;
 
-	a[x].hdr.clear();
+	if (x < a.size()) {
+		a[x].hdr.clear();
+	}
 
-	let tp = ut.which();
 	switch (tp) {
 	case spirit::utree_type::list_type:
 	{
@@ -360,7 +370,6 @@ static bool parse_operator(
 
 		let str = f.get<spirit::utf8_symbol_range_type>();
 		let c = str.front();
-
 
 		ETYPE t;
 
@@ -379,15 +388,12 @@ static bool parse_operator(
 		case '*':
 		{
 
-
 			//rational: *int32/int32
 
 			//we need to find the number of factors
 			auto beg = ut.begin();
 
 			size_t na = 0;
-
-
 
 			bool prev_numer = false;//the previous one was "*int32"
 			for (auto it = beg; it != ut.end();) {
@@ -544,454 +550,7 @@ static bool parse_operator(
 
 			return true;
 		}
-		case client::s_sym_field:
-		case client::s_sym_funct:
-		{
-			//function call
-			auto ts = c == client::s_sym_funct ?
-				ESUBTYPE::call_normal : ESUBTYPE::call_fields;
-
-			let fn = std::next(ut.begin());
-			let r = fn->get<spirit::utf8_symbol_range_type>();
-			std::string func_name(r.begin(), r.end());
-			let nit = std::next(fn);
-
-			let na = sz - 2;
-
-			let bt = built_in_func::from_string(func_name);
-			if (bt != BUILTIN_FUNC::invalid) {
-				//found a built-in function
-				if (na != built_in_func::num_args(bt)) {
-					pfo.err << INV_NARG;
-					return reter() ;
-				}
-				auto ar = block.add(na);
-				a[x].hdr.tt = ETYPE::call_built_in;
-				a[x].hdr.set_builtin_func((size_t)bt);
-				a[x].hdr.set_u32(ar);
-
-				for (auto it = nit; it != ut.end(); ++it) {
-					if (!parse_operator(*it, pfo, block, ar++)) {
-						return reter() ;
-					}
-				}
-
-			} else if (func_name == ims_keywords::condition) {
-				if (na % 2 == 0) {
-					pfo.err << INV_NARG;
-					return reter();
-				}
-				auto ar = block.add_args(x, ETYPE::condition, na);
-				for (auto it = nit; it != ut.end(); ++it) {
-					if (!parse_operator(*it, pfo, block, ar++)) {
-						return reter();
-					}
-				}
-			} else if (func_name[0] == ims_keywords::builtin) {
-
-				func_name.erase(0, 1);
-
-
-				let th = ims_operator::from_string(func_name);
-				switch (th) {
-
-				case ETYPE::call:
-				{
-					if ((na & 1) == 0) {//odd number of arguments
-						pfo.err << INV_NARG;
-						return reter();
-					};
-
-					auto ar = block.add_args(x, th, na);
-					a[x].hdr.ts = ESUBTYPE::call_new;
-
-					size_t arg_pos = 0;
-					for (auto it = nit; it != ut.end(); ++it, ++arg_pos) {
-						//each odd argument should be an identifier
-						if ((arg_pos & 1) && it->which() == spirit::utree_type::string_type) {
-							let sr = it->get<spirit::utf8_symbol_range_type>();
-							let unk_id = pfo.unk->get_unk_id({ sr.begin(), sr.end() });
-							auto& h = a[ar + arg_pos].hdr;
-							h.tt = ETYPE::unk_reference;
-							h.set_u32(unk_id);
-						} else {
-							if (!parse_operator(*it, pfo, block, ar + arg_pos)) {
-								return reter();
-							}
-						}
-					}
-					break;
-				}
-
-				case ETYPE::thickness:
-				{
-					if (na != 1) {
-						pfo.err << INV_NARG;
-						return reter();
-					};
-
-					auto ar = block.add_args(x, th, 1);
-
-					for (auto it = nit; it != ut.end(); ++it) {
-						if (!parse_operator(*it, pfo, block, ar++)) {
-							return reter();
-						}
-					}
-					break;
-				}
-
-				case ETYPE::color_style:
-				{
-					if (na > 2 || na == 0) {
-						pfo.err << INV_NARG;
-						return reter() ;
-					};
-
-					if (na == 1) {
-						auto ar = block.add_args(x, ETYPE::color_style, 1);
-
-						for (auto it = nit; it != ut.end(); ++it) {
-							if (!parse_operator(*it, pfo, block, ar++)) {
-								return reter();
-							}
-						}
-						break;
-					}
-				
-
-					ims_warning("Deprecated $style found");
-
-					//composition of color and thickness
-					auto ar_mul = block.add_args(x, ETYPE::mul, 2);
-					auto it = nit;
-					{
-						auto ar = block.add_args(ar_mul, ETYPE::color_style, 1);
-						if (!parse_operator(*it++, pfo, block, ar)) {
-							return reter();
-						}
-					}
-					{
-						auto ar = block.add_args(ar_mul+1, ETYPE::thickness, 1);
-						if (!parse_operator(*it++, pfo, block, ar)) {
-							return reter();
-						}
-					}
-				
-					break;
-				}
-				case ETYPE::vector_func:
-				case ETYPE::charpoly:
-				case ETYPE::companion:
-				case ETYPE::vector_union:
-				{
-					
-					size_t ar = block.add_args(x, th, na);
-					a[x].hdr.ts = ts;
-					for (auto it = nit; it != ut.end(); ++it) {
-						if (!parse_operator(*it, pfo, block, ar++)) {
-							return reter() ;
-						}						
-					}
-					break;
-				}
-				case ETYPE::diagonal:
-				{
-					if (na != 1) {
-						pfo.err << INV_NARG;
-						return reter() ;
-					}
-
-					size_t ar = block.add_args(x, th, na);
-
-					for (auto it = nit; it != ut.end(); ++it) {
-						if (!parse_operator(*it, pfo, block, ar++)) {
-							return reter() ;
-						}
-					}
-					break;
-				}
-				case ETYPE::csg:
-				{
-					if (na != 4) {
-						pfo.err << INV_NARG;
-						return reter();
-					}
-
-					size_t ar = block.add_args(x, th, na);
-
-					for (auto it = nit; it != ut.end(); ++it) {
-						if (!parse_operator(*it, pfo, block, ar++)) {
-							return reter();
-						}
-					}
-					break;
-				}
-				case ETYPE::exchange:
-				{
-					if (na != 0) {
-						pfo.err << INV_NARG;
-						return reter() ;
-					}
-					block.set_exchange(x);
-					break;
-				}
-				case ETYPE::inversion:
-				{
-					if (na != 0) {
-						pfo.err << INV_NARG;
-						return reter();
-					}
-					block.set_mobius(x);
-					break;
-				}
-				case ETYPE::set_interval:
-				{
-					let ar = block.add_args(x, th, 1);
-
-					if (na == 0) {
-						block.set_distribution_def(ar);
-					} else if (na == 1) {
-						if (!parse_operator(*nit, pfo, block, ar)) {
-							return reter() ;
-						}
-					} else {
-						pfo.err << INV_NARG;
-						return reter() ;
-					}
-					break;
-				}
-				case ETYPE::set_semigroup:
-				{
-					if (na == 0 || na > 2) {
-						pfo.err << INV_NARG;
-						return reter() ;
-					}
-
-					//partially process semigroups - create new variables
-					//	&R = $semigroup([s,r])
-					//		==========>
-					//	&R = $semigroup(O)
-					//	O = [s, r]
-
-					let ar = block.add_args(x, th, 1);//semigroup
-
-					let unk_id = pfo.unk->create_unique_identifier("O");
-					a[ar].hdr.set_reference(unk_id, ESUBTYPE::ref_unknown);
-
-					let offset = block.add_var(pfo.m_pos2, unk_id, false);
-
-					if (!parse_operator(*nit, pfo, block, offset)) {
-						return reter() ;
-					}
-
-					break;
-
-				}case ETYPE::set_binary:
-				{
-					//replace with $permutation
-
-					//	b = $binary(27,$integer(19,19))
-					//		==========>
-					//  p = $permutation(19, 27-19)
-					//	a = [$e, $i]
-					//	b = [a[p[0]], a[p[1]], ...]
-
-					if (na != 2) {
-						pfo.err << INV_NARG;
-						return reter();
-					};
-
-					//size first
-					if (nit->which() != spirit::utree_type::int_type) {
-						pfo.err << "invalid argument 1";
-						return reter();
-					}
-
-					let ival = nit->get<int>();
-					if (ival < 1 || ival > 1023) {
-						pfo.err << "invalid argument 1";
-						return reter();
-					}
-
-					let dim = (size_t)ival;
-
-					if (!parse_operator(*std::next(nit), pfo, block, x)) {
-						pfo.err << "invalid argument 2";
-						return reter();
-					}
-
-					let& h = block.m_ops[x].hdr;
-					if (h.tt != ETYPE::distribution_int ||
-						h.ts != ESUBTYPE::dist_uniform)
-					{
-						pfo.err << "invalid argument 2";
-						return reter();
-					}
-
-					let* d = &block.m_ops[h.get_offset()].f64;
-
-					let a2 = (size_t)d[0];
-
-					if (dim < a2 || d[0] != d[1] || d[0] != (double)a2) {
-						pfo.err << "invalid argument 2";
-						return reter();
-					}
-
-					let p_id = pfo.unk->create_unique_identifier("p");
-					let p_offset = block.add_var(pfo.m_pos2, p_id, false);
-
-					let a_id = pfo.unk->create_unique_identifier("a");
-					let a_offset = block.add_var(pfo.m_pos2, a_id, false);
-
-					let p_args = block.set_vector_ex(
-						block.add_args(p_offset, ETYPE::set_permutation, 1),
-						ETYPE::vector_imm, ESUBTYPE::integer, 2);
-
-					a[p_args].i64 = a2;
-					a[p_args+1].i64 = dim - a2;
-
-					let a_args = block.set_vector(a_offset, ETYPE::vector, 2);
-					a[a_args].hdr.set_xempty();
-					a[a_args + 1].hdr.set_id();
-
-					let ar = block.set_vector(x, dim);
-					for (size_t i = 0; i < dim; ++i) {
-						let i1 = block.add_args(ar + i, ETYPE::index, 2);
-						a[i1].hdr.set_reference(a_id, ESUBTYPE::ref_unknown);
-						let i2 = block.set_index_imm(i1 + 1, int(i));
-						a[i2].hdr.set_reference(p_id, ESUBTYPE::ref_unknown);
-					}
-					break;
-				}
-				case ETYPE::set_vector:
-				{
-					if (na > 2) {
-						pfo.err << INV_NARG;
-						return reter() ;
-					};
-
-					let ar = block.add_args(x, th, 1);
-
-					//size first
-					if (na == 0) {
-						a[x].hdr.set_i24(0);
-					}else if (nit->which() == spirit::utree_type::int_type) {
-						let v = nit->get<int>();
-						a[x].hdr.set_i24(v);
-					} else {
-						pfo.err << "invalid argument";
-						return reter() ;
-					}
-
-
-					if (na <2) {
-						block.set_distribution_def(ar);
-					} else {
-						if (!parse_operator(*std::next(nit), pfo, block, ar)) {
-							return reter() ;
-						}
-					} 
-					break;
-				}
-				case ETYPE::set_permutation:
-				{
-					if (na != 1) {
-						pfo.err << INV_NARG;
-						return reter();
-					};
-
-					let ar = block.add_args(x, th, 1);
-
-					if (!parse_operator(*nit, pfo, block, ar)) {
-						return reter();
-					}
-					let& h = block.m_ops[ar].hdr;
-					let ok = (h.tt == ETYPE::vector_imm && h.ts == ESUBTYPE::integer) ||
-						(h.tt == ETYPE::vector && h.num_args() == 0);
-					if (!ok) {
-						pfo.err << "invalid $permuatation argument type";
-						return reter();
-					}
-					break;
-				}
-				case ETYPE::distribution_real:
-				case ETYPE::distribution_int:
-				{
-					if (na > 2) {
-						pfo.err << INV_NARG;
-						return reter() ;
-					}
-
-					ESUBTYPE st;
-					if (na == 0) {
-						st = ESUBTYPE::dist_normal_def;
-					} else if (na == 1) {
-						st = ESUBTYPE::dist_normal;
-					} else {
-						st = ESUBTYPE::dist_uniform;
-					}
-
-					double v[2] = { 0,0 };
-
-					auto it = nit;
-					for (size_t i = 0; i < na; ++i) {
-						let wit = it->which();
-						if (wit == spirit::utree_type::int_type) {
-							v[i] = it->get<int>();
-						} else if (wit == spirit::utree_type::double_type) {
-							v[i] = it->get<double>();
-						} else {
-							pfo.err << "invalid argument";
-							return reter() ;
-						}
-						++it;
-					}
-
-					block.set_distribution(x, th, st, v[0], v[1]);
-
-					break;
-				}
-				default:
-					
-					pfo.err << "Invalid identifier: "<< func_name;
-					return reter() ;
-				}
-			} else {
-
-				size_t ar = block.add_args(x, ETYPE::call, na + 1);
-				a[x].hdr.ts = ts;
-
-				let unk_id = pfo.unk->get_unk_id(func_name);
-				a[ar++].hdr.set_reference(unk_id, ESUBTYPE::ref_unknown);
-
-				if (c == client::s_sym_funct) {
-					for (auto it = nit; it != ut.end(); ++it) {
-						if (!parse_operator(*it, pfo, block, ar++)) {
-							return reter();
-						}
-					}
-				} else {
-					//list of fields
-					for (auto it = nit; it != ut.end(); ++it) {
-						if (it->which() != spirit::utree_type::string_type) {
-							pfo.err << "Invalid field in " << func_name;
-							return reter();
-						}
-						let rit = it->get<spirit::utf8_symbol_range_type>();
-						std::string field_name(rit.begin(), rit.end());
-
-						let ref_field = pfo.unk->get_unk_id(field_name);
-						a[ar++].hdr.set_small_int((int32_t)ref_field);
-					}
-				}
-				
-
-
-				
-			}
-
-			return true;
-		}
+		
 
 		case '^':
 		{
@@ -1024,7 +583,7 @@ static bool parse_operator(
 			}
 			return true;
 		}
-		case client::s_sym_slice:
+		case client::s_sym_list:
 		{
 			auto ar = block.add(sz - 1);
 			for (auto it = std::next(ut.begin()); it != ut.end(); ++it) {
@@ -1035,42 +594,484 @@ static bool parse_operator(
 			return true;
 		}
 		case client::s_sym_index:
+		case client::s_sym_funct:
 		{
+			auto tx = (c == client::s_sym_index) ? ETYPE::index : ETYPE::call;
+			
+			auto th = ETYPE::undef;
+			auto bt = BUILTIN_FUNC::invalid;
+			bool special_call = false;
+			std::string func_name;
+			
+			let fn = std::next(ut.begin());
+			if (fn->which() == spirit::utree_type::string_type && tx== ETYPE::call) {
+				let r = fn->get<spirit::utf8_symbol_range_type>();
+				func_name.assign(r.begin(), r.end());
+
+				if (c == client::s_sym_funct) {
+					if (func_name[0] == ims_keywords::builtin) {
+						th = ims_operator::from_string(func_name);
+						if (th == ETYPE::undef) {
+							pfo.err << "Invalid identifier: " << func_name;
+							return reter();
+						}
+						special_call = th != ETYPE::this_vector;
+					} else {
+						bt = built_in_func::from_string(func_name);
+						special_call = bt != BUILTIN_FUNC::invalid;
+					}
+				}
+			}
+
+			
+
 			//traverse in the reverse order
 			auto it_x = std::prev(ut.end());
+
 			for (size_t i = 2; i < sz; ++i) {
-				if (it_x->which() == spirit::utree_type::invalid_type) {
-					//empty index []
-					x = block.add_args(x, ETYPE::index, 1);
-				}else {
+
+				size_t na = 0;
+				if (it_x->which() != spirit::utree_type::invalid_type) {
 					assert(it_x->which() == spirit::utree_type::list_type);
-					let num_args = it_x->size() - 1;
+					na = it_x->size() - 1;
+				}
+
+				if (i + 1 == sz && special_call) {//last iteration
+
+					if (bt != BUILTIN_FUNC::invalid) {
+						assert(th == ETYPE::undef);
+						let next_x = block.add(0);
+						if (!parse_operator(*it_x, pfo, block, next_x)) {
+							return reter();
+						}
+						if (bt == BUILTIN_FUNC::cond) {
+							if (na % 2 == 0) {
+								pfo.err << INV_NARG;
+								return reter();
+							}
+							
+							a[x].hdr.set(ETYPE::condition, next_x, na);
+							return true;
+						} 
+
+						//found a built-in function
+						if (na != built_in_func::num_args(bt)) {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+
+						a[x].hdr.tt = ETYPE::call_built_in;
+						a[x].hdr.set_builtin_func((size_t)bt);
+						a[x].hdr.set_u32(next_x);
+
+						return true;
+					}
+
+					assert(th != ETYPE::undef);
+
+					let nit = na > 0 ? std::next(it_x->begin()) : ut.end();
+					let ts = ESUBTYPE::call_normal;
+
+					switch (th) {
+
+					case ETYPE::call:
+					{
+						if ((na & 1) == 0) {//odd number of arguments
+							pfo.err << INV_NARG;
+							return reter();
+						};
+
+						auto ar = block.add_args(x, th, na);
+						a[x].hdr.ts = ESUBTYPE::call_new;
+
+						size_t arg_pos = 0;
+						for (auto it = nit; it != ut.end(); ++it, ++arg_pos) {
+							//each odd argument should be an identifier
+							if ((arg_pos & 1) && it->which() == spirit::utree_type::string_type) {
+								let sr = it->get<spirit::utf8_symbol_range_type>();
+								let unk_id = pfo.unk->get_unk_id({ sr.begin(), sr.end() });
+								auto& h = a[ar + arg_pos].hdr;
+								h.tt = ETYPE::unk_reference;
+								h.set_u32(unk_id);
+							} else {
+								if (!parse_operator(*it, pfo, block, ar + arg_pos)) {
+									return reter();
+								}
+							}
+						}
+						return true;
+					}
+
+					case ETYPE::thickness:
+					{
+						if (na != 1) {
+							pfo.err << INV_NARG;
+							return reter();
+						};
+
+						auto ar = block.add_args(x, th, 1);
+
+						for (auto it = nit; it != ut.end(); ++it) {
+							if (!parse_operator(*it, pfo, block, ar++)) {
+								return reter();
+							}
+						}
+						return true;
+					}
+
+					case ETYPE::color_style:
+					{
+						if (na > 2 || na == 0) {
+							pfo.err << INV_NARG;
+							return reter();
+						};
+
+						if (na == 1) {
+							auto ar = block.add_args(x, ETYPE::color_style, 1);
+
+							for (auto it = nit; it != ut.end(); ++it) {
+								if (!parse_operator(*it, pfo, block, ar++)) {
+									return reter();
+								}
+							}
+							return true;
+						}
+
+
+						ims_warning("Deprecated $style found");
+
+						//composition of color and thickness
+						auto ar_mul = block.add_args(x, ETYPE::mul, 2);
+						auto it = nit;
+						{
+							auto ar = block.add_args(ar_mul, ETYPE::color_style, 1);
+							if (!parse_operator(*it++, pfo, block, ar)) {
+								return reter();
+							}
+						}
+						{
+							auto ar = block.add_args(ar_mul + 1, ETYPE::thickness, 1);
+							if (!parse_operator(*it++, pfo, block, ar)) {
+								return reter();
+							}
+						}
+
+						return true;
+					}
+					case ETYPE::charpoly:
+					case ETYPE::companion:
+					case ETYPE::vector_union:
+					{
+
+						size_t ar = block.add_args(x, th, na);
+						a[x].hdr.ts = ts;
+						for (auto it = nit; it != ut.end(); ++it) {
+							if (!parse_operator(*it, pfo, block, ar++)) {
+								return reter();
+							}
+						}
+						return true;
+					}
+					case ETYPE::diagonal:
+					{
+						if (na != 1) {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+
+						size_t ar = block.add_args(x, th, na);
+
+						for (auto it = nit; it != ut.end(); ++it) {
+							if (!parse_operator(*it, pfo, block, ar++)) {
+								return reter();
+							}
+						}
+						return true;
+					}
+					case ETYPE::csg:
+					{
+						if (na != 4) {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+
+						size_t ar = block.add_args(x, th, na);
+
+						for (auto it = nit; it != ut.end(); ++it) {
+							if (!parse_operator(*it, pfo, block, ar++)) {
+								return reter();
+							}
+						}
+						return true;
+					}
+					case ETYPE::exchange:
+					{
+						if (na != 0) {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+						block.set_exchange(x);
+						return true;
+					}
+					case ETYPE::inversion:
+					{
+						if (na != 0) {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+						block.set_mobius(x);
+						return true;
+					}
+					case ETYPE::set_interval:
+					{
+						let ar = block.add_args(x, th, 1);
+
+						if (na == 0) {
+							block.set_distribution_def(ar);
+						} else if (na == 1) {
+							if (!parse_operator(*nit, pfo, block, ar)) {
+								return reter();
+							}
+						} else {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+						return true;
+					}
+					case ETYPE::set_semigroup:
+					{
+						if (na == 0 || na > 2) {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+
+						//partially process semigroups - create new variables
+						//	&R = $semigroup([s,r])
+						//		==========>
+						//	&R = $semigroup(O)
+						//	O = [s, r]
+
+						let ar = block.add_args(x, th, 1);//semigroup
+
+						let unk_id = pfo.unk->create_unique_identifier("O");
+						a[ar].hdr.set_reference(unk_id, ESUBTYPE::ref_unknown);
+
+						let offset = block.add_var(pfo.m_pos2, unk_id, false);
+
+						if (!parse_operator(*nit, pfo, block, offset)) {
+							return reter();
+						}
+
+						return true;
+
+					}case ETYPE::set_binary:
+					{
+						//replace with $permutation
+
+						//	b = $binary(27,$integer(19,19))
+						//		==========>
+						//  p = $permutation(19, 27-19)
+						//	a = [$e, $i]
+						//	b = [a[p[0]], a[p[1]], ...]
+
+						if (na != 2) {
+							pfo.err << INV_NARG;
+							return reter();
+						};
+
+						//size first
+						if (nit->which() != spirit::utree_type::int_type) {
+							pfo.err << "invalid argument 1";
+							return reter();
+						}
+
+						let ival = nit->get<int>();
+						if (ival < 1 || ival > 1023) {
+							pfo.err << "invalid argument 1";
+							return reter();
+						}
+
+						let dim = (size_t)ival;
+
+						if (!parse_operator(*std::next(nit), pfo, block, x)) {
+							pfo.err << "invalid argument 2";
+							return reter();
+						}
+
+						let& h = block.m_ops[x].hdr;
+						if (h.tt != ETYPE::distribution_int ||
+							h.ts != ESUBTYPE::dist_uniform)
+						{
+							pfo.err << "invalid argument 2";
+							return reter();
+						}
+
+						let* d = &block.m_ops[h.get_offset()].f64;
+
+						let a2 = (size_t)d[0];
+
+						if (dim < a2 || d[0] != d[1] || d[0] != (double)a2) {
+							pfo.err << "invalid argument 2";
+							return reter();
+						}
+
+						let p_id = pfo.unk->create_unique_identifier("p");
+						let p_offset = block.add_var(pfo.m_pos2, p_id, false);
+
+						let a_id = pfo.unk->create_unique_identifier("a");
+						let a_offset = block.add_var(pfo.m_pos2, a_id, false);
+
+						let p_args = block.set_vector_ex(
+							block.add_args(p_offset, ETYPE::set_permutation, 1),
+							ETYPE::vector_imm, ESUBTYPE::integer, 2);
+
+						a[p_args].i64 = a2;
+						a[p_args + 1].i64 = dim - a2;
+
+						let a_args = block.set_vector(a_offset, ETYPE::vector, 2);
+						a[a_args].hdr.set_xempty();
+						a[a_args + 1].hdr.set_id();
+
+						let ar = block.set_vector(x, dim);
+						for (size_t j = 0; j < dim; ++j) {
+							let i1 = block.add_args(ar + j, ETYPE::index, 2);
+							a[i1].hdr.set_reference(a_id, ESUBTYPE::ref_unknown);
+							let i2 = block.set_index_imm(i1 + 1, int(j));
+							a[i2].hdr.set_reference(p_id, ESUBTYPE::ref_unknown);
+						}
+						return true;
+					}
+					case ETYPE::set_vector:
+					{
+						if (na > 2) {
+							pfo.err << INV_NARG;
+							return reter();
+						};
+
+						let ar = block.add_args(x, th, 1);
+
+						//size first
+						if (na == 0) {
+							a[x].hdr.set_i24(0);
+						} else if (nit->which() == spirit::utree_type::int_type) {
+							let v = nit->get<int>();
+							a[x].hdr.set_i24(v);
+						} else {
+							pfo.err << "invalid argument";
+							return reter();
+						}
+
+
+						if (na < 2) {
+							block.set_distribution_def(ar);
+						} else {
+							if (!parse_operator(*std::next(nit), pfo, block, ar)) {
+								return reter();
+							}
+						}
+						return true;
+					}
+					case ETYPE::set_permutation:
+					{
+						if (na != 1) {
+							pfo.err << INV_NARG;
+							return reter();
+						};
+
+						let ar = block.add_args(x, th, 1);
+
+						if (!parse_operator(*nit, pfo, block, ar)) {
+							return reter();
+						}
+						let& h = block.m_ops[ar].hdr;
+						let ok = (h.tt == ETYPE::vector_imm && h.ts == ESUBTYPE::integer) ||
+							(h.tt == ETYPE::vector && h.num_args() == 0);
+						if (!ok) {
+							pfo.err << "invalid $permuatation argument type";
+							return reter();
+						}
+						return true;
+					}
+					case ETYPE::distribution_real:
+					case ETYPE::distribution_int:
+					{
+						if (na > 2) {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+
+						ESUBTYPE st;
+						if (na == 0) {
+							st = ESUBTYPE::dist_normal_def;
+						} else if (na == 1) {
+							st = ESUBTYPE::dist_normal;
+						} else {
+							st = ESUBTYPE::dist_uniform;
+						}
+
+						double v[2] = { 0,0 };
+
+						auto it = nit;
+						for (size_t j = 0; j < na; ++j) {
+							let wit = it->which();
+							if (wit == spirit::utree_type::int_type) {
+								v[j] = it->get<int>();
+							} else if (wit == spirit::utree_type::double_type) {
+								v[j] = it->get<double>();
+							} else {
+								pfo.err << "invalid argument";
+								return reter();
+							}
+							++it;
+						}
+
+						block.set_distribution(x, th, st, v[0], v[1]);
+
+						return true;
+					}
+					default:
+
+						pfo.err << "Invalid identifier: " << func_name;
+						return reter();
+					}
+					//unreachable
+				}
+
+				if (na == 0) {
+					//[] or ()
+					x = block.add_args(x, tx, 1);
+				}else {
+					
+					na = it_x->size() - 1;
 
 					let next_x = block.add(1);//reserve
 
-					//put slice arguments after last_pos
+					//put arguments just after next_x
 					if (!parse_operator(*it_x, pfo, block, next_x)) {
 						return reter();
 					}
 
 					bool imm = false;
-					if (next_x + 1 == a.size()) {
-						assert(num_args == 1);
-						let& h = a.back().hdr;
-						if (h.tt == ETYPE::number_imm &&
-							h.ts == ESUBTYPE::integer &&
-							h.is_i24(h.i32))
-						{
-							auto& hi = a[x].hdr;
-							hi.set(ETYPE::index_imm, next_x, h.i32);
-							imm = true;
+
+					if (na == 1) {
+						if (a[next_x + 1].hdr.tt == ETYPE::def) {
+							na = 0;//()
 							a.pop_back();
+						} else if (tx == ETYPE::index && next_x + 1 == a.size()) {
+							let& h = a.back().hdr;
+							if (h.tt == ETYPE::number_imm &&
+								h.ts == ESUBTYPE::integer &&
+								h.is_i24(h.i32))
+							{
+								a[x].hdr.set(ETYPE::index_imm, next_x, h.i32);
+								imm = true;
+								a.pop_back();
+							}
 						}
 					}
 
 					if (!imm) {
-						auto& h = a[x].hdr;
-						h.set(ETYPE::index, next_x, num_args + 1);
+						a[x].hdr.set(tx, next_x, na + 1);
 					}
 
 					x = next_x;
@@ -1082,6 +1083,39 @@ static bool parse_operator(
 			if (!parse_operator(*it_x, pfo, block, x)) {
 				return reter();
 			};
+
+			return true;
+		}
+
+		case client::s_sym_field:
+		{
+			auto ts =  ESUBTYPE::call_fields;
+
+			let fn = std::next(ut.begin());
+			let r = fn->get<spirit::utf8_symbol_range_type>();
+			std::string func_name(r.begin(), r.end());
+			let nit = std::next(fn);
+
+			let na = sz - 2;
+
+			size_t ar = block.add_args(x, ETYPE::call, na + 1);
+			a[x].hdr.ts = ts;
+
+			let unk_id = pfo.unk->get_unk_id(func_name);
+			a[ar++].hdr.set_reference(unk_id, ESUBTYPE::ref_unknown);
+
+			//list of fields
+			for (auto it = nit; it != ut.end(); ++it) {
+				if (it->which() != spirit::utree_type::string_type) {
+					pfo.err << "Invalid field in " << func_name;
+					return reter();
+				}
+				let rit = it->get<spirit::utf8_symbol_range_type>();
+				std::string field_name(rit.begin(), rit.end());
+
+				let ref_field = pfo.unk->get_unk_id(field_name);
+				a[ar++].hdr.set_small_int((int32_t)ref_field);
+			}
 
 			return true;
 		}
@@ -1105,26 +1139,22 @@ static bool parse_operator(
 		block.set_integer(x, v);
 		break;
 	};
-	case spirit::utree_type::string_type:
+	case spirit::utree_type::string_type://$pi, $i, etc
 	{
 		let r = ut.get<spirit::utf8_string_range_type>();
 		std::string str(r.begin(), r.end());
 
-
 		//TODO: rework?
 		if (str[0] == ims_keywords::builtin) {
-
-			str.erase(0, 1);
-			if (str.empty()) {
-				a[x].hdr.tt = ETYPE::this_vector;
-				break;
-			}
 
 			let th = ims_operator::from_string(str);
 			switch (th) {
 			case ETYPE::distribution_int:
 			case ETYPE::distribution_real:
 				block.set_distribution(x, th, ESUBTYPE::dist_normal_def, 0, 0);
+				break;
+			case ETYPE::this_vector:
+				a[x].hdr.tt = ETYPE::this_vector;
 				break;
 			case ETYPE::empty:
 				a[x].hdr.set_xempty();
@@ -1160,6 +1190,11 @@ static bool parse_operator(
 		//std::string str(r.begin(), r.end());
 		assert(false);
 		return reter() ;
+	}
+	case spirit::utree_type::nil_type:
+	{
+		a[x].hdr.set(ETYPE::def, 0, 0);
+		return true;
 	}
 	default:
 		assert(false);

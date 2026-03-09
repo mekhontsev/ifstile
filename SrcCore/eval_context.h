@@ -192,7 +192,6 @@ private:
 	def_ec_method2(eval_diagonal);
 	def_ec_method2(eval_charpoly);
 	def_ec_method2(eval_csg);
-	def_ec_method2(eval_vector_func);
 	def_ec_method2(eval_vector_uni);
 	def_ec_method2(eval_companion);
 	def_ec_method2(eval_neg);

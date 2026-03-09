@@ -205,7 +205,6 @@ static void s_init()
 		case ETYPE::distribution_real:	d = "real";			break;
 		case ETYPE::companion:			d = "companion";	break;
 		case ETYPE::vector_union:		d = "union";		break;
-		case ETYPE::vector_func:		d = "";				break;
 		case ETYPE::charpoly:			d = "charpoly";		break;
 		case ETYPE::diagonal:			d = "diagonal";		break;
 		case ETYPE::exchange:			d = "exchange";		break;
@@ -230,6 +229,16 @@ std::string_view  ims_operator::to_string(ETYPE t)
 
 ETYPE ims_operator::from_string(std::string_view str)
 {
+	if (str.empty() || str[0] != '$') {
+		return ETYPE::undef;
+	}
+
+	str.remove_prefix(1);
+
+	if (str.empty()) {
+		return ETYPE::this_vector;
+	}
+
 	s_init();
 
 	auto it = s_map.find(str);
@@ -363,6 +372,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::exchange:
 	case ETYPE::inversion:
 	case ETYPE::pi:
+	case ETYPE::def:
 	case ETYPE::id:
 	case ETYPE::empty:
 	case ETYPE::this_vector:
@@ -394,7 +404,6 @@ size_t ims_operator::oper_args() const
 	case ETYPE::sum:
 	case ETYPE::uni:
 	case ETYPE::vector:
-	case ETYPE::vector_func:
 	case ETYPE::vector_union:
 	case ETYPE::companion:
 	case ETYPE::diagonal:

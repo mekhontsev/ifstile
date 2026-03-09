@@ -35,7 +35,10 @@ enum class ETYPE : uint8_t
 	//pi constant
 	pi,
 
-	//small nunber (in header)	
+	//default argument
+	def,
+
+	//small number (in header)
 	number_imm,
 
 	//number
@@ -49,9 +52,6 @@ enum class ETYPE : uint8_t
 
 	//vector of numbers
 	vector_imm,
-
-	//$(...)
-	vector_func,
 
 	//$union
 	vector_union,
