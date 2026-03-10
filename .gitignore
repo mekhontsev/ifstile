@@ -8,6 +8,7 @@ build/
 Setup/Android/build
 Setup/Android/.gradle
 Setup/Android/.idea
+Setup/Android/keystore.properties
 Setup/*.zip
 Setup/*.exe
 Setup/*.tar.gz
