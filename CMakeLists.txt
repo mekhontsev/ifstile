@@ -307,6 +307,13 @@ gbuffer3d.h gbuffer3d.cpp builder3d.cpp builder2d.h builder2d.cpp builder_ext.h 
 build_data.h build_data.cpp builder_mesh.h builder_mesh.cpp 
 standard_vars.h standard_vars.cpp ifs_renderer.h ifs_renderer.cpp 
 
+png_support.h png_support.cpp  mpeg_support.h mpeg_support.cpp  
+animator.h animator.cpp create_block.cpp create_ifs.cpp 
+creator_state.h creator_state.cpp
+ims_to_string_ex.h ims_to_string_ex.cpp 
+flame_calc.h flame_calc.cpp 
+info_printer.h info_printer.cpp   save_type.h 
+
 )
 
 prepend(SRC_Core SrcCore)
@@ -320,24 +327,13 @@ set (SRC_QuickJS
 prepend(SRC_QuickJS quickjs)
 #-------------------------------------------------------------------------------
 set (SRC_GENERAL
-
-png_support.h png_support.cpp  mpeg_support.h mpeg_support.cpp  
-animator.h animator.cpp 
-
-info_printer.h info_printer.cpp  
-create_block.cpp create_ifs.cpp 
-creator_state.h creator_state.cpp
-flame_calc.h flame_calc.cpp 
-
 ims_settings.h ims_settings.cpp draw_task.h 
 pch.h main.cpp main_utf8.cpp ims_to_x3d.cpp
 gl_helper.h gl_helper.cpp gl_helper_math.cpp  dx_helper.h 
-program_state.h program_state.cpp
-ims_help.h ims_help.cpp 
-ims_to_string_ex.h ims_to_string_ex.cpp 
+program_state.h program_state.cpp ims_help.h ims_help.cpp 
 visible_blocks.h visible_blocks.cpp 
 js_ifs.cpp
-ims_rw.h ims_rw.cpp save_type.h 
+ims_rw.h ims_rw.cpp
 file_dialog_state.h file_dialog_state.cpp 
 thread_priority.cpp platform.h platform.cpp 
 platform_windows.cpp platform_macos.cpp platform_android.cpp platform_wasm.cpp
