@@ -142,6 +142,20 @@ a=$pi
 	EXPECT_TRUE(t.approx("a", boost::math::constants::pi<ims_val_b::Real>()));
 };
 
+TEST(testEval, BabylonianMethod)
+{
+	aifs_tester t(R"(
+@
+n=2
+r=[1.0, $, if (abs($[-1]*$[-1]-n)-1e-15, ($[-1]+n/$[-1])/2, $) ][-1]
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+
+	EXPECT_TRUE(t.approx("r", sqrt(2)));
+};
+
+
 
 TEST(testEval, simple_call)
 {

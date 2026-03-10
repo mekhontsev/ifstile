@@ -28,6 +28,7 @@ enum class BUILTIN_FUNC: uint8_t
 	log,
 	floor,
 	ceil,
+	abs,
 	arg,	//atan2(y, x)
 	cond,	//odd number of arguments
 
@@ -57,6 +58,7 @@ ims_static constexpr std::array<func_info, s_num> info =
 	{"log",	1},
 	{"floor",1},
 	{"ceil",1},
+	{"abs",	1},
 	{"arg",	2},
 	{"if",	0},
 } };

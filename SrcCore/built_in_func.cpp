@@ -56,6 +56,8 @@ double eval(const double* pargs, BUILTIN_FUNC t)
 		return floor(a);
 	case BUILTIN_FUNC::ceil:
 		return ceil(a);
+	case BUILTIN_FUNC::abs:
+		return abs(a);
 	case BUILTIN_FUNC::arg:
 		return atan2(pargs[1], a);
 	default:
