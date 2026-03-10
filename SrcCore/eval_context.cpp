@@ -1135,8 +1135,16 @@ const ims_val* eval_context::eval_csg(ast_context p, bool is_geom)
 
 static int64_t adjust_index(int64_t idx, size_t arr_sz)
 {
-	if (idx >= 0)return (size_t)idx;
+	if (idx >= 0)return idx;
 	return idx + (int64_t)arr_sz;
+}
+
+static bool adjust_index2(int64_t& idx, size_t arr_sz)
+{
+	let ret = adjust_index(idx, arr_sz);
+	if (ret < 0 || ret >= (int64_t)arr_sz) { return false; }
+	idx = ret;
+	return true;
 }
 
 const ims_val* eval_context::vector_flat(ast_context p, bool is_geom)
@@ -1417,62 +1425,167 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 	pool_ptr v(eval7(p.index(0), is_geom));
 	if (!v) {
 		if (!is_geom)return get_ast_val(p);
-		eval_error("Attempt to index invalid object");
+		eval_error("Attempt to index an invalid object");
 		return  nullptr;
 	};
 
-	int64_t idx;
+
+	//one of the values below is valid
+	int64_t idx2{ 0 };//for ordinary indexing
+	pool_ptr ai;//for fancy indexing
+	size_t asz = 0;
 
 	if (op.tt == ETYPE::index_imm) {
-		idx = op.get_elem_index();
+		idx2 = op.get_elem_index();
 	} else {
-		pool_ptr ai(eval7(p.index(1), true));
+		ai.reset(eval7(p.index(1), true));//geometrically
 
-		if (!ai || !ai->to_int(idx)) {
+		if (!ai) {
 			if (!is_geom)return get_ast_val(p);
-			eval_error2("Invalid array index type {}",  (ai ? (int)ai->gt() : 0));
+			eval_error("Invalid array index");
 			return nullptr;
 		}
+
+		if (ai->is(ims_val_b::ETP::vector, ims_val_b::EST::rational)) {
+			asz = ai->get_size();
+			for (size_t j = 0; j < asz; ++j) {
+				if (1 != denominator(ai->p_i(j))) {
+					eval_error("Invalid array index");
+					return nullptr;
+				}
+			}
+		} else {
+			if (!ai->to_int(idx2)) {
+				if (!is_geom)return get_ast_val(p);
+				eval_error2("Invalid array index type {}", (int)ai->gt());
+				return nullptr;
+			}
+			ai.reset();
+		}
 	}
+
 
 	if (!is_geom && v->is(ims_val::ETP::ast_ptr)) {
 		let* ast = resolve_topo_reference(v->gp<ast_context>());
 		if (!ast) {
 			return get_ast_val(p);
 		}
+		let sz = ast->h.num_args();
 
 		if (ast->h.tt == ETYPE::vector_imm) {
-			//indexing
-			let idxa = adjust_index(idx, ast->h.num_args());
-			if (idxa < 0 || idxa >= (int64_t)ast->h.num_args()) {
+			if (ai) {//fancy indexing
+				pool_ptr ret(eval_pool::ep.get_vector(asz));
+				for (size_t j = 0; j < asz; ++j) {
+					idx2 = numerator(ai->p_i(j));
+					if (!adjust_index2(idx2, sz)) {
+						return nullptr;
+					}
+					ret.get_mut()->p_v()[j] =
+						get_ast_val({ ast->index_imm(idx2), ast->call_offset });
+				}
+				return ret.release();
+			}
+			//ordinary indexing
+			if (!adjust_index2(idx2, sz)) {
 				return nullptr;
 			}
 			//successfully indexed
-			return get_ast_val({ ast->index_imm(idxa), ast->call_offset});
+			return get_ast_val({ ast->index_imm(idx2), ast->call_offset });
 		}
 		if (ast->h.tt == ETYPE::vector) {
-			//indexing
-			let idxa = adjust_index(idx, ast->h.num_args());
-			if (idxa < 0 || idxa >= (int64_t)ast->h.num_args()) {
+			if (ai) {//fancy indexing
+				pool_ptr ret(eval_pool::ep.get_vector(asz));
+				for (size_t j = 0; j < asz; ++j) {
+					idx2 = numerator(ai->p_i(j));
+					if (!adjust_index2(idx2, sz)) {
+						return nullptr;
+					}
+					ret.get_mut()->p_v()[j] =
+						eval7(ast->index(idx2), is_geom);
+				}
+				return ret.release();
+			}
+			//ordinary indexing
+			if (!adjust_index2(idx2, sz)) {
+				eval_error3("Subscript out of range: {}, {}", idx2, sz);
 				return nullptr;
 			}
 			//successfully indexed
-			return eval7(ast->index(idxa), is_geom);
+			return eval7(ast->index(idx2), is_geom);
 		}
-
 		v.reset(eval7(*ast, is_geom));
 	}
 
 	if (!v || !v->is(ims_val::ETP::vector)) {
 		if (!is_geom)return get_ast_val(p);
-		eval_error2("Attempt to index a non-vector object: {}", (size_t)v->gt());
+		eval_error2("Attempt to index a non-vector object: {}",
+			v ? (size_t)v->gt() : 0);
 		return  nullptr;
 	}
 
-	let idxa = adjust_index(idx, v->get_size());
-	if (idxa < 0 ||idxa >= (int64_t)v->get_size()) {
+
+	let sz = v->get_size();
+
+	if (ai) {
+
+		switch (v->gs())
+		{
+		case ims_val::EST::rational:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector_int(asz));
+			for (size_t j = 0; j < asz; ++j) {
+				idx2 = numerator(ai->p_i(j));
+				if (!adjust_index2(idx2, sz)) {
+					return nullptr;
+				}
+				ret.get_mut()->p_i()[j] = v->p_i(idx2);
+			}
+			return ret.release();
+		}
+		case ims_val::EST::big_rational:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector_int(asz));
+			for (size_t j = 0; j < asz; ++j) {
+				idx2 = numerator(ai->p_i(j));
+				if (!adjust_index2(idx2, sz)) {
+					return nullptr;
+				}
+				ret.get_mut()->p_b()[j] = v->p_b(idx2);
+			}
+			return ret.release();
+		}
+		case ims_val::EST::real:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector_int(asz));
+			for (size_t j = 0; j < asz; ++j) {
+				idx2 = numerator(ai->p_i(j));
+				if (!adjust_index2(idx2, sz)) {
+					return nullptr;
+				}
+				ret.get_mut()->p_r()[j] = v->p_r(idx2);
+			}
+			return ret.release();
+		}
+		default:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector(asz));
+			for (size_t j = 0; j < asz; ++j) {
+				idx2 = numerator(ai->p_i(j));
+				if (!adjust_index2(idx2, sz)) {
+					return nullptr;
+				}
+				auto* nv = v->p_v()[idx2];//indexing
+				if (nv)nv->add_ref();
+				ret.get_mut()->p_v()[j] = nv;
+			}
+			return ret.release();
+		}
+		}
+	};
+
+	if (!adjust_index2(idx2, sz)){
 		if (!is_geom)return get_ast_val(p);
-		eval_error3("Subscript out of range: {}, {}", idx, v->get_size());
+		eval_error3("Subscript out of range: {}, {}", idx2, sz);
 		return  nullptr;
 	}
 
@@ -1481,20 +1594,20 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 	{
 	case ims_val::EST::rational:
 	{
-		return eval_pool::ep.get_scalar_int(v->p_i()[idxa]);//indexing
+		return eval_pool::ep.get_scalar_int(v->p_i()[idx2]);//indexing
 	}
 	case ims_val::EST::big_rational:
 	{
 		auto* ret_big = eval_pool::ep.get_scalar_big_rational();
-		*ret_big->p_b() = v->p_b(idxa);//indexing
+		*ret_big->p_b() = v->p_b(idx2);//indexing
 		return ret_big;
 	}
 	case ims_val::EST::real:
 	{
-		return eval_pool::ep.get_scalar_real(v->p_r()[idxa]);//indexing
+		return eval_pool::ep.get_scalar_real(v->p_r()[idx2]);//indexing
 	}
 	default:
-		auto* nv = v->p_v()[idxa];//indexing
+		auto* nv = v->p_v()[idx2];//indexing
 		if (nv)nv->add_ref();
 		v.reset(nv);
 		break;

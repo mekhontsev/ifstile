@@ -871,8 +871,7 @@ static bool parse_operator(
 						//	b = $binary(27,$integer(19,19))
 						//		==========>
 						//  p = $permutation(19, 27-19)
-						//	a = [$e, $i]
-						//	b = [a[p[0]], a[p[1]], ...]
+						//	b = [$e, $i][p]
 
 						if (na != 2) {
 							pfo.err << INV_NARG;
@@ -918,9 +917,6 @@ static bool parse_operator(
 						let p_id = pfo.unk->create_unique_identifier("p");
 						let p_offset = block.add_var(pfo.m_pos2, p_id, false);
 
-						let a_id = pfo.unk->create_unique_identifier("a");
-						let a_offset = block.add_var(pfo.m_pos2, a_id, false);
-
 						let p_args = block.set_vector_ex(
 							block.add_args(p_offset, ETYPE::set_permutation, 1),
 							ETYPE::vector_imm, ESUBTYPE::integer, 2);
@@ -928,17 +924,14 @@ static bool parse_operator(
 						a[p_args].i64 = a2;
 						a[p_args + 1].i64 = dim - a2;
 
-						let a_args = block.set_vector(a_offset, ETYPE::vector, 2);
-						a[a_args].hdr.set_xempty();
-						a[a_args + 1].hdr.set_id();
+						let arr = block.add(2);
+						let arr_args = block.set_vector(arr, 2);
+						a[arr_args].hdr.set_xempty();
+						a[arr_args + 1].hdr.set_id();
 
-						let ar = block.set_vector(x, dim);
-						for (size_t j = 0; j < dim; ++j) {
-							let i1 = block.add_args(ar + j, ETYPE::index, 2);
-							a[i1].hdr.set_reference(a_id, ESUBTYPE::ref_unknown);
-							let i2 = block.set_index_imm(i1 + 1, int(j));
-							a[i2].hdr.set_reference(p_id, ESUBTYPE::ref_unknown);
-						}
+						a[arr+1].hdr.set_reference(p_id, ESUBTYPE::ref_unknown);
+
+						block.set(x, ETYPE::index, arr, 2);
 						return true;
 					}
 					case ETYPE::set_vector:

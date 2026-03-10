@@ -1008,6 +1008,22 @@ a=[$, if(b() - $(), b[$()], $)]
 	EXPECT_TRUE(t.equal_vec("a", { 2,3,5,7,11 }));
 };
 
+TEST(testArrFuncs, FancyIndexing)
+{
+	aifs_tester t(R"(
+@
+x = [10, 20, 30, 40, 50, 60]
+i1 = [3,0,5]
+a1 = x[i1]
+i2 = [1,1,1]
+a2 = x[i2]
+
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("a1", { 40,10,60 }));
+	EXPECT_TRUE(t.equal_vec("a2", { 20,20,20 }));
+};
+
 TEST(testArrFuncs, ArrFlat)
 {
 	aifs_tester t(R"(

@@ -216,7 +216,7 @@ void print_ims_val_ex(std::ostream& str, const ims_val* v, const ifs_list* lst)
 		let sz = v->get_size();
 		
 		if (sz == 0) {
-			str << 1;
+			str << "$i";
 			return;
 		}
 
@@ -241,7 +241,7 @@ void print_ims_val_ex(std::ostream& str, const ims_val* v, const ifs_list* lst)
 		let sz = v->get_size();
 
 		if (sz == 0) {
-			str << "empty";
+			str << "$e";
 			return;
 		}
 

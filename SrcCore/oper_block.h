@@ -279,7 +279,7 @@ struct oper_block
 	const oper_block* elevate_empty() const;
 	const oper_block* elevate_priv() const;
 	
-	//set the element with index to the given type with num arguments
+	//set the element with idx to the given type with num arguments
 	//returns the index of the beginning of the arguments
 	size_t add_args(size_t idx, ETYPE t, size_t num);
 
