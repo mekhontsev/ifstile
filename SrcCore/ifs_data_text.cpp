@@ -598,8 +598,11 @@ bool read_state::pre_process_variable(
 					return false;
 				}
 				if (b.m_js_init == ims_max) {
-					//must be corrected later
-					b.m_js_init = lst.m_idf.get_unk_id(q.val);
+					b.m_js_init = lst.m_idf.get_data(q.val).js_export_entry;
+					if (b.m_js_init == block_id_max) {
+						ims_error("Invalid $init identifier: {}", q.val);
+						return false;
+					}
 				}
 			} else if (n == ims_keywords::js_info) {
 				//JS only

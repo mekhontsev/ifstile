@@ -24,12 +24,20 @@ struct ims_identifiers
 {	
 	struct data 
 	{
-		size_t unk_id;//index in m_idx2unknown
-		block_id_t block_id;//if the file contains a block with such a string id
+		//index in m_idx2unknown
+		size_t unk_id = ims_max;
+		//if the file contains a block with such a string id
+		block_id_t block_id = block_id_max;
+		//if the JS part of the file export such an entry
+		block_id_t js_export_entry = block_id_max;
 
 		bool has_block() const 
 		{
 			return block_id != block_id_max;
+		}
+		bool has_js_entry() const
+		{
+			return js_export_entry != block_id_max;
 		}
 	};
 

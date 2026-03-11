@@ -136,12 +136,17 @@ const ifs_list& oper_block::get_list() const
 size_t oper_block::get_js_init_identifier() const
 {
 	if (m_js_init == ims_max)return ims_max;
-	return get_class()->m_nfo->get_js_init_identifier(m_js_init);
+	return get_class()->m_nfo->m_js_engine.js_obj_get_identifier(m_js_init);
 }
 
 size_t oper_block::get_froot() const
 {
 	return get_graph()->ref2fg(get_active_ref());
+}
+
+const ims_info* oper_block::get_nfo() const
+{
+	return get_class()->m_nfo;
 }
 
 size_t oper_block::add(size_t num)

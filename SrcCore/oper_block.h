@@ -128,7 +128,7 @@ struct oper_block
 	//offset of the first root
 	var_header::type m_first_var = var_header::nil;
 
-	//reference to the $init function, in the js_aifs_block::m_init_funcs array
+	//reference to the $init function, in the js_aifs_block::m_js_objects array
 	size_t m_js_init = ims_max;
 
 	std::shared_ptr<oper_block> m_js_parent;
@@ -172,6 +172,7 @@ struct oper_block
 	//the vertex to be constructed in the final graph
 	size_t get_froot() const;
 
+	const ims_info* get_nfo() const;
 	block_class* get_class() const;
 	block_graph* get_graph() const;
 

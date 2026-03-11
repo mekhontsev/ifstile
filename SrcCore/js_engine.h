@@ -59,9 +59,11 @@ struct js_engine: public boost::noncopyable
 	using reg_function = void (*)(JSContext*, JSValue&);
 	static std::vector<reg_function> s_js_export;
 
-	size_t add_js_init(size_t unk_id, const char* fname);
-
-	size_t get_js_init_identifier(size_t idx) const;
+	size_t js_obj_get_identifier(size_t idx) const;
+	const ims_val* js_obj_get_imm_value(size_t idx);
+	bool js_obj_is_function(size_t idx) const;
+	const ims_val* js_obj_call(
+		size_t idx, const ims_val* arg, size_t argc,  std::string& err);
 
 	std::string  create_from_constructor(
 		const ims_val* v,

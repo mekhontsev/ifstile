@@ -180,18 +180,6 @@ bool ims_info::link_refs(const size_t idx_from)
 				return false;
 			}
 		}
-
-		//fix $init values obtained from AIFS
-		if (!b.m_flags.from_js && b.m_js_init != ims_max) {
-			b.m_js_init = m_js_engine.add_js_init(
-				b.m_js_init,
-				lst.m_idf.m_idx2unknown[b.m_js_init]->first.c_str());
-
-			if (b.m_js_init == ims_max) {
-				ims_error("$init must be an exported function.");
-				return false;
-			}
-		}
 	}
 
 	//consider old elements as processed
@@ -328,9 +316,4 @@ void ims_info::print_js(std::ostream& str) const
 
 	str << script << ims_keywords::nlc << ims_keywords::js_delimeter
 		<< ims_keywords::nlc << ims_keywords::nlc;
-}
-
-size_t ims_info::get_js_init_identifier(size_t idx) const
-{
-	return m_js_engine.get_js_init_identifier(idx);
 }

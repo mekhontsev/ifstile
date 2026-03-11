@@ -38,7 +38,6 @@ struct ims_info: public boost::noncopyable
 	//Changes happened, saving required
 	bool m_need_save = false;
 
-
 	////////////////////////////////////////////////////////////////////////////
 
 	//at the time of the call, parent must already be set
@@ -57,5 +56,4 @@ struct ims_info: public boost::noncopyable
 
 	void print_js(std::ostream& str) const;
 
-	size_t get_js_init_identifier(size_t idx) const;
 };

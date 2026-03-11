@@ -1194,3 +1194,38 @@ export const $aifs={$init: 0 };
 )");
 	if (t.init())FAIL() << "should fail, not an identifier";
 }
+
+TEST(testJS, CallJS)
+{
+	aifs_tester t(R"(
+export function inc(arg){
+	return arg+1;
+}
+export function sum(a1, a2){
+	return a1+a2;
+}
+export function arr_length(a){
+	return a.length;
+}
+export function create_arr(a){
+	return [a, a+1];
+}
+export const imm=[11,12];
+@@
+
+@
+a=inc(3)
+b=sum(a, 2)
+c=arr_length([4,5,7])
+d=arr_length([4.5,5,7,9])
+e=create_arr(6)
+f = imm[1];
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 4));
+	EXPECT_TRUE(t.equal("b", 6));
+	EXPECT_TRUE(t.equal("c", 3));
+	EXPECT_TRUE(t.equal("d", 4));
+	EXPECT_TRUE(t.equal_vec("e", { 6,7 }));
+	EXPECT_TRUE(t.equal("f", 12));
+}

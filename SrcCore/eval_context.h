@@ -19,7 +19,7 @@
 #include "variable.h"
 
 struct oper_block;
-struct ifs_list;
+struct ims_info;
 struct ims_edge;
 
 struct ims_val;
@@ -62,7 +62,7 @@ struct eval_context
 
 	eval_stack* m_stack = nullptr;
 
-	const ifs_list* m_lst = nullptr;//get_func_for_call
+	const ims_info* m_nfo = nullptr;
 
 	//how many times did we encounter the corresponding situations during the calculation?
 	//track this even in geometric mode to understand that a new graph is needed
@@ -142,7 +142,8 @@ private:
 		const ims_val* v, 
 		bool use_cache,
 		size_t dim, 
-		size_t& new_call_offset);
+		size_t& new_call_offset,
+		block_id_t* js_obj);
 
 
 #ifdef use_eval_arg_cahche
@@ -179,6 +180,7 @@ private:
 	def_ec_method2(eval_pow);
 	def_ec_method2(eval_mod);
 	def_ec_method2(eval_reference);
+	def_ec_method2(eval_unk_ref);
 	def_ec_method2(eval_call);
 	def_ec_method2(eval_thickness);
 	def_ec_method2(eval_exchange);

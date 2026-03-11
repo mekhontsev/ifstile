@@ -25,6 +25,7 @@
 #include "math_helpers.h"
 #include "block_graph.h"
 #include "variable.h"
+#include "ims_info.h"
 
 #define eval_error(msg) if (!m_stack) { ims_error (msg);}
 #define eval_error2(msg, a) if (!m_stack) { ims_error (msg, a);}
@@ -72,8 +73,8 @@ bool eval_context::has_vars() const
 void eval_context::set_own_block(const oper_block& block, eval_stack* stack)
 {
 	let sz = block.num_vars();
-	m_lst = &block.get_list();
-	
+	m_nfo = block.get_nfo();
+
 	m_topo_unions = 0;
 	m_topo_cycles = 0;
 	m_geom_templates = 0;
@@ -297,6 +298,29 @@ const ims_val* eval_context::eval_reference(ast_context p, bool is_geom)
 	}
 	return get_ast_val(p);
 };
+
+const ims_val* eval_context::eval_unk_ref(ast_context p, bool)
+{
+	let uid = p.h.get_unk_id();
+
+	let& d =  m_nfo->m_list.m_idf.m_idx2unknown[uid]->second;
+	if (d.has_block()) {
+		return get_ast_val(p);
+	}
+	assert(d.has_js_entry());
+
+	if (m_nfo->m_js_engine.js_obj_is_function(d.js_export_entry)) {
+		return get_ast_val(p);
+	}
+
+	let* ret = const_cast<ims_info*>(m_nfo)->
+		m_js_engine.js_obj_get_imm_value(d.js_export_entry);
+
+	if (!ret) {
+		eval_error("invalid js value");
+	}
+	return ret;
+}
 
 ESUBTYPE eval_context::eval_pow_exponent(
 	ast_context p,
@@ -548,8 +572,11 @@ eval_context::get_func_for_call(
 	const ims_val* func, 
 	bool use_cache, 
 	size_t dim, 
-	size_t& new_call_offset)
+	size_t& new_call_offset,
+	block_id_t* js_obj)
 {
+	if (js_obj)*js_obj = block_id_max;
+
 	if (!func || !func->is(ims_val::ETP::ast_ptr)) {
 		return nullptr;
 	}
@@ -566,10 +593,20 @@ eval_context::get_func_for_call(
 	}
 
 	let unk_id = ast->h.get_unk_id();
-	auto* fb = m_lst->get_block_from_unk(unk_id);
+
+	let& lst = m_nfo->m_list;
+
+	let& d = lst.m_idf.m_idx2unknown[unk_id]->second;
+
+	if (d.block_id == block_id_max) {
+		if (js_obj)*js_obj = d.js_export_entry;
+		return nullptr;
+	}
+
+	auto* fb = lst.get_block(d.block_id);
 	if (!fb) {
 		ims_error("call: block not found: {}", 
-			m_lst->m_idf.get_str_from_unk(unk_id));
+			lst.m_idf.get_str_from_unk(unk_id));
 		return nullptr;
 	}
 
@@ -598,8 +635,8 @@ eval_context::get_func_for_call(
 	m_refs5.resize(new_sz);
 
 	for (size_t i = new_call_offset; i < new_sz; ++i) {
-		auto& d = m_refs5[i];
-		d.c.call_offset = ims_max;//flag that is not ovrriden
+		auto& r = m_refs5[i];
+		r.c.call_offset = ims_max;//flag that is not ovrriden
 	}
 
 	//overlap with the ENTIRE hierarchy
@@ -608,11 +645,11 @@ eval_context::get_func_for_call(
 		for (let& q : *b) {
 			if (q.is_builtin())continue;
 
-			auto& d = m_refs5[q.gr() + new_call_offset];
-			if (d.c.call_offset != ims_max) continue;//already overriden
+			auto& r = m_refs5[q.gr() + new_call_offset];
+			if (r.c.call_offset != ims_max) continue;//already overriden
 
-			d.c = { b->get_ptr(q.pos5), new_call_offset };
-			d.is_subs = b->ctx()->m_refs5[q.gr()].is_subs;
+			r.c = { b->get_ptr(q.pos5), new_call_offset };
+			r.is_subs = b->ctx()->m_refs5[q.gr()].is_subs;
 		}
 	}
 
@@ -638,7 +675,6 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 	if (!func) {
 		return nullptr;
 	}
-
 
 	if (na == 1 && func->is(ims_val_b::ETP::vector)) {//arr() == array size
 		return eval_pool::ep.get_scalar_int(func->get_size());
@@ -666,6 +702,7 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 		return ret;
 	}
 
+
 	let orig_size = m_refs5.size();
 	let orig_cache = m_fields_call.size();
 	bool revert = false;
@@ -679,11 +716,49 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 
 	size_t new_call_offset;
 
+	block_id_t js_obj = block_id_max;
+
 	let* fb = get_func_for_call(
 		func.get(),
 		na == 1 || op.ts == ESUBTYPE::call_fields, 
 		p.a->get_dim(), 
-		new_call_offset);
+		new_call_offset,
+		&js_obj);
+
+	if (js_obj != block_id_max) {
+		if (!is_geom)return get_ast_val(p);
+
+		pool_ptr args;
+		for (size_t i = 1; i < na; ++i) {
+			let* vi = eval7(p.index(i), true);
+			if (!vi) {
+				eval_error2("invalid arguments {}", i - 1);
+				return nullptr;
+			}
+			if (na > 2) {
+				if (!args) {
+					args.reset(eval_pool::ep.get_vector(na - 1));
+				}
+				args->p_v()[i - 1] = vi;
+			} else {
+				args = vi;
+			}
+		}
+
+		std::string err;
+		let* ret = const_cast<ims_info*>(m_nfo)->m_js_engine.
+			js_obj_call(js_obj, args.get(), na - 1, err);
+
+		if (!ret) {
+			if (err.empty()) {
+				err = "invalid return value";
+			}
+			eval_error2("js call: {}", err);
+			return nullptr;
+		}
+
+		return ret;
+	}
 
 	if (!fb) {
 		if (!is_geom)return get_ast_val(p);
@@ -839,7 +914,8 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 				func.get(), 
 				true,
 				p.a->get_dim(),
-				new_call_offset);
+				new_call_offset,
+				nullptr);
 		}
 	}
 
@@ -1837,6 +1913,7 @@ const ims_val* eval_context::eval_mul(ast_context p, bool is_geom)
 };
 
 
+
 const ims_val* eval_context::eval_sum(ast_context p, bool)
 {
 	let& op = p.h;
@@ -1930,7 +2007,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::uni:			ret = eval_uni(p, is_geom); break;
 	case ETYPE::mul:			ret = eval_mul(p, is_geom); break;
 	case ETYPE::sum:			ret = eval_sum(p, is_geom); break;
-	case ETYPE::unk_reference:	ret = get_ast_val(p); break;
+	case ETYPE::unk_reference:	ret = eval_unk_ref(p, is_geom); break;
 	case ETYPE::set_interval:
 	case ETYPE::set_vector:
 	case ETYPE::set_permutation:
