@@ -682,10 +682,10 @@ bool read_state::process_variable(
 		q.val, b, offset);
 
 	if (!err_msg.empty()) {
-		ims_error("{}", m_pfo.err.str());
+		ims_error("var {}, line {}, {}",
+			q.name, b.m_line8 + q.line7, m_pfo.err.str());
 		return false;
 	};
-
 
 	return true;
 }
