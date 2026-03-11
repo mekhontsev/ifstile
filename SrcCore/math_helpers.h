@@ -116,7 +116,7 @@ size_t iLogx(const Integer& a, const Integer& x, bool& res)
 
 //find a rational approximation of a real number from 0 to 1 with an accuracy of eps
 template<typename Integer, typename Real>
-void farey(const Real x, const Real eps, Integer& r, Integer& h)
+bool farey(const Real x, const Real eps, size_t iters, Integer& r, Integer& h)
 {
 	static_assert(std::numeric_limits<Integer>::is_exact);
 
@@ -124,12 +124,12 @@ void farey(const Real x, const Real eps, Integer& r, Integer& h)
 
 	if (x < eps) {
 		r = 0;	h = 1;
-		return;
+		return true;
 	} 
 	
 	if (x + eps > 1) {
 		r = 1;	h = 1;
-		return;
+		return true;
 	}
 
 	Integer a, b, c, d;
@@ -137,20 +137,21 @@ void farey(const Real x, const Real eps, Integer& r, Integer& h)
 	c = 1; d = 1;
 	
 	Real e;
-	for(;;){	
+	for (size_t i = 0; i < iters; ++i) {
 		r = a + c;
 		h = b + d;
 
 		e = x - Real(r) / h;
 
 		if (e > 0) {
-			if ( e < eps)return;
+			if ( e < eps)return true;
 			a = r;	b = h;
 		} else {
-			if (-e < eps)return;
+			if (-e < eps)return true;
 			c = r;	d = h;
 		}
 	}
+	return false;
 };
 
 

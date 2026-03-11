@@ -206,6 +206,7 @@ static void s_init()
 		case ETYPE::companion:			d = "companion";	break;
 		case ETYPE::vector_union:		d = "union";		break;
 		case ETYPE::charpoly:			d = "charpoly";		break;
+		case ETYPE::numden:				d = "numden";		break;
 		case ETYPE::diagonal:			d = "diagonal";		break;
 		case ETYPE::exchange:			d = "exchange";		break;
 		case ETYPE::csg:				d = "csg";			break;
@@ -409,6 +410,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::diagonal:
 	case ETYPE::index:
 	case ETYPE::condition:
+	case ETYPE::numden://1 or 2 arguments
 		return num_args();//dynamic number of operator arguments
 	default:
 		assert(false);

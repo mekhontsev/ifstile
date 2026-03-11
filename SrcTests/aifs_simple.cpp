@@ -519,6 +519,21 @@ c=$charpoly([5,6.2,1,7,8,3,9,2,3]);
 	EXPECT_TRUE(t.approx_vec("c", { -69.2,20.6,-16 }));
 };
 
+TEST(testEval, numden)
+{
+	aifs_tester t(R"(
+@
+a=$numden(3/7)
+b=$numden(3.1, 1e-10)
+c=$numden(3.1, 1e-30)
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+
+	EXPECT_TRUE(t.equal_vec("a", { 3, 7 }));
+	EXPECT_TRUE(t.equal_vec("b", { 31, 10 }));
+	EXPECT_TRUE(t.equal_vec("c", { 0, 0 }));
+};
 
 TEST(testEval, modules)
 {

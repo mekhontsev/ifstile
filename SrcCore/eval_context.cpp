@@ -1160,7 +1160,13 @@ const ims_val* eval_context::eval_diagonal(ast_context p, bool)
 
 const ims_val* eval_context::eval_charpoly(ast_context p, bool)
 {
-	pool_ptr a0(eval7(p.index(0), true));
+	let na = p.h.num_args();
+	pool_ptr a0;
+
+	if (na == 1) {
+		a0.reset(eval7(p.index(0), true));
+	}
+
 	if (!a0) {
 		eval_error("$charpoly: invalid argument");
 		return nullptr;
@@ -1172,6 +1178,79 @@ const ims_val* eval_context::eval_charpoly(ast_context p, bool)
 	}
 
 	return eval_helpers::affine_charpoly(v.get());
+};
+
+const ims_val* eval_context::eval_numden(ast_context p, bool)
+{
+	let na = p.h.num_args();
+	pool_ptr a0;
+
+	if (na >= 1) {
+		a0.reset(eval7(p.index(0), true));
+	}
+
+	if (!a0) {
+		eval_error("$numden: invalid argument");
+		return nullptr;
+	}
+
+	if (a0->is(ims_val_b::ETP::number)) {
+		switch (a0->gs())
+		{
+		case ims_val_b::EST::rational:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector_int(2));
+			ret->p_i()[0] = numerator(*a0->p_i());
+			ret->p_i()[1] = denominator(*a0->p_i());
+			return ret.release();
+		}
+		case ims_val_b::EST::big_rational:
+		{
+			pool_ptr ret(eval_pool::ep.get_vector_big_rational(2));
+			ret->p_b()[0] = numerator(*a0->p_b());
+			ret->p_b()[1] = denominator(*a0->p_b());
+			return ret.release();
+		}
+		case ims_val_b::EST::real:
+		{
+			if (na < 2) {
+				eval_error("$numden: invalid number of arguments");
+				return nullptr;
+			}
+			pool_ptr a1(eval7(p.index(1), true));
+			double eps = 0;
+			if (!a1->to_real(eps) || eps <= 0) {
+				eval_error("$numden: invalid argument 2");
+				return nullptr;
+			}
+
+			auto r = a0->get_real();
+			let ir = floor(r);
+
+			pool_ptr ret(eval_pool::ep.get_vector_int(2));
+			ims_val_b::Integer n{}, d{};
+			if (!farey(r - ir, eps, 100, n, d)) {
+				n = 0;
+				d = 0;
+			} else if (ir != 0) {
+				n += int64_t(ir)*d;
+				if (std::abs(double(n) / d - r) > eps) {
+					n = 0;
+					d = 0;
+				}
+			}
+
+			ret->p_i()[0] = n;
+			ret->p_i()[1] = d;
+
+			return ret.release();
+		}
+		default:
+			break;
+		}
+	}
+	eval_error("$numden: invalid argument type");
+	return nullptr;
 };
 
 const ims_val* eval_context::eval_csg(ast_context p, bool is_geom)
@@ -1991,6 +2070,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::call_built_in:	ret = eval_call_built_in(p, is_geom); break;
 	case ETYPE::diagonal:		ret = eval_diagonal(p, is_geom); break;
 	case ETYPE::charpoly:		ret = eval_charpoly(p, is_geom); break;	
+	case ETYPE::numden:			ret = eval_numden(p, is_geom); break;
 	case ETYPE::csg:			ret = eval_csg(p, is_geom); break;
 	case ETYPE::vector_union:	ret = eval_vector_uni(p, is_geom); break;
 	case ETYPE::vector:			ret = eval_vector(p, is_geom); break;

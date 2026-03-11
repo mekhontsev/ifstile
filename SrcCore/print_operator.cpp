@@ -454,6 +454,7 @@ void print_operator(
 	//standard layout
 	case ETYPE::csg:
 	case ETYPE::charpoly:
+	case ETYPE::numden:
 	case ETYPE::companion:
 	case ETYPE::color_style:
 	case ETYPE::thickness:

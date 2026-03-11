@@ -193,6 +193,7 @@ private:
 	def_ec_method2(eval_vector_imm);
 	def_ec_method2(eval_diagonal);
 	def_ec_method2(eval_charpoly);
+	def_ec_method2(eval_numden);
 	def_ec_method2(eval_csg);
 	def_ec_method2(eval_vector_uni);
 	def_ec_method2(eval_companion);

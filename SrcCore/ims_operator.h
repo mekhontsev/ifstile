@@ -97,6 +97,9 @@ enum class ETYPE : uint8_t
 	//characteristic polynomial
 	charpoly,
 
+	//[numerator, denominator]
+	numden,
+
 	//reference to another operator (header only)
 	reference,
 
@@ -158,10 +161,6 @@ enum class ETYPE : uint8_t
 	condition,//odd number of arguments
 
 	////////////////////////////////////////////////////////////////////////////
-
-
-
-
 
 	//the specified vector element
 	//argument - what to index (vector, element, or reference)
