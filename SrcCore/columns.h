@@ -50,7 +50,6 @@ struct columns
 	void init_columns(
 		size_t num_rules = ERULE::search_first + 1, 
 		bool clear = false);
-	
 
 	void adjust_vis();
 	
@@ -87,6 +86,8 @@ public:
 	std::array<bool, column_id::NUM_COLS> m_col_visible;
 
 	std::vector<rule::arr> m_rule;
+
+	ankerl::unordered_dense::map<std::string, column_id::ECID> m_str2id;
 
 private:
 

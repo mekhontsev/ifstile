@@ -272,6 +272,12 @@ bool columns::only_osc() const
 columns& columns::get()
 {
 	ims_func_static columns g_col;
+	if (g_col.m_str2id.empty()) {
+		for (size_t i = 0; i < column_id::NUM_COLS; ++i) {
+			let& src = data_column::g_cols[i];
+			g_col.m_str2id[src.title] = column_id::ECID(i);
+		}
+	}
 	return g_col;
 }
 

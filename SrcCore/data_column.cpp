@@ -740,7 +740,8 @@ void data_column::get_column_str(
 		if (get_int) {
 			fmt::format_to(std::back_inserter(s), "{}", get_int(sr, *u));
 			return;
-		} else if (get_float) {
+		}
+		if (get_float) {
 			prn_num_ex2(get_float(sr, *u), s);
 			return;
 		};
