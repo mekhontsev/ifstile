@@ -886,7 +886,7 @@ static bool parse_operator(
 						}
 
 						let ival = nit->get<int>();
-						if (ival < 1 || ival > 1023) {
+						if (ival < 1 || !ims_operator::is_u24(ival)) {
 							pfo.err << "invalid argument 1";
 							return reter();
 						}
@@ -944,17 +944,26 @@ static bool parse_operator(
 
 						let ar = block.add_args(x, th, 1);
 
+						bool is_ok = true;
+
 						//size first
 						if (na == 0) {
-							a[x].hdr.set_i24(0);
+							a[x].hdr.set_u24(0);
 						} else if (nit->which() == spirit::utree_type::int_type) {
 							let v = nit->get<int>();
-							a[x].hdr.set_i24(v);
+							if (ims_operator::is_u24(v)) {
+								a[x].hdr.set_u24(v);
+							} else {
+								is_ok = false;
+							}
 						} else {
+							is_ok = false;
+						}
+
+						if (!is_ok) {
 							pfo.err << "invalid argument";
 							return reter();
 						}
-
 
 						if (na < 2) {
 							block.set_distribution_def(ar);
@@ -978,10 +987,18 @@ static bool parse_operator(
 							return reter();
 						}
 						let& h = block.m_ops[ar].hdr;
-						let ok = (h.tt == ETYPE::vector_imm && h.ts == ESUBTYPE::integer) ||
-							(h.tt == ETYPE::vector && h.num_args() == 0);
-						if (!ok) {
+
+						if (h.tt == ETYPE::vector && h.num_args() == 0) {
+							return true;
+						}
+						if (h.tt != ETYPE::vector_imm && h.ts == ESUBTYPE::integer) {
 							pfo.err << "invalid $permuatation argument type";
+							return reter();
+						}
+						size_t dim = 0;
+						block.get_ptr(x).get_permutation_params(dim);
+						if (!ims_operator::is_u24(dim)) {
+							pfo.err << "$permutation is too large";
 							return reter();
 						}
 						return true;

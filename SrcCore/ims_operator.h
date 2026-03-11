@@ -346,6 +346,7 @@ struct ims_operator
 	//for sorting
 	static intptr_t lexic_compare(ims_operator h1, ims_operator h2);
 	static bool is_i24(intptr_t v);
+	static bool is_u24(intptr_t v);
 };
 
 static_assert(sizeof(ims_operator) == sizeof(int64_t), "invalid size");

@@ -58,6 +58,12 @@ bool ims_operator::is_i24(intptr_t v)
 	return v < 0x800000 && -v <= 0x800000;
 }
 
+bool ims_operator::is_u24(intptr_t v)
+{
+	if (v < 0)return false;
+	return v < 0x1000000;
+}
+
 bool ims_operator::set_i24(intptr_t v)
 {
 	if (!is_i24(v)) {
