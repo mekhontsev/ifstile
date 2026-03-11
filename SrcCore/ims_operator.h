@@ -23,6 +23,28 @@ enum class ETYPE : uint8_t
 	//not defined (maximum priority)
 	undef = 0,//results from clear()
 
+	///////////////////////////////////////////////////////////////////////////
+
+	//degree (first argument is the base, exponent is in the header)
+	power_imm,
+
+	//degree (the first argument is the base, the second is the exponent)
+	power,
+
+	//modulus: a%b
+	mod,
+
+	//composition and multiplication
+	mul,
+
+	//sum (for numbers, vectors of the same length and affine)
+	sum,
+
+	//union
+	uni,
+
+	///////////////////////////////////////////////////////////////////////////
+
 	//$
 	this_vector,
 
@@ -53,14 +75,11 @@ enum class ETYPE : uint8_t
 	//vector of numbers
 	vector_imm,
 
-	//$union
-	vector_union,
-
 	//vector of operators
 	vector,
 
-	//left - means indexing a variable, for example a[0, 3] = ...
-	var_index = vector,
+	//$union
+	vector_union,
 
 	//companion matrix, arguments are vectors (normalized polynomials)
 	//if there are no arguments, the identity matrix
@@ -125,6 +144,8 @@ enum class ETYPE : uint8_t
 	//color (geometrically identity)
 	color_style,
 
+	csg, //$csg(map: other, with: int, power: int, inv_all_maps: int)
+
 	thickness,
 
 
@@ -138,6 +159,10 @@ enum class ETYPE : uint8_t
 
 	////////////////////////////////////////////////////////////////////////////
 
+
+
+
+
 	//the specified vector element
 	//argument - what to index (vector, element, or reference)
 	//index - in the header (u24)
@@ -147,27 +172,6 @@ enum class ETYPE : uint8_t
 	//the first argument is what we're indexing (vector, element, or reference)
 	//the second argument is the index
 	index,
-
-	//degree (first argument is the base, exponent is in the header)
-	power_imm,
-
-	//degree (the first argument is the base, the second is the exponent)
-	power,
-
-	//modulus: a%b
-	mod,
-
-	//composition and multiplication
-	mul,
-
-	//sum (for numbers, vectors of the same length and affine)
-	sum,
-
-	//union
-	uni,
-
-	csg, //$csg(map: other, with: int, power: int, inv_all_maps: int)
-
 
 	//minimum priority
 

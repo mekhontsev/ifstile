@@ -202,6 +202,11 @@ const ims_val* aifs_tester::eval(std::string_view var, bool is_geom /*= true*/)
 	return ec.eval_ref(ref, is_geom);
 }
 
+bool aifs_tester::valid(std::string_view var)
+{
+	return eval(var);
+}
+
 bool aifs_tester::equal(std::string_view var, ims_val_b::Rational val)
 {
 	let* v = eval(var);

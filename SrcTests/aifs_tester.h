@@ -57,6 +57,8 @@ struct aifs_tester
 
 	const ims_val* eval(std::string_view var, bool is_geom = true);
 
+	bool valid(std::string_view var);
+
 	//compares the variable from the last block
 	bool equal(std::string_view var, ims_val_b::Rational val);
 

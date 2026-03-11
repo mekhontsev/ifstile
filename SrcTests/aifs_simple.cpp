@@ -78,7 +78,7 @@ TEST(testLoad, empty_file)
 };
 
 
-TEST(testLoad, empty_id)
+TEST(testLoad, empty_block)
 {
 	aifs_tester t(R"(
 @empty
@@ -147,15 +147,13 @@ TEST(testEval, BabylonianMethod)
 	aifs_tester t(R"(
 @
 n=2
-r=[1.0, $, if (abs($[-1]*$[-1]-n)-1e-15, ($[-1]+n/$[-1])/2, $) ][-1]
+r=[1.0, $, abs($[-1]*$[-1]-n)-1e-15, ($[-1]+n/$[-1])/2][-1]
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
 
 	EXPECT_TRUE(t.approx("r", sqrt(2)));
 };
-
-
 
 TEST(testEval, simple_call)
 {
@@ -953,33 +951,33 @@ s2=a2()
 	EXPECT_TRUE(t.equal("s2", 2));
 };
 
-TEST(testArrFuncs, ArrGenSimple)
+TEST(testArrFuncs, ArrGenWrong)
 {
 	aifs_tester t(R"(
 @
 a=[$]
-b=[$,$]
+b=[$,0]
 )");
 	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a", {}));
-	EXPECT_TRUE(t.equal_vec("b", {}));
+	EXPECT_FALSE(t.valid("a"));
+	EXPECT_FALSE(t.valid("b"));
 };
 
 TEST(testArrFuncs, ArrGenSeq)
 {
 	aifs_tester t(R"(
 @
-a=[$, if (4-$(), $(), $)]
+a=[$, 4-$(), $(), -1]
 )");
 	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a", { 0,1,2,3 }));
+	EXPECT_TRUE(t.equal_vec("a", { 0,1,2,3,-1}));
 };
 
 TEST(testArrFuncs, ArrGenSeq2)
 {
 	aifs_tester t(R"(
 @
-a=[$, if (4-$(), [$(1)(),$(1)()*$(1)()], $)]
+a=[$, 4-$(), [$(1)(),$(1)()*$(1)()]]
 sa=a()
 a3=a[3]
 )");
@@ -1005,7 +1003,7 @@ TEST(testArrFuncs, ArrGenFib)
 {
 	aifs_tester t(R"(
 @
-a=[0, 1, $, if (7-$(), $[-1]+$[-2], $)]
+a=[0, 1, $, 7-$(), $[-1]+$[-2]]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 0,1,1,2,3,5,8 }));
@@ -1016,7 +1014,7 @@ TEST(testArrFuncs, ArrGenCopy)
 	aifs_tester t(R"(
 @
 b=[2,3,5,7,11]
-a=[$, if(b() - $(), b[$()], $)]
+a=[$, b()-$(), b[$()]]
 )");
 	if (!t.init())FAIL() << t.err_msg;
 	EXPECT_TRUE(t.equal_vec("a", { 2,3,5,7,11 }));

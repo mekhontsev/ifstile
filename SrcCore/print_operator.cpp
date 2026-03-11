@@ -424,7 +424,7 @@ void print_operator(
 		}
 
 		//whether to print brackets
-		bool pr_bra = par_type < t && par_type != ETYPE::index;
+		bool pr_bra = par_type < t;
 
 		if (pr_bra)str << "(";
 

@@ -1725,8 +1725,7 @@ const ims_val* eval_context::eval_uni(ast_context p, bool is_geom)
 
 const ims_val* eval_context::eval_vector(ast_context p, bool is_geom)
 {
-	let& op = p.h;
-	let na = op.num_args();
+	let na = p.h.num_args();
 
 	//reserve na elements
 	m_vec_stack.emplace_back(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
@@ -1737,58 +1736,51 @@ const ims_val* eval_context::eval_vector(ast_context p, bool is_geom)
 	//increase during iterations
 	vec.get_mut()->shrink(0);
 
-	//calculate all components of the vector
-	//consider 3 cases
-	//1) all components are rational scalars
-	//2) all components are real scalars
-	//3) the rest
-
-	//some vector elements may be nullptr
-	//this is okay because they may not be needed
+	auto set_vector = [&](const ims_val* v) -> bool
+	{
+		if (v == vec.get()) {
+			eval_pool::ep.release(v);
+			return false;
+		};
+		let cur_pos = vec->get_size();
+		vec = eval_pool::ep.update_vec_size(vec.get_mut(), cur_pos + 1);
+		m_vec_stack.back() = vec;//update reference
+		vec->p_v()[cur_pos] = v;//take ownership
+		return true;
+	};
 
 	//calculate the components
-
-	bool generator_mode = false;
-
-	size_t jdx = 0;
-
-	pool_ptr topo_vec;
-
-	while (jdx < na) {
-		
-		pool_ptr vj(eval7(p.index(jdx), generator_mode || is_geom));
-
-		if (!vj && generator_mode) {
-			++jdx;
+	for (size_t i = 0; i < na; ++i) {
+		if (set_vector(eval7(p.index(i), is_geom))) {
 			continue;
 		}
 
-		let is_gen_marker = (vj.get() == vec.get());
-
-		if (is_gen_marker) {
-			generator_mode = !generator_mode;
-			++jdx;
-			continue;
-		}
-
-		if (vec->get_size() > 1024 * 1024 + na) {
-			vec.reset();
-			eval_error("invalid vector");
+		//generator mode
+		if (i + 2 >= na) {
+			eval_error("invalid recursive vector");
 			return nullptr;
 		}
 
-		let cur_pos = vec->get_size();
-		vec = eval_pool::ep.update_vec_size(vec.get_mut(), cur_pos + 1);
+		let cptr = p.index(i + 1);
+		let vptr = p.index(i + 2);
 
-		if (!is_geom && generator_mode) {
-			vj = eval7(p.index(jdx), false);//recalculate
-		}
-		vec->p_v()[cur_pos] = vj.release();//take ownership
+		i += 2;
 
-		m_vec_stack.back() = vec;//update
+		static constexpr size_t MAX_ELEMS_TO_GEN = 1024 * 1024;
 
-		if (!generator_mode) {
-			++jdx;
+		for (;;) {
+			if (vec->get_size() > MAX_ELEMS_TO_GEN + na) {
+				eval_error("recursive vector is too long");
+				return nullptr;
+			}
+			pool_ptr vcond(eval7(cptr, true));
+			if (!vcond) {
+				eval_error("recursive vector: invalid condition");
+				return nullptr;
+			}
+			if (!vcond->is_true() || !set_vector(eval7(vptr, true))) {
+				break;//end of the loop
+			}
 		}
 	}
 	return eval_pool::ep.adjust_vec_type(vec.get());
