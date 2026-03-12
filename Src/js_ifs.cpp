@@ -202,11 +202,32 @@ static JSValue js_ifs_set(
 		}
 		break;
 	}
+	case column_id::ID:
 	case column_id::Name:
 	{
-		if (!get_string(ctx, argv[2], b->m_name)) {
+		std::string a;
+		if (!get_string(ctx, argv[2], a)) {
 			return JS_ThrowTypeError(ctx, "Argument 3 must be a string");
 		}
+		if (cid == column_id::Name) {
+			b->m_name = a;
+			return JS_UNDEFINED;
+		}
+
+		if (!ims_identifiers::is_identifier(a)) {
+			return JS_ThrowTypeError(ctx, "Invalid identifier");
+		}
+		auto& lst = ifs_list_get();
+		auto& d = lst.m_idf.get_data(a);
+		if (d.has_block()) {
+			if (d.block_id == b->m_block_id) {
+				return JS_UNDEFINED;
+			}
+			return JS_ThrowReferenceError(ctx, "The identifier is used by another block");
+		}
+		d.block_id = b->m_block_id;
+		lst.m_id2data[b->m_block_id].m_str_id = d.unk_id;
+
 		break;
 	}
 	default:
