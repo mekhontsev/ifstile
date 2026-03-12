@@ -19,10 +19,7 @@
 #include "ims_window_drag.h"
 #include "gui.h"
 #include "platform.h"
-
-namespace ImGui { extern int g_edit_hook; }
-
-
+#include "edit_helper.h"
 
 const char* ws_console::get_title()
 {
@@ -36,6 +33,7 @@ void ws_console::clear_console()
 
 void ws_console::show()
 {
+
 	int next_id = 0;
 
 	bool bexec;
@@ -74,13 +72,14 @@ void ws_console::show()
 	if (bclear) { m_buf.clear(); }
 #ifndef __EMSCRIPTEN__	
 	//In the browser, ImGui uses its own clipboard, which is not accessible from the OS.
-	int vedit = 0;
+	int vedit = edit_helper::a_none;
 	{
 		SAME_LINE();
-		if (ims_button("Copy")) { vedit = 2; }
+		if (ims_button("Copy")) { vedit = edit_helper::a_copy; }
 	}
-	ImGui::g_edit_hook = vedit;
-	IMS_SCOPE([] {ImGui::g_edit_hook = 0; });
+
+	let id_con = next_id++;
+	edit_helper::set_action(id_con, vedit);
 #endif
 	{
 		SAME_LINE();
@@ -105,12 +104,15 @@ void ws_console::show()
 		ImGuiInputTextFlags input_text_flags =
 			ImGuiInputTextFlags_CtrlEnterForNewLine |
 			ImGuiInputTextFlags_EnterReturnsTrue |
-			ImGuiInputTextFlags_EscapeClearsAll;
+			ImGuiInputTextFlags_EscapeClearsAll|
+			ImGuiInputTextFlags_AllowTabInput;
 
 		sz = { ws.x - 2 * ImGui::GetCursorPos().x , ImGui::GetFrameHeight() };
-		ImGui::PushID(next_id++);
+
+		edit_helper::begin(next_id++);
 		let exec = ImGui::InputTextMultiline("", &m_input_buf, sz, input_text_flags);
-		ImGui::PopID();
+		edit_helper::end();
+
 		//set_tooltip("Execute JavaScript");
 		if (exec || bexec) {
 			std::string_view script{ m_input_buf };
@@ -140,6 +142,9 @@ void ws_console::show()
 	str = get_con_data(true);
 	m_buf += str;
 
+	edit_helper::begin(id_con);
+	IMS_SCOPE([] {edit_helper::end(true);});
+
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	ImGui::PushStyleColor(ImGuiCol_Border, ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
 	ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
@@ -149,9 +154,9 @@ void ws_console::show()
 
 	let cp = ImGui::GetCursorPos();
 	sz = { ws.x - (cp.x + cp.x), ws.y - (cp.y + cp.x) };
-	ImGui::PushID(next_id++);
+
 	ImGui::InputTextMultiline("", &m_buf, sz, flags);
-	ImGui::PopID();
+
 	ImGui::PopStyleColor(2);
 	ImGui::PopStyleVar(1);
 }

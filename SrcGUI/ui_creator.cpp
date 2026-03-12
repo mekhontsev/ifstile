@@ -26,7 +26,7 @@
 #include "finder.h"
 #include "ims_info.h"
 #include "call_thread.h"
-
+#include "edit_helper.h"
 
 ims_static creator_state g_creator;
 
@@ -116,8 +116,9 @@ void ws_creator::create_ifs3()
 
 void ws_creator::show_2d_creator()
 {
-
+	edit_helper::begin(0);
 	ImGui::InputText("Graph", &g_creator.m_graph_str);
+	edit_helper::end();
 
 	if (ims_button("Check")) {
 		if (!g_creator.m_cg.parse(g_creator.m_graph_str)) {

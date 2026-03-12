@@ -21,7 +21,7 @@
 #include "file_dialog_state.h"
 #include "ims_file.h"
 #include "platform.h"
-
+#include "edit_helper.h"
 
 SDL_Window* MainWindow_get();
 
@@ -136,16 +136,14 @@ void ws_file_dialog::show()
 
 	let ws = ImGui::GetWindowSize().x;
 
-	ImGui::PushID(next_id++);
+	edit_helper::begin(next_id++);
 	let cp = ImGui::GetCursorPosX();
 	ImGui::PushItemWidth(ws - 2 * cp);
 	ImGui::InputText("", &sp.m_name);
 	ImGui::PopItemWidth();
-	ImGui::PopID();
+	edit_helper::end();
 
 	ImGui::Separator();
-
-
 	///////////////////////////////////////////////////////
 	if (ImGui::Button(" OK ")) {
 

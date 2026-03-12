@@ -23,7 +23,7 @@
 #include "block_class.h"
 #include "eval_context.h"
 #include "variable.h"
-
+#include "edit_helper.h"
 
 const char* ws_animation::get_title()
 {
@@ -95,11 +95,10 @@ void ws_animation::show()
 			m_num_frames = std::min(m_num_frames, (size_t)1'000'000);
 		};
 
-		
-
+		edit_helper::begin(0);
 		ImGui::InputText("Prefix ", &m_anim_prefix);
+		edit_helper::end();
 
-		
 		m_refs_arr.clear();
 		let* sr = get_cur_block();
 		if (sr) {

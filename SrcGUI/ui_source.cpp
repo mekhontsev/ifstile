@@ -22,9 +22,7 @@
 #include "utf8_decoder.h"
 #include "def_number_types.h"
 #include "ims_info.h"
-
-namespace ImGui { int g_edit_hook = 0; }
-
+#include "edit_helper.h"
 
 const char* ws_source::get_title()
 {
@@ -172,7 +170,6 @@ void ws_source::show(int& id, bool js)
 	};
 
 	static int s_sel_item = EDITOR_Copy;
-
 	{
 		SAME_LINE();
 		ImGui::PushID(id++);
@@ -183,53 +180,50 @@ void ws_source::show(int& id, bool js)
 		ImGui::PopID();
 
 	}
-	
+
 	bool but_clicked = false;
-	
 	{
 		SAME_LINE();
 		but_clicked = ims_button("Ok", "", &id);
 	}
-	
+
 	{
 		SAME_LINE();
 		ImGui::Text(":%zu", m_line);
 		set_tooltip("Cursor line");
 	}
-	
-	int vedit = 0;
 
-	
+	let id_edit = id++;
+	int vedit = edit_helper::a_none;
+
 	if (but_clicked) {
 		switch (s_sel_item) {
 		case EDITOR_Cut:
-			vedit = 1;
+			vedit = edit_helper::a_cut;
 			s_sel_item = EDITOR_Paste;
 			break;
 		case EDITOR_Copy:
-			vedit = 2;
+			vedit = edit_helper::a_copy;
 			s_sel_item = EDITOR_Paste;
 			break;
 		case EDITOR_Paste:
-			vedit = 3;
+			vedit = edit_helper::a_paste;
 			s_sel_item = EDITOR_Copy;
 			break;
 		case EDITOR_Undo:
-			vedit = 4;
+			vedit = edit_helper::a_undo;
 			break;
 		case EDITOR_Redo:
-			vedit = 5;
+			vedit = edit_helper::a_redo;
 			break;
 		case EDITOR_All:
 			//send_ctrl_a();
-			vedit = 6;
+			vedit = edit_helper::a_selall;
 			s_sel_item = EDITOR_Copy;
-
 		}
 	}
 
-	ImGui::g_edit_hook = vedit;
-	IMS_SCOPE([] {ImGui::g_edit_hook = 0; });
+	edit_helper::set_action(id_edit, vedit);
 
 	//stretch InputTextMultiline to cover the entire window
 	auto ws = ImGui::GetWindowSize();
@@ -248,6 +242,8 @@ void ws_source::show(int& id, bool js)
 		return 0;
  	};
 
+	edit_helper::begin(id_edit);
+	IMS_SCOPE([] {edit_helper::end(); });
 
 	//fixes a bug where the cursor was incorrectly positioned when using a mouse
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -258,12 +254,8 @@ void ws_source::show(int& id, bool js)
 		ImGui::SetKeyboardFocusHere();
 	}
 
-	//static char buf[123] = { 0 };ImGui::InputText("1", buf, IM_ARRAYSIZE(buf));
-	ImGui::InputTextMultiline("###source", &m_vis.src, ws, flags, text_cb, this);
+	ImGui::InputTextMultiline("", &m_vis.src, ws, flags, text_cb, this);
 
-
-	
 	ImGui::PopStyleColor(2);
 	ImGui::PopStyleVar(1);
-
 }

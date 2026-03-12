@@ -25,6 +25,7 @@
 #include "finder.h"
 #include "oper_block.h"
 #include "ims_worker.h"
+#include "edit_helper.h"
 
 void ws_ifs_list::scroll_to_row(size_t row)
 {
@@ -230,15 +231,14 @@ void ws_ifs_list::show()
 		auto* sr = get_cur_block();
 		if (sr) {
 
-			ImGui::PushID(next_id++);
-
+			edit_helper::begin(next_id++);
 			let sz = ImGui::CalcItemWidth() * 0.8f;
 			ImGui::PushItemWidth(sz);
 			if (ImGui::InputText("", &sr->m_name)) {
 				std::replace(sr->m_name.begin(), sr->m_name.end(), ';', '_');
 			};
 			ImGui::PopItemWidth();
-			ImGui::PopID();
+			edit_helper::end();
 
 			{
 				SAME_LINE();

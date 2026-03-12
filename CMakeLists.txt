@@ -357,7 +357,7 @@ ui_ifs_list.cpp ui_sel_visible.h ui_sel_visible.cpp ui_render_par.h
 ui_render_par.cpp ui_console.h ui_console.cpp ui_editor.h ui_editor.cpp
 ui_utils.h ui_utils.cpp ims_markdown.h ims_markdown.cpp icons.cpp
 font_icons.cpp font_regular.cpp font_bold.cpp font_italic.cpp
-ims_val_widget.h ims_val_widget.cpp
+ims_val_widget.h ims_val_widget.cpp edit_helper.h edit_helper.cpp
 )
 prepend(SRC_GUI SrcGUI)
 source_group(SrcGUI FILES ${SRC_GUI})

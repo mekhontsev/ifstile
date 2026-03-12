@@ -19,6 +19,7 @@
 #include "ims_val.h"
 #include "eval_pool.h"
 #include "ui_utils.h"
+#include "edit_helper.h"
 
 static bool get_i64(const ims_val* d, int64_t& dst)
 {
@@ -214,11 +215,11 @@ void ims_val_widget::show_ui_for_val(
 			val = def_val;
 		}
 
-		ImGui::PushID(next_id++);
+		edit_helper::begin(next_id++);
 		if (ImGui::InputText("", &val)) {
 			v.reset(eval_pool::ep.update_string(v.get_mut(), val));
 		};
-		ImGui::PopID();
+		edit_helper::end();
 
 		err = false;
 		return;
