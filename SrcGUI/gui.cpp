@@ -721,7 +721,7 @@ static bool build_mesh(
 		bi.get_fg(),
 		pal,
 		crz.shift,
-		crz.type == colorize_params::e_vertex
+		crz.type
 	);
 
 	auto cdp = std::pow(2.0, -crz.get_depth());

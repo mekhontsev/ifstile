@@ -760,7 +760,7 @@ void program_state::build_image(
 						bd.m_bi.get_fg(),
 						pal, 
 						crz.shift,
-						crz.type == colorize_params::e_vertex
+						crz.type
 					);
 					
 					m_ss.gm = &bd.m_bi.get_fg();
@@ -921,10 +921,9 @@ void program_state::build_image(
 						bd.m_bi.get_fg(),
 						pal,
 						crz.shift,
-						crz.type == colorize_params::e_vertex
+						crz.type
 					);
 
-					
 					m_ss.gm = &bd.m_bi.get_fg();
 					m_ss.m_psi = &si;
 					m_ss.ri = bd.m_bi.m_em;

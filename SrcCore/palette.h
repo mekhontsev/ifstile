@@ -125,9 +125,10 @@ struct colorize_params
 	{
 		e_edge = 0,			//+depth
 		e_vertex = 1,		//+depth
-		e_field_lines = 2,	//+power
-		e_equipotential = 3,//+power + magnitude
-		e_numpar = 4,
+		e_graph = 2,		//+depth
+		e_field_lines = 3,	//+power
+		e_equipotential = 4,//+power + magnitude
+		e_numpar = 5,
 	};
 
 	EPAR type = e_numpar;
@@ -145,10 +146,8 @@ struct colorize_params
 	{
 		switch (def) {
 		case e_edge:
-			dst.resize(1);
-			dst[0] = 0.1;
-			break;
 		case e_vertex:
+		case e_graph:
 			dst.resize(1);
 			dst[0] = 0.1;
 			break;
@@ -175,7 +174,7 @@ struct colorize_params
 
 	static bool is_tiling(EPAR t)
 	{
-		return t == e_vertex || t == e_edge;
+		return t == e_vertex || t == e_edge || t == e_graph;
 	};
 
 	bool is_field() const

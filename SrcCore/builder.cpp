@@ -92,17 +92,13 @@ elem* state_stack::create_root(size_t root)
 	} else {
 		assert(!q.b);
 	}
-	
 
 	q.m_next = nullptr;
 	q.ver = root;
-
 	q.depth4 = 0;
-
+	q.index = 0;
 	q.mes = 1;
-
 	q.id3 = 0;
-
 	q.thickness = 0;//automatic
 	
 	if (icm) {
@@ -140,7 +136,8 @@ elem* state_stack::divide(elem* ce, size_t* id)
 		let& qv = gm->m_vers[ce->ver];
 
 		////////////////////////////////////////////////////////////////
-
+		let pal_sz = icm ? icm->m_cmap_pal.size() : 1;
+		let base_idx = ce->index * qv.sz;
 		for (size_t i = 0; i < qv.sz; ++i) {
 
 			auto& ne = *from_heap();
@@ -148,6 +145,7 @@ elem* state_stack::divide(elem* ce, size_t* id)
 			let eidx = qv.idx + i;
 			let& e = gm->m_edges[eidx];
 
+			ne.index = (base_idx +i) % pal_sz;
 			ne.ver = e.second;
 			ne.thickness = ce->thickness;
 			ne.mes = ce->mes * mes_mul[eidx];
@@ -192,8 +190,6 @@ elem* state_stack::divide(elem* ce, size_t* id)
 			if (bt.defined2()) {
 				ne.b = eval_helpers::mul_ball(ne.m.get(), bt.get());
 
-				
-
 				if (!ne.b) {//cut off
 					to_heap(&ne);
 					continue;
@@ -217,9 +213,9 @@ elem* state_stack::divide(elem* ce, size_t* id)
 					if (ne.deep_color) {
 
 						if (id)ne.id3 = (*id)++;
-
 						//Checking clipping by palette color
-						let ip = icm->m_edge2pal[eidx];
+						let ip = icm->m_epar == colorize_params::EPAR::e_graph ?
+							ne.index : icm->m_edge2pal[eidx];
 						if (!icm->m_cmap_pal[ip].checked) {
 							to_heap(&ne);
 							continue;
@@ -240,7 +236,9 @@ elem* state_stack::divide(elem* ce, size_t* id)
 				} else {
 					ne.auto_color = ce->auto_color;
 					if (ce->auto_color && ne.deep_color) {
-						let ip = icm->m_edge2pal[eidx];
+
+						let ip = icm->m_epar == colorize_params::EPAR::e_graph ?
+							ne.index : icm->m_edge2pal[eidx];
 						if (ce->deep_color) {
 							ne.c.mul_color(icm->m_cmap_pal[ip]);
 						} else {

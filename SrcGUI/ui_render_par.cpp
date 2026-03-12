@@ -149,7 +149,7 @@ void ws_render_par::ShowRenderGeneral()
 
 	static constexpr auto cb =
 	{
-		"Edges","Vertices","Field lines","Equipotential"
+		"Edges","Vertices","Graph","Field lines","Equipotential"
 	};
 
 	ch = ImGui::Combo("", &crztype, cb.begin(), (int)cb.size());

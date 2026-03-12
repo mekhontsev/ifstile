@@ -181,14 +181,16 @@ struct ims_cmap
 	std::vector<size_t> m_edge2pal;//indexed by the global edge number
 	std::vector<cmap_type> m_cmap_pal;//indexed by the value m_edge2pal
 
+	colorize_params::EPAR m_epar;
+
 	void init_cmaps(
 		std::span<const style<Real>> mi,
 		const ims_graph& gm,
 		const palette& pal,
 		double shift,
-		bool per_vertex)
+		colorize_params::EPAR epar)
 	{
-
+		m_epar = epar;
 		m_cmap.resize(mi.size());
 		for (size_t i = 0; i < mi.size(); ++i) {
 			auto& d = m_cmap[i];
@@ -227,7 +229,7 @@ struct ims_cmap
 				let& e = gm.m_edges[eidx];
 
 				size_t color_idx;
-				if (per_vertex) {
+				if (epar == colorize_params::e_vertex) {
 					color_idx = e.second;
 				} else {
 					if (gm.m_comp[gm.m_ver2com[v]].has_self) {
@@ -254,15 +256,14 @@ struct state_stack
 		elem* m_next;
 
 		size_t depth4;	//depth
-
+		size_t index;
 		size_t id3;
+		size_t ver;		//the vertex on which the map acts
 
 		Real mes;		//measure
 		
-		size_t ver;		//the vertex on which the map acts
 		pool_ptr m;		//map
 		edge_ball b;	//bounding ball
-		
 
 		Eigen::Matrix<Real, 3, 1> bc;//projected center
 		Real ds;	//distance from camera to center (for surface only)
