@@ -29,11 +29,43 @@
 #include "eval_pool.h"
 #include "pool_ptr.h"
 
-std::vector<js_engine::reg_function> js_engine::s_js_ifs_object;
+using reg_function = void (*)(JSContext*, JSValue&);
+ims_static std::vector<reg_function> s_js_ifs_object;
 
+void js_add_reg_func(reg_function f)
+{
+	s_js_ifs_object.emplace_back(f);
+}
 
+void js_set_arr_size(JSContext* ctx, JSValue& arr, size_t size)
+{
+	JS_SetLength(ctx, arr, (int64_t)size);
+}
 
+int64_t js_get_arr_size(JSContext* ctx, const JSValue& v)
+{
+	int64_t sz = 0;
+	if (JS_GetLength(ctx, v, &sz)) {
+		return 0;
+	}
+	return sz;
+}
 
+bool js_get_int64(JSContext* ctx, int64_t* pres, const JSValue& val)
+{
+	double res;
+	if (0 != JS_ToFloat64(ctx, &res, val)) {
+		return false;
+	}
+
+	let i = static_cast<int64_t>(res);
+	if (double(i) != res) {
+		return false;
+	}
+
+	*pres = i;
+	return true;
+}
 
 static const ims_val* convert(JSValue v, JSContext* ctx, bool try_real_to_int)
 {
@@ -64,7 +96,7 @@ static const ims_val* convert(JSValue v, JSContext* ctx, bool try_real_to_int)
 	if (JS_IsNumber(v)) {
 		if (try_real_to_int) {
 			int64_t res;
-			if (js_engine::get_int64(ctx, &res, v)) {
+			if (js_get_int64(ctx, &res, v)) {
 				return eval_pool::ep.get_scalar_int(res);
 			}
 		}
@@ -74,7 +106,7 @@ static const ims_val* convert(JSValue v, JSContext* ctx, bool try_real_to_int)
 	}
 
 	if (JS_IsArray(v)) {
-		let sz = (size_t)js_engine::js_get_arr_size(ctx, v);
+		let sz = (size_t)js_get_arr_size(ctx, v);
 		pool_ptr ret(eval_pool::ep.get_vector(sz));
 		for (size_t i = 0; i < sz; ++i) {
 			auto jv = JS_GetPropertyUint32(ctx, v, (uint32_t)i);
@@ -214,7 +246,7 @@ struct js_arr_enumerator
 				continue;//already visited
 			}
 			m.index = ims_max;
-			m.length = js_engine::js_get_arr_size(ctx, v);
+			m.length = js_get_arr_size(ctx, v);
 			m.start = m_values.size();
 			m_values.resize(m_values.size() + m.length, JS_UNDEFINED);
 
@@ -276,7 +308,7 @@ struct js_aifs_block
 			return true;
 		}
 
-		let num_blocks = js_engine::js_get_arr_size(m_ctx, aifs);
+		let num_blocks = js_get_arr_size(m_ctx, aifs);
 		for (uint32_t i = 0; i < num_blocks; ++i) {
 
 			auto v = JS_GetPropertyUint32(m_ctx, aifs, i);
@@ -299,7 +331,7 @@ struct js_aifs_block
 			return true;//it's ok
 		}
 
-		if (!JS_IsArray(c) || js_engine::js_get_arr_size(m_ctx, c) != 2) {
+		if (!JS_IsArray(c) || js_get_arr_size(m_ctx, c) != 2) {
 			ims_error("{} must be a 2 elements array", ims_keywords::js_constructor);
 			return false;
 		}
@@ -385,7 +417,7 @@ struct js_aifs_block
 
 		int64_t rat[2];
 		for (size_t i = 0; i < 2; ++i) {
-			if (!js_engine::get_int64(m_ctx, &rat[i],
+			if (!js_get_int64(m_ctx, &rat[i],
 				m_enumerator.m_values[m.start + i])) {
 				return false;
 			}
@@ -401,7 +433,7 @@ struct js_aifs_block
 	bool get_rational64(JSValue v, int64_t* n = nullptr) const
 	{
 		int64_t number;
-		if (js_engine::get_int64(m_ctx, &number, v)) {
+		if (js_get_int64(m_ctx, &number, v)) {
 			if (n) {
 				n[0] = number;
 				n[1] = 1;
@@ -505,7 +537,7 @@ static JSValue create_js_value(
 				val = js_new_i64_value(ctx, iv);
 			}else {
 				val = JS_NewArray(ctx);
-				js_engine::js_set_arr_size(ctx, val, 3);
+				js_set_arr_size(ctx, val, 3);
 
 				JS_SetPropertyUint32(ctx, val, 0, js_new_i64_value(ctx, iv));
 				JS_SetPropertyUint32(ctx, val, 1, js_new_i64_value(ctx, ivd));
@@ -524,7 +556,7 @@ static JSValue create_js_value(
 	{
 		let num_el = h.get_u24();
 		val = JS_NewArray(ctx);
-		js_engine::js_set_arr_size(ctx, val, num_el);
+		js_set_arr_size(ctx, val, num_el);
 
 		for (uint32_t i = 0; i < num_el; ++i) {
 			operator_ptr pi;
@@ -566,7 +598,7 @@ static void js_print(JSContext* ctx, JSValue v)
 		std::cout << "[";
 		let* guard = do_print(v);
 		if (guard) {
-			let sz = js_engine::js_get_arr_size(ctx, v);
+			let sz = js_get_arr_size(ctx, v);
 			for (uint32_t i = 0; i < sz; ++i) {
 				if (i > 0) {
 					std::cout << ", ";
@@ -878,7 +910,7 @@ bool js_aifs_block::parse_var(
 
 	if (JS_IsNumber(jv)) {
 		int64_t res;
-		if (js_engine::get_int64(m_ctx, &res, jv)) {
+		if (js_get_int64(m_ctx, &res, jv)) {
 			b.set_integer(x, res);
 			return true;
 		}
@@ -1155,7 +1187,7 @@ bool js_aifs_block::create_vars(
 			//parse it later as AIFS
 		} else if (v.name == ims_keywords::dim) {//process it immediately
 			int64_t d;
-			if (js_engine::get_int64(m_ctx, &d, val)) {
+			if (js_get_int64(m_ctx, &d, val)) {
 				if (d > 100) {
 					ims_error("must be between 0 and 100");
 					return false;
@@ -1349,7 +1381,7 @@ static JSValue create_js_value(JSContext* ctx, const ims_val* v)
 
 	let sz = v->get_size();
 	JSValue arr = JS_NewArray(ctx);
-	js_engine::js_set_arr_size(ctx, arr, sz);
+	js_set_arr_size(ctx, arr, sz);
 	for (size_t i = 0; i < sz; ++i) {
 		let vi = create_js_value_ex(ctx, v, i);
 		JS_SetPropertyUint32(ctx, arr, (uint32_t)i, vi);
@@ -1453,35 +1485,6 @@ std::string js_engine::create_from_constructor(const ims_val* v,
 }
 
 
-void js_engine::js_set_arr_size(JSContext* ctx, JSValue& arr, size_t size)
-{
-	JS_SetLength(ctx, arr, (int64_t)size);
-}
-
-int64_t js_engine::js_get_arr_size(JSContext* ctx, const JSValue& v)
-{
-	int64_t sz = 0;
-	if (JS_GetLength(ctx, v, &sz)) {
-		return 0;
-	}
-	return sz;
-}
-
-bool js_engine::get_int64(JSContext* ctx, int64_t* pres, const JSValue& val)
-{
-	double res;
-	if (0 != JS_ToFloat64(ctx, &res, val)) {
-		return false;
-	}
-
-	let i = static_cast<int64_t>(res);
-	if (double(i) != res) {
-		return false;
-	}
-
-	*pres = i;
-	return true;
-}
 
 bool js_aifs_block::add_block3(
 	JSValue block_def,

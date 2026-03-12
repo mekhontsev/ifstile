@@ -23,7 +23,7 @@ mv boost_1_90_0/boost boost
 rm -rf boost_1_90_0
 rm boost_1_90_0.tar.gz
 
-curl -L https://github.com/libsdl-org/SDL/releases/download/release-3.4.0/SDL3-3.4.0.tar.gz > SDL.tar.gz
+curl -L https://github.com/libsdl-org/SDL/releases/download/release-3.4.2/SDL3-3.4.2.tar.gz > SDL.tar.gz
 tar -xf SDL.tar.gz
-mv SDL3-3.4.0 SDL
+mv SDL3-3.4.2 SDL
 rm SDL.tar.gz

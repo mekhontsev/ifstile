@@ -23,7 +23,7 @@ move boost_1_90_0/boost boost
 rmdir boost_1_90_0  /s/q
 del boost_1_90_0.zip
 
-curl -L https://github.com/libsdl-org/SDL/releases/download/release-3.4.0/SDL3-3.4.0.zip > SDL.zip
+curl -L https://github.com/libsdl-org/SDL/releases/download/release-3.4.2/SDL3-3.4.2.zip > SDL.zip
 tar -xf SDL.zip
-ren SDL3-3.4.0 SDL
+ren SDL3-3.4.2 SDL
 del SDL.zip

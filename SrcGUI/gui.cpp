@@ -4095,8 +4095,8 @@ void on_start()
 
 	set_view_mode(ListViewMode::EXAMPLES);
 
-	void js_reg_ifs(JSContext * ctx, JSValue & global_obj);
-	js_engine::s_js_ifs_object.emplace_back(js_reg_ifs);
+	void js_reg_ifs();
+	js_reg_ifs();
 }
 
 void save_settings() 

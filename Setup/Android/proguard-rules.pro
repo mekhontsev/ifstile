@@ -26,7 +26,3 @@
 
 
 -keep public class com.ifstile.** { public *; }
-
--keep,includedescriptorclasses,allowoptimization class org.libsdl.app.SDLControllerManager {
-	void joystickSetLED(int, int, int, int);
-}

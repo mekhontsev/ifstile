@@ -9,6 +9,12 @@
 #include "columns.h"
 #include "data_column.h"
 
+using reg_function = void (*)(JSContext*, JSValue&);
+void js_add_reg_func(reg_function f);
+void js_set_arr_size(JSContext* ctx, JSValue& arr, size_t size);
+int64_t js_get_arr_size(JSContext* ctx, const JSValue& v);
+bool js_get_int64(JSContext* ctx, int64_t* pres, const JSValue& val);
+
 static JSValue js_ifs_id(
 	JSContext* ctx,
 	JSValueConst,
@@ -46,7 +52,7 @@ static JSValue js_ifs_blocks(
 	let& b = ifs_list_get().m_blocks;
 	let sz = b.size();
 	JSValue arr = JS_NewArray(ctx);
-	js_engine::js_set_arr_size(ctx, arr,sz);
+	js_set_arr_size(ctx, arr,sz);
 	for (size_t i = 0; i < sz; ++i) {
 		let vi = JS_NewInt64(ctx, (int64_t)b[i]);
 		JS_SetPropertyUint32(ctx, arr, (uint32_t)i, vi);
@@ -58,7 +64,7 @@ static oper_block* get_block(JSContext* ctx, JSValue v)
 {
 	let& lst = ifs_list_get();
 	int64_t i64;
-	if (!js_engine::get_int64(ctx, &i64, v) ||
+	if (!js_get_int64(ctx, &i64, v) ||
 		i64 < 0 || (size_t)i64 >= lst.m_id2data.size())
 	{
 		return nullptr;
@@ -110,10 +116,10 @@ static JSValue js_ifs_get(
 		return JS_ThrowTypeError(ctx, "Invalid argument 2");
 	}
 
-	let sz = js_engine::js_get_arr_size(ctx, argv[1]);
+	let sz = js_get_arr_size(ctx, argv[1]);
 
 	JSValue arr = JS_NewArray(ctx);
-	js_engine::js_set_arr_size(ctx, arr, sz);
+	js_set_arr_size(ctx, arr, sz);
 	std::string str;
 	for (uint32_t i = 0; i < sz; ++i) {
 		auto vi = JS_GetPropertyUint32(ctx, argv[1], i);
@@ -211,9 +217,7 @@ static JSValue js_ifs_set(
 	return JS_UNDEFINED;
 }
 
-
-
-void js_reg_ifs(JSContext* ctx, JSValue& ifs_obj)
+void js_reg_ifs_ex(JSContext* ctx, JSValue& ifs_obj)
 {
 	struct func_entry
 	{
@@ -234,3 +238,8 @@ void js_reg_ifs(JSContext* ctx, JSValue& ifs_obj)
 			JS_NewCFunction(ctx, q.f, nullptr, q.num_args));
 	}
 };
+
+void js_reg_ifs() 
+{
+	js_add_reg_func(js_reg_ifs_ex);
+}

@@ -19,7 +19,6 @@
 struct JSRuntime;
 struct JSContext;
 struct JSModuleDef;
-struct JSValue;
 
 struct ifs_list;
 struct read_state;
@@ -31,7 +30,6 @@ struct js_engine: public boost::noncopyable
 {
 	js_engine() = default;
 	~js_engine();
-
 
 	void create();
 	void destroy();
@@ -56,9 +54,6 @@ struct js_engine: public boost::noncopyable
 
 	void eval(std::string_view src);
 
-	using reg_function = void (*)(JSContext*, JSValue&);
-	static std::vector<reg_function> s_js_ifs_object;
-
 	size_t js_obj_get_identifier(size_t idx) const;
 	const ims_val* js_obj_get_imm_value(size_t idx);
 	bool js_obj_is_function(size_t idx) const;
@@ -69,11 +64,6 @@ struct js_engine: public boost::noncopyable
 		const ims_val* v,
 		read_state& rs,
 		ifs_list& lst);
-
-	static void js_set_arr_size(JSContext* ctx, JSValue& arr, size_t size);
-	static int64_t js_get_arr_size(JSContext* ctx, const JSValue& v);;
-	static bool get_int64(JSContext* ctx, int64_t* pres, const JSValue& val);
-
 
 private:
 
