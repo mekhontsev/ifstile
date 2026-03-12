@@ -70,6 +70,7 @@ void ws_console::show()
 	}
 
 	if (bclear) { m_buf.clear(); }
+	let id_con = next_id++;
 #ifndef __EMSCRIPTEN__	
 	//In the browser, ImGui uses its own clipboard, which is not accessible from the OS.
 	int vedit = edit_helper::a_none;
@@ -77,8 +78,6 @@ void ws_console::show()
 		SAME_LINE();
 		if (ims_button("Copy")) { vedit = edit_helper::a_copy; }
 	}
-
-	let id_con = next_id++;
 	edit_helper::set_action(id_con, vedit);
 #endif
 	{

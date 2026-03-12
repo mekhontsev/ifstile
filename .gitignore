@@ -9,6 +9,7 @@ Setup/Android/build
 Setup/Android/.gradle
 Setup/Android/.idea
 Setup/Android/keystore.properties
+gradle-daemon-jvm.properties
 Setup/*.zip
 Setup/*.exe
 Setup/*.tar.gz

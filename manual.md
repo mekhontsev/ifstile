@@ -35,21 +35,113 @@ When exporting to PNG, the application automatically embeds the full generation 
 
 
 ### Mathematical operations
-To perform calculation with numbers and affine maps it is possible to use ordinary operations like +,-,\*,/,^ and brackets.\
-For numbers **sin**, **cos**, **tan**, **asin**, **acos**, **atan**, **exp**, **log**, **floor**, **ceil**, **arg** are defined.\
-Also '**if**' function defined: if (cond, val1, val2) is equivalent to (cond > 0)?val1 : val2 in C-like languages.
+To perform calculation with numbers and affine maps it is possible to use ordinary operations like +,-,\*,/,^,% and brackets.\
+For numbers **sin**, **cos**, **tan**, **asin**, **acos**, **atan**, **exp**, **log**, **floor**, **ceil**, **abs**, **arg** are defined.\
+The '**if**' function is also defined:
+* if (cond, val1, val2) is equivalent to (cond > 0)?val1 : val2 in C-like languages.
+* if (cond) is a step function defined as if (cond, 1, 0).
+* if (cond1, val1, cond2, val2, ..., val_else) is equivalent to
+cond1>0 ? val1: (cond2>0 ? val2: ( ... : val_else)...)
 
 ### Identifiers
 An identifier is a case-sensitive string that denotes a variable, an operator or a block. An identifier can consist of symbols \[a-z\], \[A-Z\], \[0-9\] and "\_", but cannot start with a digit.\
 Identifiers beginning with $ and & symbols have a special meaning.\
-Variable with a name beginning with '$' symbol is considered as built-in variable and has special meaning.\
+Variable with a name beginning with '$' symbol is considered as built-in variable.\
 Variable with a name beginning with '&' symbol is considered as substitution and recalculated in every place where used.\
-Each variable can be assigned only once, see [Static single assignment form](https://en.wikipedia.org/wiki/Static_single_assignment_form), but the order of the definitions is not important.
+Each variable can be assigned only once, see [static single assignment form](https://en.wikipedia.org/wiki/Static_single_assignment_form), and the order of the definitions is not important.
 
-### Vectors
-Like in many other languages, v=\[a1, a2, .., an\] defines the vector of elements (a1, a2, .., an).\
-We can access to the elements of a vector using square brackets, so a1 can be accessed as v\[0\], and an = v\[n-1\].\
-A vector of appropriate length can be automatically converted to a matrix or to a translation.
+### Arrays (Vectors)
+Like in many other languages, v=\[a1, a2, .., an\] defines the array of elements (a1, a2, .., an).\
+We can access to the elements of an array using square brackets, so a1 can be accessed as v\[0\], and an = v\[n-1\].\
+It is possible to use negative indices: an = v[-1] and a1=v[-n].
+An array of appropriate length can be automatically converted to a translation or to a matrix using [row-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order) .
+
+### Array size
+To get an array size, use an empty brackets:
+```python
+a = [1, 3, 5, 7]
+b = a()  #b=4
+```
+
+### Array flattening
+Converts nested arrays to a single (flat) array by concatenating sub-arrays.
+For the flat operation, use an empty square brackets:
+```python
+a = [[1, 2], [3, 4]]
+b = a[] #a=[1, 2, 3, 4]
+```
+
+### Array slicing
+Extracts a subset of elements from an array and returns them as a new array. The syntax is similar to Python: a[from:to:step].
+* a[1:4] - elements from index 1 up to (but not including) 4.
+* a[2:] - elements from index 2 to the end.
+* a[:3]  - elements from the beginning up to index 3.
+* a[::2] - every second element from the whole sequence.
+* a[-3:] - the last three elements.
+* a[::-1] - all elements in reverse order.
+
+### Array fancy indexing
+Allows you to select non-contiguous elements or subsets of an array by passing an array of integers as indices.
+```python
+a = [10, 20, 30, 40, 50]
+i = [0, 2, 4]
+b = a[i]  # equal to: [10 30 50]
+```
+
+### Array self-referencing
+When creating an array, we can access the already created part of the array using a special function: $(level), where level = 0, 1, ...
+* $(0) is a reference to the current array
+* $(1) is a reference to the parent array
+* And so on...
+
+For example:
+```python
+a = [0, $(0)[0]+1, $(0)[1]+1] #a=[0,1,2]
+```
+
+Since $(0) is the most commonly used in generators, there is a shortcut: $=$(0), so the previous example can be simplified to
+```python
+a = [0, $[0]+1, $[1]+1] #a=[0,1,2]
+```
+
+Example of a reference to the parent array:
+```python
+a = [5, [6, $(1)[0]] #a=[5,[6,5]]
+```
+
+All array functions (sizing, slicing, etc.) are available for the $(n) array.
+```python
+a = [$(), $(), $()] # a=[0,1,2]
+```
+
+### Array generators
+During array creation, if any element is equal to the array itself (referenced by $), the creation process switches to a special **generator** mode. In this mode, the element following the $ symbol is considered the loop condition, and the element following it is considered the loop body.
+Thus, as long as the condition is true (condition expression > 0), the expression body will be recalculated and its value will be added to the generated array. The conditional expression can depend on the current array size: $() , so it will allow as to stop after a finite number of steps.
+
+Simple example:
+```python
+a=[$,5-$(),$()] #a=[0,1,2,3,4]
+b=[0,1,$,7-$(),$[-1]+$[-2]] #b=[0,1,1,2,3,5,8]
+```
+
+Advanced example (Mandelbrot orbit):
+```python
+@
+c=[-0.75, 0.1]
+N=20
+m=[
+[0,0,0],   # initial [x,y,mod^2]
+$, if(N-$())*if(4-$[-1][2]), # N>iter && 4>mod^2
+[
+    $(1)[-1],           # $[0] = [x,y]
+    $[0][0],            # $[1] = x
+    $[0][1],            # $[2] = y
+    $[1]^2-$[2]^2+c[0], # $[3] = x'=x^2-y^2+Re(c)
+    2*$[1]*$[2]+c[1],   # $[4] = y'=2*x*y+Im(c)
+    $[3]^2+$[4]^2       # $[5] = mod^2(x',y')
+][-3:] #last 3 elements: [x',y',mod^2]
+]
+```
 
 ### Special variables
 **$n=...**
@@ -99,7 +191,16 @@ for the polynomial a0 + a1\*x + ... + a(n-1)x^(n-1) + x^n.
 
 Any number **x** can be implicitly converted to a matrix **x*I** where **I** is an n-dimensional [Identity matrix](https://en.wikipedia.org/wiki/Identity_matrix).
 
+### Other functions and constants
+
 **$charpoly(A)** computes the [Characteristic polynomial](https://en.wikipedia.org/wiki/Characteristic_polynomial) (as an n-dimensional vector) for linear part of the affine map A.
+
+**$numden(r)** returns [numerator(r), denominator(r)] for a rational number r.
+
+**$numden(x, eps)** returns a rational approximation of a real number x to within eps in the form [numerator, denominator]. On failure, it returns [0,0].
+
+[Pi constant](https://en.wikipedia.org/wiki/Pi)
+**$pi**
 
 ### Operators
 **Composition of the maps (or operators):**
@@ -132,8 +233,14 @@ Composition f with itself n times f(f(f(...)))
 **Inverse map**
 **f^-1**
 
-**Empty set**
+**Empty set (empty union)**
 **$e**
+
+**Identity map (empty composition)**
+**$i**
+
+**$union(a)**
+Create a union of compositions of union of ... etc from the nested input array a.
 
 ### Templates
 Templates describe infinite sets of affine maps together with a random distribution that can be used in the search procedure and in the editor window.\
@@ -144,18 +251,12 @@ Real or integer number.\
 T= **$integer** or **$real** : \[optional\] type and a random distribution of the number.
 
 **$vector(L, T)**
-Vector of numbers,\
-L = length of the vector, L = 0 or L=empty means L = $dim.\
-T= **$integer** or **$real** : \[optional\] type and a random distribution for the vector entries.
+Array of numbers,\
+L = length of the array, L = 0 or L=empty means L = $dim.\
+T= **$integer** or **$real** : \[optional\] type and a random distribution for the array entries.
 
-**$binary(L, T)** 
-Vector of empty sets ($e) and identity maps ($i).\
-L = length of the vector, L = 0 or L=empty means L = $dim.\
-T= **$integer** - represents the number of empty ($e) components.
-
-**$semigroup(\[g1, g2,...,gm\], T)** 
-Element of the [semigroup](https://en.wikipedia.org/wiki/Semigroup) (possibly infinite) generated by the affine maps g1, g2, ..., gm.\
-T=**$integer** - \[optional, for infinite semigroups only\] represents normal distribution for the length of compositions of the generators.
+**$permutation([n0, n1, ..., nk])**
+The array represents a multiset of values {0,1,...k} with given counts {n0,n1,...nk}.
 
 **$real(a, b)**, **$integer(a, b)** 
 Type and uniform distribution for real or integer numbers from a to b.
@@ -167,24 +268,113 @@ if v < 0 then distribution is normal.\
 if v > 0 then distribution is half-normal.
 
 ### Javascript
-Any AIFS file may contain JavaScript module at the beginning.
-The module must export array named '$aifs'.
+Any AIFS file may include a JavaScript module at the beginning. The end of this module is indicated by the @@ string at the start of a new line.
 
+The module can export array named **$aifs**.
+```javascript
 export const $aifs =
 [
-	block1, block2, ....
+    block1, block2, ....
 ]
+```
+Each element of the array is a JavaScript object that defines one IFS block.
+```javascript
+block =
+{
+    var1: expression 1,
+    var2: expression 2,
+}
+```
+Every string expression is considered as an ordinary AIFS definition. For example
+```javascript
+{
+    a: "1+1",
+}
+```
+will be converted to AIFS as
+```python
+@
+a=1+1
+```
 
-Each element of the array is a JavaScript object that defines one
-IFS block. 
+JavaScript arrays will be converted to AIFS arrays, except those ending with '|', '*', '/' characters. Such arrays will be converted to unions, compositions, and rational numbers:
+```javascript
+{
+    a: 1,
+    v: ["a", "a", "a"]
+    u: ["a", "a", "a", "|"]
+    c: ["a", "a", "a", "*"]
+    r: ["a", "a", "/"]
+}
+```
+will be converted to AIFS as
+```python
+@
+a=1
+v=[a,a,a]
+u= a|a|a
+c: a*a*a
+r: a/a
+```
 
-The module can also export a string "$info" with a description of the current file (using markdown).
+The module can also export a string **$info** with a description of the current file (using markdown).
 
+The module can export a **$constructor**=[js_par, js_func] entry to define a parameters dialog that appears after a file is loaded. Once the user modifies the parameters, js_func is executed to generate and return blocks based on those settings. For details, see tree.js.aifs example.
 
-For more information, see examples in the JavaScript drop-down list.
+All exported JavaScript functions and constants are available in the aifs blocks:
+```
+export function inc(arg){
+	return arg+1;
+}
+export function sum(a1, a2){
+	return a1+a2;
+}
+export function arr_length(a){
+	return a.length;
+}
+export function create_arr(a){
+	return [a, a+1];
+}
+export const imm=[11,12];
+@@
+#AIFS started here
+@
+a=inc(3)
+b=sum(a, 2)
+c=arr_length([4,5,7])
+d=arr_length([4.5,5,7,9])
+e=create_arr(6)
+f = imm[1];
+```
 
+When saving a file containing a JavaScript header, the entire script is included by default. To exclude specific sections of the script from being saved, wrap them with the //AIFS_IGNORE_BEGIN and //AIFS_IGNORE_END markers.
 
+For more information, see the source code of the examples in the JavaScript section of the examples.
 
+### JS in the Console
+To execute a multiline JavaScript snippet in the Console window, select "Execute JS" from the dropdown menu.
+Some useful domain-specific functions are available:
+* ifs.id(name or ID) - find a block with the given name or ID and return its integer block_id.
+* ifs.id() - returns integer block_id for the current block.
+* ifs.blocks() - returns an array of block_id for all blocks.
+* ifs.get(block_id, ["col1", "col2", ...]) - returns an array [v1,v2,...] of column values ​​corresponding to the block_id in the "IFS List" window.
+* ifs.set(block_id,  "col", v) - sets column "col" to the value v for the block block_id. "col" can be "CH" - for checked flag, "HD" - for hidden flag, "ID" - for @ID and "Name" - for $n.
+* ifs.m - all exported elements of the module.
+
+Example: check blocks with odd block_id, uncheck other:
+```javascript
+for (const id of ifs.blocks()) {
+    ifs.set(id, "CH", id%2)
+}
+```
+
+Example: rename all blocks
+```javascript
+for (const id of ifs.blocks()) {
+    let [Name] = ifs.get(id, ["Name"])
+    ifs.set(id, "Name", id + " # " + Name)
+}
+```
 
 [//]:#(Editor)
 ### Editor
@@ -210,7 +400,7 @@ Mouse drag modifiers for numeric controls:
 ### Animation
 **Batch tab**
 
-"Render" button - automatically renders specific blocks to a user defined folder.
+"Render" button - automatically renders checked blocks to a user defined folder.
 
 **Interpolation tab**
 
