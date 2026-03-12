@@ -38,37 +38,9 @@ void ws_console::show()
 {
 	int next_id = 0;
 
-
-	ImGui::BeginDisabled(m_buf.empty());
-
-	if (ims_button("Clear")) { m_buf.clear(); }
-#ifndef __EMSCRIPTEN__	
-	//In the browser, ImGui uses its own clipboard, which is not accessible from the operating system.
-	int vedit = 0;
+	bool bexec;
 	{
-		SAME_LINE();
-		if (ims_button("Copy")) { vedit = 2; }
-	}
-	ImGui::g_edit_hook = vedit;
-	IMS_SCOPE([] {ImGui::g_edit_hook = 0; });
-#endif
-	{
-		SAME_LINE();
-		if (ims_button("Copy All")) { platform::ims_to_clipboard(m_buf); }
-	}
-
-
-	ImGui::EndDisabled();
-
-	{
-		SAME_LINE();
-		ImGui::Checkbox("Wrap", &m_wrap);
-	}
-
-	bool bprint;
-	{
-		SAME_LINE();
-		bprint = ims_button("Print:");
+		bexec = ims_button("=>", "Perform the action");
 	}
 
 	static e_what_print what_print = e_what_print::Definition;
@@ -91,6 +63,37 @@ void ws_console::show()
 		ImGui::PopID();
 	}
 
+	ImGui::BeginDisabled(m_buf.empty());
+
+	bool bclear;
+	{
+		SAME_LINE();
+		bclear = ims_button("Clear");
+	}
+
+	if (bclear) { m_buf.clear(); }
+#ifndef __EMSCRIPTEN__	
+	//In the browser, ImGui uses its own clipboard, which is not accessible from the OS.
+	int vedit = 0;
+	{
+		SAME_LINE();
+		if (ims_button("Copy")) { vedit = 2; }
+	}
+	ImGui::g_edit_hook = vedit;
+	IMS_SCOPE([] {ImGui::g_edit_hook = 0; });
+#endif
+	{
+		SAME_LINE();
+		if (ims_button("Copy All")) { platform::ims_to_clipboard(m_buf); }
+	}
+
+	ImGui::EndDisabled();
+
+	{
+		SAME_LINE();
+		ImGui::Checkbox("Wrap", &m_wrap);
+	}
+
 
 	let ws = ImGui::GetWindowSize();
 	ImVec2 sz;
@@ -109,7 +112,7 @@ void ws_console::show()
 		let exec = ImGui::InputTextMultiline("", &m_input_buf, sz, input_text_flags);
 		ImGui::PopID();
 		//set_tooltip("Execute JavaScript");
-		if (exec || bprint) {
+		if (exec || bexec) {
 			std::string_view script{ m_input_buf };
 			script = boost::algorithm::trim_copy_if(
 				script, boost::algorithm::is_any_of(" \t\r\n"));
@@ -127,7 +130,7 @@ void ws_console::show()
 		if (reclaim_focus) {
 			ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
 		}
-	} else if (bprint) {
+	} else if (bexec) {
 		console_print(what_print);
 	}
 	///////////////////////////////////////////////////////////////////////////
