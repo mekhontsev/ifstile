@@ -26,11 +26,9 @@ enum class e_action : int
 	Invert,//invert only visible
 	Interval,
 	Unique,
-	Rename,
 	Hide,
 	Unhide,
 	Convert,
-	SetID,
 };
 
 

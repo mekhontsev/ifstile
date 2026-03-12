@@ -25,7 +25,6 @@
 #include "finder.h"
 #include "oper_block.h"
 #include "ims_worker.h"
-#include "block_class.h"
 
 void ws_ifs_list::scroll_to_row(size_t row)
 {
@@ -70,7 +69,6 @@ void ws_ifs_list::show()
 		return;
 	}
 
-
 	{
 		SAME_LINE();
 		if (ims_button("R", "Filter rows")) {
@@ -81,7 +79,6 @@ void ws_ifs_list::show()
 
 	////////////////////////////////////////////////////////
 
-	
 	{
 		SAME_LINE();
 		ImGui::PushItemWidth(80.0f * get_ui_scale());
@@ -90,14 +87,13 @@ void ws_ifs_list::show()
 		static constexpr auto cb =
 		{
 			"Uncheck","Remove","Invert","Interval","Unique",
-			"Rename","Hide","Unhide","Convert", "Set ID"
+			"Hide","Unhide","Convert"
 		};
 		ImGui::PushID(next_id++);
 		ImGui::Combo("", (int*)&m_action, cb.begin(), (int)cb.size(), (int)cb.size());
 		ImGui::PopID();
 		ImGui::PopItemWidth();
 	}
-
 
 	bool bapply;
 	{
@@ -142,12 +138,6 @@ void ws_ifs_list::show()
 		{
 			let num_conv = apply_converters();
 			ims_show_message_fmt("{} blocks converted", num_conv);
-			m_action = e_action::Uncheck;
-			break;
-		}
-		case e_action::SetID:
-		{
-			set_id_for_checked();
 			m_action = e_action::Uncheck;
 			break;
 		}

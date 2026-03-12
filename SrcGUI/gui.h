@@ -121,7 +121,7 @@ bool do_from_clipboard();
 void do_copy_all(bool base64);
 void do_copy_to_clipboard(bool base64, bool merge_parents);
 size_t apply_converters();
-void set_id_for_checked();
+
 
 struct draw_task;
 void do_build(const draw_task&);

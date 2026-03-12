@@ -1551,28 +1551,6 @@ void add_view_to_list(build_data* bd, const oper_block* bb)
 };
 
 
-void set_id_for_checked() 
-{
-	auto& lst = ifs_list_get();
-
-	//m_list will change, references to elements will be invalidated
-	let sz = lst.m_blocks.size();
-	for (size_t i = 0; i < sz; ++i) {//loop through converters
-		auto* c = lst.get_block_by_idx(i);
-		if (!c->m_flags.checked)continue;
-		if (!c->str_id4().empty())continue;
-
-		let prefix = std::string("B") + std::to_string(c->m_block_id);
-		let str_id = lst.m_idf.gen_unique_block_id(prefix);
-
-		auto& d = lst.m_idf.get_data(str_id);
-		assert(!d.has_block());
-		
-		d.block_id = c->m_block_id;
-		lst.m_id2data[c->m_block_id].m_str_id = d.unk_id;
-	}
-};
-
 //returns how many new ones were created
 size_t apply_converters()
 {

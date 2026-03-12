@@ -191,25 +191,6 @@ void visible_blocks::list_action(const data_column* dc_arr, e_action& action)
 		}
 		break;
 	}
-	case e_action::Rename:
-	{
-		auto* sr = get_cur_block();
-
-		if (!sr) {
-			break;
-		}
-
-		for (size_t idx = 0;; ++idx) {
-			auto* cur = get_vis(idx);
-			if (!cur)break;
-			if (cur->m_flags.checked) {
-				cur->m_name = sr->m_name;
-			}
-		}
-		action = e_action::Uncheck;
-
-		break;
-	}
 	case e_action::Hide:
 	{
 		for (size_t idx = 0;; ++idx) {
