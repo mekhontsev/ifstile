@@ -134,17 +134,12 @@ private:
 	//value - call offset
 	ankerl::unordered_dense::map<block_id_t, size_t> m_fields_call;
 
-	
-	//returns ESUBTYPE::integer, real, or other
-	ESUBTYPE eval_pow_exponent(ast_context p, intptr_t& e, double& v);
-
 	const oper_block* get_func_for_call(
 		const ims_val* v, 
 		bool use_cache,
 		size_t dim, 
 		size_t& new_call_offset,
 		block_id_t* js_obj);
-
 
 #ifdef use_eval_arg_cahche
 	struct call_context

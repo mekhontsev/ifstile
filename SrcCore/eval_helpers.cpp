@@ -245,7 +245,6 @@ const ims_val* affine_inv(const ims_val* src)
 		auto T1M = T1->MatI();
 		let d = char_poly(srcM, dim, dstM, T1M);
 		if (d == 0) {
-			ims_error("integer division by zero");
 			return nullptr;
 		}
 

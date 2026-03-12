@@ -26,10 +26,13 @@ struct pair_hash {
 	}
 };
 
+
 ims_static ankerl::unordered_dense::set<src_location_key, pair_hash> g_err_exists;
+ims_static std::mutex g_err_lock;
 
 void ims_err_reset()
 {
+	std::scoped_lock lock(g_err_lock);
 	g_err_exists.clear();
 }
 
@@ -82,9 +85,12 @@ void ims_err_print(
 	fmt::string_view fmt,
 	fmt::format_args args)
 {
-	auto res = g_err_exists.emplace(file, line);
-	if (!res.second) {//already printed
-		return;
+	{
+		std::scoped_lock lock(g_err_lock);
+		auto res = g_err_exists.emplace(file, line);
+		if (!res.second) {//already printed
+			return;
+		}
 	}
 
 	auto& g = g_location;

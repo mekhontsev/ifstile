@@ -31,6 +31,22 @@
 #define eval_error2(msg, a) if (!m_stack) { ims_error (msg, a);}
 #define eval_error3(msg, a1, a2) if (!m_stack) { ims_error (msg, a1, a2);}
 
+static bool geom_invalid(const ims_val * v, bool is_geom)
+{
+	if (!is_geom) {
+		return false;
+	}
+	if (!v) {
+		return true;
+	}
+	if (!v->is(ims_val_b::ETP::ast_ptr)) {
+		return false;
+	}
+	if (v->gp<ast_context>()->h.tt == ETYPE::reference) {
+		return true;
+	}
+	return false;
+}
 
 const ims_val* get_ast_val(const ast_context & p)
 {
@@ -322,52 +338,6 @@ const ims_val* eval_context::eval_unk_ref(ast_context p, bool)
 	return ret;
 }
 
-ESUBTYPE eval_context::eval_pow_exponent(
-	ast_context p,
-	intptr_t& ipw, 
-	double& fpw)
-{
-	let& op = p.h;
-	if (op.tt == ETYPE::inv) {
-		ipw = -1;
-		return ESUBTYPE::integer;
-	}
-
-	if (op.tt == ETYPE::power_imm) {
-		ipw = op.get_pow_exponent_imm();
-		return ESUBTYPE::integer;
-	}
-	if (op.tt != ETYPE::power) {
-		return ESUBTYPE::rational;//fail
-	}
-	
-	//always geometric calculations
-	pool_ptr m(eval7(p.index(1), true));
-
-	if (!m || !m->is(ims_val::ETP::number)) {
-		return ESUBTYPE::rational;//fail
-	}
-
-	if (m->is(ims_val::EST::real)) {
-		fpw = m->get_real();
-		return ESUBTYPE::real;
-	}
-
-	assert(m->is(ims_val::EST::rational));
-
-	let ival = m->get_int();
-	let n = ival.numerator();
-	let d = ival.denominator();
-
-	if (d == 1) {
-		ipw = intptr_t(n);
-		return ESUBTYPE::integer;
-	}
-
-	fpw = double(n) / d;
-	return ESUBTYPE::real;
-}
-
 
 const ims_val* eval_context::eval_mod(ast_context p, bool)
 {
@@ -394,13 +364,50 @@ const ims_val* eval_context::eval_mod(ast_context p, bool)
 
 const ims_val* eval_context::eval_pow(ast_context p, bool is_geom)
 {
-	intptr_t ipw;
-	double fpw;
+	intptr_t ipw = 0;
+	double fpw = 0;
 
-	let dim = p.a->get_dim();
+	//eval exponent
+	auto e_type = ESUBTYPE::integer;
 
-	let e_type = eval_pow_exponent(p, ipw, fpw);
-	
+	let& op = p.h;
+
+	if (op.tt == ETYPE::inv) {
+		ipw = -1;
+	}else if (op.tt == ETYPE::power_imm) {
+		ipw = op.get_pow_exponent_imm();
+	} else {
+		assert(op.tt == ETYPE::power);
+		//geometric calculations
+		pool_ptr m(eval7(p.index(1), true));
+
+		if (geom_invalid(m.get(), is_geom)) {
+			return nullptr;
+		}
+		if (!m || !m->is(ims_val::ETP::number)) {
+			if (!is_geom)return get_ast_val(p);
+			eval_error("pow: invalid exponent");
+			return nullptr;
+		}
+		if (m->is(ims_val::EST::real)) {
+			fpw = m->get_real();
+			e_type = ESUBTYPE::real;
+		}else{
+			assert(m->is(ims_val::EST::rational));
+			let ival = m->get_int();
+			let n = ival.numerator();
+			let d = ival.denominator();
+
+			if (d == 1) {
+				ipw = intptr_t(n);
+				e_type = ESUBTYPE::integer;
+			} else {
+				fpw = double(n) / d;
+				e_type = ESUBTYPE::real;
+			}
+		}
+	}
+
 
 	if (e_type == ESUBTYPE::integer) {
 		if (ipw == 0) {
@@ -443,7 +450,10 @@ const ims_val* eval_context::eval_pow(ast_context p, bool is_geom)
 		return arg.release();
 	}
 
-	if (!arg || arg->gs() >= ims_val::EST::nan) {
+	if (geom_invalid(arg.get(), is_geom)) {
+		return nullptr;
+	}
+	if (arg->gs() >= ims_val::EST::nan) {
 		eval_error("pow: invalid base");
 		return nullptr;
 	}
@@ -479,7 +489,7 @@ const ims_val* eval_context::eval_pow(ast_context p, bool is_geom)
 		}
 		return eval_pool::ep.get_scalar_real(std::pow(fbase, fpw));
 	}
-
+	let dim = p.a->get_dim();
 	if (arg->is(ims_val::ETP::vector)) {//base - vector
 		let sz = arg->get_size();
 		if (sz == dim * dim) {//base - matrix
@@ -537,11 +547,11 @@ const ims_val* eval_context::eval_pow(ast_context p, bool is_geom)
 		return nullptr;
 	}
 
-	//raising an affine number to an integer power using multiplication and inversion
+	//raising an affine map to an integer power using multiplication and inversion
 	if (ipw < 0) {
 		arg.reset(eval_helpers::affine_inv(arg.get()));
 		if (!arg) {
-			//assert(false);
+			ims_error("the matrix is ​​not invertible");
 			return nullptr;
 		}
 		ipw = -ipw;
@@ -672,6 +682,7 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 
 	//calculate the function itself geometrically...
 	pool_ptr func(eval7(p.index(0), true));
+
 	if (!func) {
 		return nullptr;
 	}
@@ -686,6 +697,9 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 	{
 		//$(idx)
 		pool_ptr a(eval7(p.index(1), true));
+		if (!a) {
+			return nullptr;
+		}
 
 		int64_t idx = 0;
 		if (!a->to_int(idx) || idx < 0) {
@@ -731,10 +745,7 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 		pool_ptr args;
 		for (size_t i = 1; i < na; ++i) {
 			let* vi = eval7(p.index(i), true);
-			if (!vi) {
-				eval_error2("invalid arguments {}", i - 1);
-				return nullptr;
-			}
+			if (!vi) return nullptr;
 			if (na > 2) {
 				if (!args) {
 					args.reset(eval_pool::ep.get_vector(na - 1));
@@ -782,8 +793,10 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 				idx = fb->get_var_from_unk(unk_idx);
 			} else {
 				pool_ptr ki(eval7(ai, true));
-				if (!ki ||
-					!ki->is(ims_val_b::ETP::number, ims_val_b::EST::rational) ||
+				if (!ki) {
+					return is_geom? nullptr:get_ast_val(p);
+				}
+				if (!ki->is(ims_val_b::ETP::number, ims_val_b::EST::rational) ||
 					ki->get_int().denominator() != 1 ||
 					ki->get_int().numerator() < 0)
 				{
@@ -945,7 +958,8 @@ const ims_val* eval_context::eval_thickness(ast_context p, bool)
 {
 	double arg;
 	pool_ptr m(eval7(p.index(0), true));
-	if (!m || !m->to_real(arg)) {
+	if (!m)return nullptr;
+	if (!m->to_real(arg)) {
 		ims_error("$thickness: invalid argument");
 		return nullptr;
 	}
@@ -957,7 +971,8 @@ const ims_val* eval_context::eval_color_style(ast_context p, bool)
 {
 	double arg;
 	pool_ptr m(eval7(p.index(0), true));
-	if (!m || !m->to_real(arg)) {
+	if (!m)return nullptr;
+	if (!m->to_real(arg)) {
 		ims_error("$style: invalid argument");
 		return nullptr;
 	}
@@ -1016,9 +1031,7 @@ const ims_val* eval_context::eval_condition(ast_context p, bool is_geom)
 		pool_ptr a(eval7(p.index(i), true));
 
 		if (!a) {
-			if (!is_geom)return get_ast_val(p);
-			eval_error2("if(): invalid argument {}", i);
-			return nullptr;
+			return is_geom ? nullptr : get_ast_val(p);
 		}
 
 		size_t arg = a->is_true() ? 0 : 1;
@@ -1063,11 +1076,11 @@ const ims_val* eval_context::eval_call_built_in(ast_context p, bool)
 		}
 
 		pool_ptr a1(eval7(p.index(1), true));
-		if (!a1 || !a1->to_real(y)) {
+		if (!a1)return nullptr;
+		if (!a1->to_real(y)) {
 			eval_error("arg: invalid argument 2");
 			return nullptr;
 		}
-
 		return eval_pool::ep.get_scalar_real(atan2(y, x));
 	}
 	default:
@@ -1124,8 +1137,11 @@ const ims_val* eval_context::eval_diagonal(ast_context p, bool)
 	pool_ptr vec(eval7(p.index(0), true));
 
 	let n = p.a->get_dim();
+	if (!vec) {
+		return nullptr;
+	}
 
-	if (!vec || vec->num_vec_length() != n) {
+	if (vec->num_vec_length() != n) {
 		eval_error("$diagonal: invalid argument");
 		return nullptr;
 	}
@@ -1168,7 +1184,6 @@ const ims_val* eval_context::eval_charpoly(ast_context p, bool)
 	}
 
 	if (!a0) {
-		eval_error("$charpoly: invalid argument");
 		return nullptr;
 	}
 
@@ -1190,7 +1205,6 @@ const ims_val* eval_context::eval_numden(ast_context p, bool)
 	}
 
 	if (!a0) {
-		eval_error("$numden: invalid argument");
 		return nullptr;
 	}
 
@@ -1218,6 +1232,7 @@ const ims_val* eval_context::eval_numden(ast_context p, bool)
 				return nullptr;
 			}
 			pool_ptr a1(eval7(p.index(1), true));
+			if (!a1) return nullptr;
 			double eps = 0;
 			if (!a1->to_real(eps) || eps <= 0) {
 				eval_error("$numden: invalid argument 2");
@@ -1328,7 +1343,6 @@ const ims_val* eval_context::eval_companion(ast_context p, bool)
 		//with ownership
 		da[j] = eval7(p.index(j), true);
 		if (!da[j]) {
-			eval_error2("$companion: invalid argument {}", j);
 			return nullptr;
 		}
 	}
@@ -1671,13 +1685,16 @@ const ims_val* eval_context::eval_index(ast_context p, bool is_geom)
 		v.reset(eval7(*ast, is_geom));
 	}
 
-	if (!v || !v->is(ims_val::ETP::vector)) {
-		if (!is_geom)return get_ast_val(p);
-		eval_error2("Attempt to index a non-vector object: {}",
-			v ? (size_t)v->gt() : 0);
-		return  nullptr;
+
+	if (geom_invalid(v.get(), is_geom)) {
+		return nullptr;
 	}
 
+	if (!v || !v->is(ims_val::ETP::vector)) {
+		if (!is_geom)return get_ast_val(p);
+		eval_error2("Attempt to index a non-vector object: {}", (size_t)v->gt());
+		return  nullptr;
+	}
 
 	let sz = v->get_size();
 
@@ -1930,7 +1947,6 @@ const ims_val* eval_context::eval_vector(ast_context p, bool is_geom)
 			}
 			pool_ptr vcond(eval7(cptr, true));
 			if (!vcond) {
-				eval_error("recursive vector: invalid condition");
 				return nullptr;
 			}
 			if (!vcond->is_true() || !set_vector(eval7(vptr, true))) {
