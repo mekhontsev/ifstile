@@ -26,7 +26,7 @@
 #include "ims_graph_base.h"
 #include "ims_val.h"
 
-static constexpr char const* nlc = "\n";
+#define nlc "\n"
 
 using Real = double;
 
@@ -76,7 +76,8 @@ void ims_to_flame(
 	const std::array<float, 4>& background
 )
 {
-	ims_precision prec(str); prec.template max<Real>();
+	ims_precision prec(str);
+	prec.template max<Real>();
 
 	using flame_map = std::array<Real, 6>;
 	std::vector<flame_map> maps;
@@ -246,17 +247,28 @@ void ims_to_flame(
 		{ "coefs","yzCoefs","zxCoefs" };
 
 		if (dim == 2) {
-
 			str << KW[0] << " =\"";
 			if (fe.m == ims_max) {
 				str << id_str;
 			} else {
-				let& m = ri[fe.m].mg;
-				str << clamp(m->MatR()(0, 0)) << " " << -clamp(m->MatR()(1, 0)) << " "
-					<< clamp(-m->MatR()(0, 1)) << " " << clamp(m->MatR()(1, 1)) << " "
-					<< clamp(m->TrR()(0)) << " " << clamp(-m->TrR()(1));
+				let* m = ri[fe.m].mg.get();
+				std::array<double, 6> a;
+				if (m->is(ims_val_b::ETP::number)) {
+					a = { m->get_real(),0,0,m->get_real(), 0,0 };
+				} else {
+					a = {
+						m->MatR()(0, 0), -m->MatR()(1, 0),
+						-m->MatR()(0, 1), m->MatR()(1, 1),
+						m->TrR()(0), -m->TrR()(1)
+					};
+				}
+				for (auto& q : a) {
+					q = clamp(q);
+				}
+				str << a[0] << " " << a[1] << " "
+					<< a[2] << " " << a[3] << " "
+					<< a[4] << " " << a[5];
 			}
-
 			str << "\" ";
 		} else {
 
@@ -322,7 +334,8 @@ void ims_to_fractracer(
 
 	assert(n == 2 || n == 3);
 
-	ims_precision prec(str); prec.template max<Real>();
+	ims_precision prec(str);
+	prec.template max<Real>();
 
 	str << "return" << nlc;
 	str << "--<auto>" << nlc;
@@ -420,34 +433,30 @@ void ims_to_fractracer(
 		cam.m_loc(2) << " }," << nlc;
 	str << "}," << nlc;
 
-
-
-
 	for (size_t i = 0; i < ri.size(); ++i) {
 		str << "m" << i << "={";
-		let& m = ri[i].mg;
-		assert(m->is(ims_val_b::ETP::matrix));
+		let* m = ri[i].mg.get();
+		let is_num = m->is(ims_val_b::ETP::number);
+		assert(is_num || m->is(ims_val_b::ETP::matrix));
+		assert(m->is(ims_val_b::EST::real));
 		for (size_t r = 0; r < n; ++r) {
 			for (size_t c = 0; c < n; ++c) {
-				str << m.get()->MatR()(r, c) << ",";
+				let v = is_num ? (r == c ? m->get_real() : 0) : m->MatR()(r, c);
+				str << v << ",";
 			}
 		};
 		for (size_t r = 0; r < n; ++r) {
-			str << m.get()->TrR()(r);
+			let v = is_num ? 0.0 : m->TrR()(r);
+			str << v;
 			if (r + 1 < n)str << ",";
 		}
 		str << "}," << nlc;
 	};
 
-	{
-		ims_precision prec_pal(4, str);
-		for (size_t j = 0; j < root_edges; ++j) {
-			let& clr = pal.get(j).c;
-			str << "c" << j << "={" << clr[0] << "," << clr[1] << "," << clr[2] << "}," << nlc;
-		};
-	}
-
-
+	for (size_t j = 0; j < root_edges; ++j) {
+		let& clr = pal.get(j).c;
+		fmt::print(str, "c{}={{{:.4g},{:.4g},{:.4g}}}," nlc, j, clr[0], clr[1], clr[2]);
+	};
 
 	str << "}," << nlc;
 	////////////////////////////////////////////////////////////////////////////
