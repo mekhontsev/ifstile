@@ -295,6 +295,8 @@ struct oper_block
 
 	//set type with one vector argument (companion, diagonal,...)
 	void set_one_vector_arg(std::span<const int64_t> p, size_t ds, ETYPE t);
+	//set exchange, etc
+	void set_zero_arg(size_t idx, ETYPE t);
 
 	//get the default operator index for the build
 	//priority goes to those who are last in the block because usually
@@ -305,8 +307,8 @@ struct oper_block
 
 	//returns the argument index
 	size_t set_power(size_t idx, intptr_t e);
-	void set_exchange(size_t idx);
-	void set_mobius(size_t idx);
+
+
 	size_t set_power_ref(size_t idx);
 	size_t set_mod_ref(size_t idx);
 

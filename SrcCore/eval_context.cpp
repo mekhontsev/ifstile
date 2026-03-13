@@ -1101,10 +1101,7 @@ const ims_val* eval_context::eval_call_built_in(ast_context p, bool)
 const ims_val* eval_context::eval_vector_imm(ast_context p, bool)
 {
 	let& op = p.h;
-
 	let nv = op.num_args();
-
-	assert(nv > 0);
 
 	if (op.ts == ESUBTYPE::real) {
 		auto* ret = eval_pool::ep.get_vector_real(nv);
@@ -1134,14 +1131,15 @@ const ims_val* eval_context::eval_vector_imm(ast_context p, bool)
 
 const ims_val* eval_context::eval_diagonal(ast_context p, bool)
 {
-	pool_ptr vec(eval7(p.index(0), true));
+	assert(p.h.num_args() == 1);
 
-	let n = p.a->get_dim();
+	pool_ptr vec(eval7(p.index(0), true));
 	if (!vec) {
 		return nullptr;
 	}
 
-	if (vec->num_vec_length() != n) {
+	let n = vec->num_vec_length();
+	if (n == 0) {
 		eval_error("$diagonal: invalid argument");
 		return nullptr;
 	}
@@ -1176,12 +1174,10 @@ const ims_val* eval_context::eval_diagonal(ast_context p, bool)
 
 const ims_val* eval_context::eval_charpoly(ast_context p, bool)
 {
-	let na = p.h.num_args();
-	pool_ptr a0;
+	assert(p.h.num_args() == 1);
 
-	if (na == 1) {
-		a0.reset(eval7(p.index(0), true));
-	}
+	pool_ptr a0;
+	a0.reset(eval7(p.index(0), true));
 
 	if (!a0) {
 		return nullptr;
@@ -1190,6 +1186,7 @@ const ims_val* eval_context::eval_charpoly(ast_context p, bool)
 	pool_ptr v(eval_helpers::to_affine3(a0.get(), p.a->get_dim()));
 	if (!v) {
 		eval_error("$charpoly: argument is not affine");
+		return nullptr;
 	}
 
 	return eval_helpers::affine_charpoly(v.get());

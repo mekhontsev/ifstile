@@ -160,7 +160,7 @@ void creator_state::create_block2(
 
 		//right side
 		if (is_exchange) {
-			b.set_exchange(ds);
+			b.set_zero_arg(ds, ETYPE::exchange);
 		} else if (is_diag(mat_r)) {
 			let n = (size_t)mat_r.rows();
 			std::vector<int64_t> diag(n + 1);

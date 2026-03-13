@@ -48,6 +48,8 @@ static char con2string(connectedness c) {
 	case connectedness::positive:		return '+';
 	case connectedness::strong:			return '#';
 	}
+	assert(false);
+	return 0;
 };
 
 const data_column::arr data_column::g_cols =

@@ -601,12 +601,11 @@ static bool parse_operator(
 			auto th = ETYPE::undef;
 			auto bt = BUILTIN_FUNC::invalid;
 			bool special_call = false;
-			std::string func_name;
-			
+			std::string_view func_name;
 			let fn = std::next(ut.begin());
 			if (fn->which() == spirit::utree_type::string_type && tx== ETYPE::call) {
 				let r = fn->get<spirit::utf8_symbol_range_type>();
-				func_name.assign(r.begin(), r.end());
+				func_name = std::string_view(r.begin(), r.end());
 
 				if (c == client::s_sym_funct) {
 					if (func_name[0] == ims_keywords::builtin) {
@@ -622,8 +621,6 @@ static bool parse_operator(
 					}
 				}
 			}
-
-			
 
 			//traverse in the reverse order
 			auto it_x = std::prev(ut.end());
@@ -701,24 +698,6 @@ static bool parse_operator(
 						}
 						return true;
 					}
-
-					case ETYPE::thickness:
-					{
-						if (na != 1) {
-							pfo.err << INV_NARG;
-							return reter();
-						};
-
-						auto ar = block.add_args(x, th, 1);
-
-						for (auto it = nit; it != ut.end(); ++it) {
-							if (!parse_operator(*it, pfo, block, ar++)) {
-								return reter();
-							}
-						}
-						return true;
-					}
-
 					case ETYPE::color_style:
 					{
 						if (na > 2 || na == 0) {
@@ -737,7 +716,6 @@ static bool parse_operator(
 							return true;
 						}
 
-
 						ims_warning("Deprecated $style found");
 
 						//composition of color and thickness
@@ -755,33 +733,22 @@ static bool parse_operator(
 								return reter();
 							}
 						}
-
 						return true;
 					}
-					case ETYPE::charpoly:
-					case ETYPE::companion:
 					case ETYPE::vector_union:
-					case ETYPE::numden:
-					{
-
-						size_t ar = block.add_args(x, th, na);
-						a[x].hdr.ts = ts;
-						for (auto it = nit; it != ut.end(); ++it) {
-							if (!parse_operator(*it, pfo, block, ar++)) {
-								return reter();
-							}
-						}
-						return true;
-					}
+					case ETYPE::charpoly:
 					case ETYPE::diagonal:
-					{
+					case ETYPE::thickness:
 						if (na != 1) {
 							pfo.err << INV_NARG;
 							return reter();
-						}
-
+						};
+						[[fallthrough]];
+					case ETYPE::companion:
+					case ETYPE::numden:
+					{
 						size_t ar = block.add_args(x, th, na);
-
+						a[x].hdr.ts = ts;
 						for (auto it = nit; it != ut.end(); ++it) {
 							if (!parse_operator(*it, pfo, block, ar++)) {
 								return reter();
@@ -806,27 +773,18 @@ static bool parse_operator(
 						return true;
 					}
 					case ETYPE::exchange:
-					{
-						if (na != 0) {
-							pfo.err << INV_NARG;
-							return reter();
-						}
-						block.set_exchange(x);
-						return true;
-					}
 					case ETYPE::inversion:
 					{
 						if (na != 0) {
 							pfo.err << INV_NARG;
 							return reter();
 						}
-						block.set_mobius(x);
+						block.set_zero_arg(x, th);
 						return true;
 					}
 					case ETYPE::set_interval:
 					{
 						let ar = block.add_args(x, th, 1);
-
 						if (na == 0) {
 							block.set_distribution_def(ar);
 						} else if (na == 1) {
@@ -845,7 +803,6 @@ static bool parse_operator(
 							pfo.err << INV_NARG;
 							return reter();
 						}
-
 						//partially process semigroups - create new variables
 						//	&R = $semigroup([s,r])
 						//		==========>
@@ -862,9 +819,7 @@ static bool parse_operator(
 						if (!parse_operator(*nit, pfo, block, offset)) {
 							return reter();
 						}
-
 						return true;
-
 					}case ETYPE::set_binary:
 					{
 						//replace with $permutation
@@ -1041,7 +996,6 @@ static bool parse_operator(
 						return true;
 					}
 					default:
-
 						pfo.err << "Invalid identifier: " << func_name;
 						return reter();
 					}
@@ -1104,7 +1058,7 @@ static bool parse_operator(
 
 			let fn = std::next(ut.begin());
 			let r = fn->get<spirit::utf8_symbol_range_type>();
-			std::string func_name(r.begin(), r.end());
+			std::string_view func_name(r.begin(), r.end());
 			let nit = std::next(fn);
 
 			let na = sz - 2;
@@ -1122,7 +1076,7 @@ static bool parse_operator(
 					return reter();
 				}
 				let rit = it->get<spirit::utf8_symbol_range_type>();
-				std::string field_name(rit.begin(), rit.end());
+				std::string_view field_name(rit.begin(), rit.end());
 
 				let ref_field = pfo.unk->get_unk_id(field_name);
 				a[ar++].hdr.set_small_int((int32_t)ref_field);
@@ -1237,7 +1191,7 @@ bool parser_state::parse7(
 	bool r = phrase_parse(iter, end, gram, space, ut);
 
 	if (!r || iter != end) {
-		err << "Error at: " << std::string(iter, end);
+		err << "Error at: " << std::string_view(iter, end);
 		return false;
 	}
 #if 0

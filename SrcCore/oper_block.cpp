@@ -733,6 +733,15 @@ void oper_block::set_one_vector_arg(
 	}
 };
 
+void oper_block::set_zero_arg(size_t idx, ETYPE t)
+{
+	auto& h = m_ops[idx].hdr;
+	h.tt = t;
+	h.ts = ESUBTYPE::zero;
+	h.set_u32(0);
+	h.set_u24(0);
+};
+
 void oper_block::set_int_poly(
 	std::span<const int64_t> p, 
 	int64_t denom, size_t ds, 
@@ -891,24 +900,9 @@ size_t oper_block::set_power(size_t idx, intptr_t e)
 	return ni;
 }
 
-void oper_block::set_exchange(size_t idx)
-{
-	auto& h = m_ops[idx].hdr;
-	h.tt = ETYPE::exchange;
-	h.ts = ESUBTYPE::integer;
-	h.set_u32(0);
-	h.set_u24(0);
-};
 
 
-void oper_block::set_mobius(size_t idx)
-{
-	auto& h = m_ops[idx].hdr;
-	h.tt = ETYPE::inversion;
-	h.ts = ESUBTYPE::integer;
-	h.set_u32(0);
-	h.set_u24(0);
-};
+
 
 size_t oper_block::set_power_ref(size_t idx)
 {
