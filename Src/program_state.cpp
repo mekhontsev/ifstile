@@ -146,9 +146,6 @@ bool program_state::save_png(
 	////////////////////////////////////////////////////////////////////////////
 	std::ostringstream ss;
 
-	ims_precision prec(ss);
-	prec.template max<DefNumTypes::Real>();
-
 	ss << "\r\n";
 
 	nfo.print_js(ss);

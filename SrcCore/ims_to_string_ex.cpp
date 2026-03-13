@@ -76,8 +76,6 @@ void ims_to_flame(
 	const std::array<float, 4>& background
 )
 {
-	ims_precision prec(str);
-	prec.template max<Real>();
 
 	using flame_map = std::array<Real, 6>;
 	std::vector<flame_map> maps;
@@ -333,9 +331,6 @@ void ims_to_fractracer(
 {
 
 	assert(n == 2 || n == 3);
-
-	ims_precision prec(str);
-	prec.template max<Real>();
 
 	str << "return" << nlc;
 	str << "--<auto>" << nlc;

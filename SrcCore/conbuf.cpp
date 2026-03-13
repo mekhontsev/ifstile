@@ -17,25 +17,33 @@
 #include "pch.h" 
 #include "conbuf.h"
 
-
-void console_writer::redirect()
+std::streambuf* ims_conbuf::redirect(std::ostream& os)
 {
-	m_err_buf.redirect();
-	m_out_buf.redirect();
+	clear();
+	return os.rdbuf(this);
 }
 
-void console_writer::revert()
+void ims_conbuf::sync_string(std::string& str) const
 {
-	m_err_buf.revert();
-	m_out_buf.revert();
+	std::scoped_lock lock(m_lock);
+	auto b = view();
+	if (str.size() == b.size())return;
+
+	if (str.size() > b.size()) {
+		str.assign(b);
+	} else {
+		str.append(b.begin() + str.size(), b.end());
+	}
 }
 
-std::string console_writer::fetch_error()
+void ims_conbuf::clear()
 {
-	return m_err_buf.fetch_data(m_lock);
+	std::scoped_lock lock(m_lock);
+	str("");
 }
 
-std::string console_writer::fetch_string()
+std::stringbuf::int_type ims_conbuf::overflow(int_type c)
 {
-	return m_out_buf.fetch_data(m_lock);
+	std::scoped_lock lock(m_lock);
+	return std::stringbuf::overflow(c);
 }

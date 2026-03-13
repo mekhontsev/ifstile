@@ -229,6 +229,7 @@ ims_static bool g_file_open_in_progress = false;
 ////////////////////////////////////////////////////////////////////////////////
 
 SDL_Window* MainWindow_get();
+void ext_console_clear();
 
 static bool use_zoom_box();
 
@@ -252,12 +253,6 @@ void stop_build()
 	get_thread(e_ims_threads::build).stop();
 };
 
-void ext_console_clear()
-{
-	call_main_thread([]{
-		s_ui.m_console.clear_console();
-	});
-};
 
 float& get_ui_scale()
 {
@@ -1117,9 +1112,6 @@ static void do_copy_to_clipboard_ex(
 {
 	std::ostringstream stream;
 
-	ims_precision prec(stream);
-	prec.template max<DefNumTypes::Real>();
-
 	{
 		std::scoped_lock lock(get_list_lock());
 		aifs_printer de;
@@ -1458,17 +1450,11 @@ void console_execute(std::string_view script)
 
 void console_print(e_what_print what)
 {
-	ims_precision prec(std::cout);
-	prec.template max<DefNumTypes::Real>();
-
-
 	auto* xd = get_global_bd();
 	if (!xd || !xd->m_block_sq)return;
 
 	auto& sr = xd->get_block();
 	auto& bi = xd->m_bi;
-
-	
 
 	switch (what) {
 	case e_what_print::Definition:
@@ -1495,7 +1481,7 @@ void console_print(e_what_print what)
 		break;
 	case e_what_print::Dimension:
 		console_compute([](const block_info* bi) {
-			print_dimensions(*bi);
+			print_dimensions(std::cout, *bi);
 		});
 		break;
 	case e_what_print::Geometry:
@@ -2083,8 +2069,6 @@ static void do_save_as()
 
 		auto& ofs = get_fds().m_fw.stream();
 
-		ims_precision prec(ofs);	prec.template max<DefNumTypes::Real>();
-
 		let ext = ims_file::get_extension(fn);
 
 		let& vp = finder::get().m_var_par;
@@ -2498,10 +2482,6 @@ static void do_show_clipboard_dlg()
 	redraw_gui(1);
 };
 
-static void do_clear_console()
-{
-	s_ui.m_console.clear_console();
-};
 
 static void switch_tool_windows()
 {
@@ -2824,7 +2804,7 @@ void open_file(
 			}
 			save_settings(get_ini_filename());
 
-			do_clear_console();
+			ext_console_clear();
 
 			g_boundary_mode = ifs_object_type::normal;
 

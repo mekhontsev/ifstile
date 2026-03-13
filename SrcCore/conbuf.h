@@ -16,85 +16,15 @@
 
 #pragma once
 
-
-template<bool IsErr>
-struct conbuf_t : public std::stringbuf
+struct ims_conbuf : public std::stringbuf
 {
 public:
-
-	~conbuf_t() {/*sync();*/revert(); }
-
-	void redirect()
-	{
-		m_old = get_global_stream().rdbuf(this);	
-	}
-
-	void revert()
-	{
-		if (!m_old)return;
-		get_global_stream().rdbuf(m_old);
-		m_old = nullptr;
-	}
-
-	std::string fetch_data(std::recursive_mutex& lock)
-	{
-		std::string ret;
-		{
-			std::scoped_lock _(lock);
-			ret = this->str();
-			this->str("");
-		}
-		return ret;
-	}
-	
+	std::streambuf* redirect(std::ostream& os);
+	//does nothing if str.size() == current buffer size
+	void sync_string(std::string& str) const;
+	void clear();
 protected:
-	int sync() override
-	{
-		
-#if 0
-		if (!m_allow_sync)return 0;
-
-		auto s = fetch_data();
-		if (s.empty())return 0;
-
-		void ext_console_out(const char* str);
-		ext_console_out(s.c_str());
-#endif
-		return 0;
-	};
-
-	
-
+	int_type overflow(int_type c = EOF) override;
 private:
-
-	static std::ostream& get_global_stream() {
-		if constexpr (IsErr) {
-			return std::cerr;
-		} else {
-			return std::cout;
-		}
-	}
-
-	typename std::streambuf* m_old = nullptr;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-struct console_writer
-{
-public:	
-	conbuf_t<false>	m_out_buf;
-	conbuf_t<true>	m_err_buf;
-
-	//std::stringstream m_ss_msg;
-	//std::stringstream m_ss_err;
-
-	std::recursive_mutex m_lock;
-
-	void redirect();
-
-	void revert();
-
-	std::string fetch_error();
-	std::string fetch_string();
+	mutable std::mutex m_lock;
 };

@@ -23,7 +23,8 @@
 #include "edge_ball.h"
 #include "edge_map.h"
 
-std::string get_con_data(bool err = false);
+void ext_console_sync(std::string& str);
+void ext_console_clear();
 
 TEST(testLoad, invalid_block_header_fail)
 {
@@ -457,7 +458,7 @@ q=1/3
 a=3*pi/180
 r=[1-q*cos(a),-q*sin(a)]
 o=[0,0]
-R=[o,r, r,o, o,r, r,o, r,o, o,r, r,o, r,o, r,o] # 12 21 12 21 21 12 21 21 21
+R=[o,r, r,o, o,r, r,o, r,o, o,r, r,o, r,o, r,o]
 
 @recx: base
 n=0
@@ -565,20 +566,20 @@ TEST(testEval, powers)
 {
 	aifs_tester t(R"(
 @
-k=-1^2 #-(1^2)=-1 [google]
-a=2^-1^2 #2^-(1^2)=1/2 [google]
-b=(2^-1)^2 #1/4
-c=(2+2)^2  #16
-d=(-1)^2   #1
-e=(2^2)^3  #64
-f=(-e)^2	#4096
-g=-a^-a^2 #-1.18...
+k=-1^2
+a=2^-1^2
+b=(2^-1)^2
+c=(2+2)^2
+d=(-1)^2
+e=(2^2)^3
+f=(-e)^2
+g=-a^-a^2
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
 
-	EXPECT_TRUE(t.equal("k", -1));
-	EXPECT_TRUE(t.equal("a", { 1,2 }));
+	EXPECT_TRUE(t.equal("k", -1));// [google]
+	EXPECT_TRUE(t.equal("a", { 1,2 }));// [google]
 	EXPECT_TRUE(t.equal("b", { 1, 4 }));
 	EXPECT_TRUE(t.equal("c", 16));
 	EXPECT_TRUE(t.equal("d", 1));
@@ -637,7 +638,7 @@ TEST(testEval, real_powvec)
 $dim=2
 a=[1,2]^(3/2)
 b=[1,2,3]^(3/2)
-c=[1,2,3,4]^(3/2) #invalid
+c=[1,2,3,4]^(3/2)
 d=[1,2,3,4,5]^(3/2)
 )");
 
@@ -659,10 +660,10 @@ TEST(testEval, int_powvec)
 	aifs_tester t(R"(
 @
 $dim=2
-a=[1,2]^2	#should be ok
-b=[1,2,3]^2  #should be ok
-c=[1,2,3,4]^2 #should be affine
-d=[1,2,3,4,5]^2 #should be ok
+a=[1,2]^2
+b=[1,2,3]^2
+c=[1,2,3,4]^2
+d=[1,2,3,4,5]^2
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
@@ -1142,9 +1143,11 @@ TEST(testJS, ConsoleLog)
 	aifs_tester t(R"(
 console.log('ConsoleLog')
 )");
-	get_con_data(false);
+	ext_console_clear();
 	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_EQ(get_con_data(false), "ConsoleLog\n");
+	std::string s;
+	ext_console_sync(s);
+	EXPECT_EQ(s, "ConsoleLog\n");
 }
 
 TEST(testJS, JsInitFunc)

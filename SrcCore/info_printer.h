@@ -21,7 +21,7 @@ struct block_info;
 struct eval_context;
 struct ast_maps;
 
-bool print_dimensions(const block_info& bi);
+bool print_dimensions(std::ostream& sout, const block_info& bi);
 void print_balls(const oper_block& sr, const block_info* bi);
 void print_diams(const oper_block& sr, const block_info* bi);
 void print_measure(const oper_block& sr, const block_info* bi);

@@ -36,7 +36,7 @@ void get_block_sizes(const Matrix& M, std::vector<size_t>& sizes, Number prec)
 			//check if it's a block of size s.
 			for (size_t r = k; r < k + s; ++r) {
 				for (size_t c = k + s; c < n; ++c) {
-					if (ims_abs(M(r, c)) > prec || ims_abs(M(c, r)) > prec) {
+					if (std::abs(M(r, c)) > prec || std::abs(M(c, r)) > prec) {
 						goto lab;
 					}
 				}
@@ -169,8 +169,8 @@ bool block_form::get_proj(
 				std::sort(tarr.begin(), tarr.end(), [&vals](let& i1, let& i2) {
 					let& v1 = vals[i1];
 					let& v2 = vals[i2];
-					let av1 = ims_abs(v1);
-					let av2 = ims_abs(v2);
+					let av1 = std::abs(v1);
+					let av2 = std::abs(v2);
 					let& eps = ims_num_traits<Real>::almost_zero();
 					if (av1 - eps > av2)return true;//av1 is definitely larger than av2
 					if (av1 + eps < av2)return false;//av1 is definitely less than av2
@@ -253,7 +253,7 @@ bool block_form::get_proj(
 					} else {
 
 						//TODO: better understand the sign of the imaginary part
-						eig_vals[i].set(pv(c, c), ims_abs(pv(c, c + 1)));
+						eig_vals[i].set(pv(c, c), std::abs(pv(c, c + 1)));
 
 						Real nr = 0;//norm
 						for (size_t r = 0; r < n; ++r) {

@@ -18,15 +18,13 @@
 #include "graph_poly.h"
 #include "block_info.h"
 #include "poly_roots.h"
-#include "edge_map.h"
 #include "eval_helpers.h"
 #include "ims_val.h"
 #include "eval_pool.h"
 
-bool print_dimensions(const block_info& bi)
+bool print_dimensions(std::ostream& sout, const block_info& bi)
 {
 	using Real = double;
-
 
 	////////////////////////////////////////////////////////////////////////
 
@@ -116,7 +114,8 @@ bool print_dimensions(const block_info& bi)
 
 
 	using MatrixRational = Eigen::Matrix<ims_rational_big, Eigen::Dynamic, Eigen::Dynamic>;
-	std::vector<ims_rational_big> base_poly;
+	using PolyType = ims_rational_big;
+	std::vector<PolyType> base_poly;
 
 	//to avoid printing extra base
 	std::vector<Real> p_vals_uniq;
@@ -142,7 +141,7 @@ bool print_dimensions(const block_info& bi)
 		let& dc = di[ci];
 		assert(dc.DR == dim_relations::own);
 
-		std::cout << "Component " << ci << ", dim ~= "  << dc.H  << std::endl;
+		fmt::println(sout, "Component {}, dim ~= {}", ci, dc.H);
 
 		//TODO: make it work for real IFS too...
 
@@ -311,19 +310,19 @@ bool print_dimensions(const block_info& bi)
 
 		R_denom = ipow(R_denom, (uint8_t)dproj);
 
-
-		std::cout << "dim = " << dproj << "*log(x)/log(p)" << std::endl;
+		fmt::println(sout, "dim = {}*log(x)/log(p)", dproj);
 
 		if (n == dproj) {
-			let a0 = ims_abs(numerator(base_poly.front()));
+			using Int = ims_get<PolyType>::int_type;
+			let a0 = (Int)abs(numerator(base_poly.front()));
 			Real p_val = (Real)a0 / (Real)R_denom;
 
 			let is_new = get_p_val(p_val, idx_p);
-			std::cout << "p = p" << idx_p;
+			fmt::print(sout, "p = p{}", idx_p);
 			if (is_new) {
-				std::cout << " = " << a0;
+				fmt::print(sout, " = {}", a0);
 				if (R_denom != 1) {
-					std::cout << "/" << R_denom;
+					fmt::print(sout, "/{}", R_denom);
 				}
 			}
 		} else {
@@ -345,22 +344,21 @@ bool print_dimensions(const block_info& bi)
 			p_val /= (Real)R_denom;
 
 			let is_new = get_p_val(p_val, idx_p);
-			std::cout << "p = p" << idx_p;
+			fmt::print(sout, "p = p{}", idx_p);
 			if (is_new) {
-				std::cout << " = |product of used roots|";
+				fmt::print(sout, " = |product of used roots|");
 				if (R_denom != 1) {
-					std::cout << "/" << R_denom;
+					fmt::print(sout, "/{}", R_denom);
 				}
-				std::cout << std::endl;
-				std::cout <<"p" << idx_p << " ~= " << p_val << std::endl;
-			
-				std::cout << "used roots of ";
+				fmt::print(sout,"\n");
+				fmt::println(sout, "p{} ~= {}", idx_p, p_val);
+				fmt::print(sout, "used roots of ");
 				poly_func::print(base_poly.data(), base_poly.size(),
-					false, std::cout, "z");
-				std::cout << " :";
+					false, sout, "z");
+				fmt::print(sout, " :");
 
 				for (size_t i = 0; i < (size_t)vals.size(); ++i) {
-					std::cout << std::endl;
+					fmt::print(sout, "\n");
 
 					let& q = vals[i];
 
@@ -370,22 +368,25 @@ bool print_dimensions(const block_info& bi)
 					if (std::abs(qr) < eps)qr = 0;
 					if (std::abs(qi) < eps)qi = 0;
 
-					std::cout << "\t";
-					if (qr > 0) {//to compensate for the minus of the negative ones
-						std::cout << " ";
+					fmt::print(sout, "\t");
+					if (qr > 0) {
+						//to compensate '-' for the minus of the negative values
+						fmt::print(sout, " ");
 					};
 					if (qr != 0) {
-						std::cout << qr;
+						fmt::print(sout, "{}", qr);
 					};
 
 					if (qi != 0) {
-						if (qi > 0)std::cout << "+";
-						std::cout << qi << "*i";
+						if (qi > 0) {
+							fmt::print(sout, "+");
+						}
+						fmt::print(sout, "{}*i", qi);
 					};
 				}
 			}
 		}
-		std::cout << std::endl;
+		fmt::print(sout, "\n");
 
 		pows.resize(num_maps);
 
@@ -420,10 +421,10 @@ bool print_dimensions(const block_info& bi)
 			graph_poly.data().data(),
 			graph_poly.size(),
 			false,
-			std::cout);
+			sout);
 
-		std::cout << "=0" << std::endl;
-		std::cout << "x~=" << x << std::endl;
+		fmt::println(sout, "=0");
+		fmt::println(sout, "x~={}", x);
 	}
 
 

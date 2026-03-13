@@ -41,9 +41,8 @@ public:
 	{
 		let now = ims_chrono::now();
 		if (!m_str.empty()) {
-			ims_precision prec(6, std::cout);
 			let df = ims_chrono::dif_micro(m_last, now) * 1e-3;
-			std::cout << m_str << ": " << df << "ms" << std::endl;
+			fmt::println(std::cout, "{}: {:.6g} ms", m_str, df);
 		}
 		m_last = now;
 		m_str = str;

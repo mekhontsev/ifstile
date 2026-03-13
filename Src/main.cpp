@@ -292,7 +292,7 @@ void open_file(
 	const struct edit_info* edit);
 ////////////////////////////////////////////////////////////////////////////////
 
-ims_static console_writer g_conbuf;
+ims_static ims_conbuf g_conbuf;
 
 ims_static unsigned s_extra_iters = 0;
 
@@ -494,9 +494,14 @@ void switch_fullscreen()
 };
 
 
-std::string get_con_data(bool err = false)
+void ext_console_sync(std::string& str)
 {
-	return err ? g_conbuf.fetch_error() : g_conbuf.fetch_string();
+	g_conbuf.sync_string(str);
+}
+
+void ext_console_clear()
+{
+	g_conbuf.clear();
 };
 
 
@@ -723,10 +728,9 @@ int main_utf8(int argc, char **argv)
 	main_scope ([] {exit(0);});
 #endif
 
-
 	//first and foremost
-	g_conbuf.redirect();
-	main_scope([] { g_conbuf.revert(); });
+	g_conbuf.redirect(std::cout);
+	g_conbuf.redirect(std::cerr);
 
 	SDL_SetEventEnabled(SDL_EVENT_DROP_FILE, true);
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");	

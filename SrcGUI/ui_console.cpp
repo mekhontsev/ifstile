@@ -26,10 +26,8 @@ const char* ws_console::get_title()
 	return "Console";
 }
 
-void ws_console::clear_console()
-{
-	m_buf.clear();
-}
+void ext_console_sync(std::string& str);
+void ext_console_clear();
 
 void ws_console::show()
 {
@@ -69,7 +67,10 @@ void ws_console::show()
 		bclear = ims_button("Clear");
 	}
 
-	if (bclear) { m_buf.clear(); }
+	if (bclear) {
+		ext_console_clear();
+		m_buf.clear();
+	}
 	let id_con = next_id++;
 #ifndef __EMSCRIPTEN__	
 	//In the browser, ImGui uses its own clipboard, which is not accessible from the OS.
@@ -118,8 +119,7 @@ void ws_console::show()
 			script = boost::algorithm::trim_copy_if(
 				script, boost::algorithm::is_any_of(" \t\r\n"));
 			if (!script.empty()) {
-				m_buf += script;
-				m_buf += "\n";
+				std::cout << script << std::endl;
 				console_execute(script);
 			}
 			m_input_buf.clear();
@@ -136,10 +136,7 @@ void ws_console::show()
 	}
 	///////////////////////////////////////////////////////////////////////////
 
-	auto str = get_con_data(false);
-	m_buf += str;
-	str = get_con_data(true);
-	m_buf += str;
+	ext_console_sync(m_buf);
 
 	edit_helper::begin(id_con);
 	IMS_SCOPE([] {edit_helper::end(true);});

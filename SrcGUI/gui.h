@@ -224,8 +224,6 @@ void set_new_ver_ref(size_t new_ver_ref);
 void console_execute(std::string_view script);
 void console_print(e_what_print what);
 
-std::string get_con_data(bool err);
-
 size_t get_default_block();
 void init6(bool need_save);
 

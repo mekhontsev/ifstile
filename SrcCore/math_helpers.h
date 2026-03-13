@@ -578,14 +578,11 @@ bool mul_matrix_checked_int(Integer* dst, const Integer* left, const Integer* ri
 template<typename Rational>
 auto rational_magnitude(const Rational& q)
 {
+	using Integer = ims_get<Rational>::int_type;
+
 	if constexpr (ims_get<Rational>::is_big) {
-
-		return std::max(
-			ims_abs(numerator(q)), 
-			denominator(q));
-
+		return std::max(Integer(abs(numerator(q))), denominator(q));
 	} else {
-		using Integer = Rational::int_type;
 		using Unsigned = std::make_unsigned_t<Integer>;
 		static_assert(std::numeric_limits<Integer>::is_exact);
 		static_assert(std::numeric_limits<Integer>::is_bounded);

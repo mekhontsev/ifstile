@@ -66,13 +66,8 @@ void ws_source::on_load()
 static void get_source(const oper_block& b, std::string& dst)
 {
 	dst.clear();
-
 	std::ostringstream str;
-	ims_precision prec(str);
-	prec.template max<DefNumTypes::Real>();
-
 	ims_write_block(str, &b);
-
 	dst = str.str();
 }
 

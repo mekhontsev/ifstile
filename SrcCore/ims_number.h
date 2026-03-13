@@ -53,6 +53,13 @@ inline ims_integer denominator(const ims_rational& v)
 	return v.denominator(); 
 };
 
+//specializing the formatter for any boost::multiprecision number
+template <typename Backend, boost::multiprecision::expression_template_option ExpressionTemplates>
+struct fmt::formatter<boost::multiprecision::number<Backend, ExpressionTemplates>> : fmt::formatter<std::string> {
+	auto format(const boost::multiprecision::number<Backend, ExpressionTemplates>& n, format_context& ctx) const {
+		return fmt::formatter<std::string>::format(n.str(), ctx);
+	}
+};
 
 namespace boost
 {
@@ -71,7 +78,5 @@ namespace boost
 		hash_range(seed, s.begin(), s.end());
 		return seed;
 	}
-	
-
 }
 

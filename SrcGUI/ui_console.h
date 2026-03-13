@@ -17,15 +17,11 @@
 #pragma once
 #include "ui_window.h"
 
-
 struct ws_console : public window_state
 {
-	
 	const char* get_title() override;
 
 	void show() override;
-
-	void clear_console();
 
 	std::string m_buf;
 	std::string m_input_buf;

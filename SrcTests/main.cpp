@@ -19,19 +19,22 @@
 
 void ims_num_traits_init_all();
 
-ims_static console_writer g_conbuf;
 
-std::string get_con_data(bool err = false)
+ims_static ims_conbuf g_conbuf;
+void ext_console_sync(std::string& str)
 {
-	return err ? g_conbuf.fetch_error() : g_conbuf.fetch_string();
+	g_conbuf.sync_string(str);
+}
+void ext_console_clear()
+{
+	g_conbuf.clear();
 };
-
-void ext_console_clear() {};
 
 int main_utf8(int argc, char** argv)
 {
 	ims_num_traits_init_all();
-	g_conbuf.redirect();
+	g_conbuf.redirect(std::cout);
+	g_conbuf.redirect(std::cerr);
 	printf("Running main() from %s\n", __FILE__);
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

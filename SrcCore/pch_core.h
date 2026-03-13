@@ -301,27 +301,6 @@ void ims_geometric_reserve(Vector& v, size_t num)
 	}
 }
 
-
-//std::abs still has problems with boost::multiprecision
-template<typename Number>
-Number ims_abs(Number v) { return v < 0 ? -v : v; };
-
-
-template<typename S>
-struct ims_precision
-{
-	ims_precision(S& s) : m_s(s) { m_old = s.precision(); };
-	ims_precision(std::streamsize sz, S& s): m_s(s) { m_old = s.precision(sz); };
-	~ims_precision() { m_s.precision(m_old); };
-
-	template<typename R>
-	void max() { m_s.precision(std::numeric_limits<R>::digits10 + 1); };
-
-	std::streamsize m_old;
-	S& m_s;
-};
-
-
 ////////////////////////////////////////////////////////////////////////////////
 #else
 #include <stddef.h>

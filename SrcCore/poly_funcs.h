@@ -57,7 +57,7 @@ void print(
 			str << (c > 0 ? "+" : "-");
 		}
 		
-		let ac = ims_abs(c);
+		let ac = abs(c);
 		if (ac != 1 || p == 0) {
 			str << ac;
 			if(p>0)str << "*";
