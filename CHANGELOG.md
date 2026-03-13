@@ -1,3 +1,6 @@
+v4.1.1
+- Improve stability
+---
 v4.1.0
 - UI: context menu for text fields
 - Rendering: new color mode - by graph.
