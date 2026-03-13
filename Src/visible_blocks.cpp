@@ -62,25 +62,15 @@ size_t visible_blocks::find_vis_block(const oper_block* b)
 	return ims_max;
 }
 
-
-
 oper_block* visible_blocks::get_vis(size_t idx) const
 {
 	if (idx >= m_vis_blocks.size())return nullptr;
 	return const_cast<oper_block*>(m_vis_blocks[idx]);
 }
 
-
-
-
 size_t visible_blocks::get_vis_checked()
 {
 	return m_checked;
-}
-
-oper_block* visible_blocks::get_cur_block()
-{
-	return get_vis(m_cur_block_pos);
 }
 
 size_t visible_blocks::find_block_by_id(block_id_t id)

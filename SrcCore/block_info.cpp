@@ -41,7 +41,7 @@ void block_info::gen_next_id()
 	m_id8 = g_next_id++;
 };
 
-void block_info::recalc_graph()
+void block_info::set_to_recalc_graph()
 {
 	m_id8 = 0;
 }
@@ -165,7 +165,7 @@ bool block_info::init4(
 	let nvers = g.num_ver();
 
 	ims_resize(m_ver_dim, nvers);
-
+	ims_resize(m_em, nmaps);
 	////////////////////////////////////////////////////////////////////////////
 	//construct a graph by skipping empty edges and vertices
 	if (has_empty_maps) {
@@ -263,6 +263,7 @@ bool block_info::init4(
 		}
 	}
 
+
 	if (has_invalid_vers) {
 		if (!init_fg(g)) {
 			return true;
@@ -277,8 +278,6 @@ bool block_info::init4(
 	}
 
 	////////////////////////////////////////////////////////////////////////////
-	ims_resize(m_em, nmaps);
-
 
 	//find projected maps
 	//don't generate nested compositions

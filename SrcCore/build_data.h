@@ -50,7 +50,7 @@ struct build_data
 
 	////////////////////////////////////////////
 
-	void clear_bd();
+	void clear();
 
 	oper_block* get_direct(ifs_object_type m);
 	
@@ -88,10 +88,9 @@ struct build_data
 	oper_block& get_block();
 	const oper_block& get_block() const;
 
-	void clear();
+
 	bool empty() const;
 
-	void make_clean_block();
 
 	//the number of the vertex to be built in the final graph
 	size_t get_froot() const;

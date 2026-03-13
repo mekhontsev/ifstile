@@ -174,7 +174,7 @@ bool aifs_tester::init()
 	auto* b = const_cast<oper_block*>(get_last_block());
 	if (!b)return true;
 
-	bi.recalc_graph();
+	bi.set_to_recalc_graph();
 	if (!bi.init4(*b, ec, am, gid.get(), ac)) {
 		return false;
 	}

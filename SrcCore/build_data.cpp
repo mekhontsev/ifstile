@@ -34,16 +34,47 @@
 
 ims_info& ims_info_get();
 
-void build_data::clear_bd()
+
+oper_block& build_data::get_block()
+{
+	return *m_block_sq;
+}
+
+const oper_block& build_data::get_block() const
+{
+	return *m_block_sq;
+}
+
+bool build_data::empty() const
+{
+	return !m_block_sq || m_block_sq->empty4();
+}
+
+void build_data::clear()
 {
 	m_bb = nullptr;
-	
-	m_special.clear8();
 	m_normal_parent.reset();
-
+	m_special.clear8();
 	m_bi.clear_proj_data();
+	m_bi.set_to_recalc_graph();
+	if (m_block_sq)m_block_sq->clear();
+}
 
-	make_clean_block();
+void build_data::pre_init(
+	const oper_block* db,
+	const variator_params& vp)
+{
+	if (!m_block_sq) {
+		m_block_sq = std::make_unique<oper_block>();
+	} else {
+		m_block_sq->clear();
+	}
+	m_bb = db;
+	m_vp = vp;
+	m_normal_parent.reset();
+	//do not clear cached proj data!
+	m_bi.set_to_recalc_graph();
+	m_special.clear8();//find them before building
 }
 
 
@@ -161,22 +192,8 @@ void build_data::on_change_mode()
 	if (!m_normal_parent)return;
 
 	set_block(m_normal_parent);
-	m_bi.recalc_graph();
+	m_bi.set_to_recalc_graph();
 }
-
-void build_data::pre_init(
-	const oper_block* db, 
-	const variator_params& vp)
-{
-	make_clean_block();
-
-	m_bb = db;
-	m_vp = vp;
-	m_normal_parent.reset();
-	m_bi.recalc_graph();
-	m_special.clear8();//find them before building
-}
-
 
 bool build_data::init_normal_block(
 	eval_info& ei,
@@ -184,9 +201,11 @@ bool build_data::init_normal_block(
 	ast_maps& am,
 	affine_calc& bc)
 {
-
-	if (m_bi.m_id8 > 0) {
+	if (m_bi.m_id8 > 0) {//cached
 		return m_bi.exists();
+	}
+	if (!m_bb) {//build image, delete all blocks, try to rotate
+		return false;
 	}
 
 	test_clock_print clock("init_normal_block");
@@ -259,34 +278,6 @@ bool build_data::init_normal_block(
 	return true;
 }
 
-oper_block& build_data::get_block()
-{
-	return *m_block_sq;
-}
-
-const oper_block& build_data::get_block() const
-{
-	return *m_block_sq;
-}
-
-void build_data::clear()
-{
-	if (m_block_sq)m_block_sq->clear();
-}
-
-bool build_data::empty() const
-{
-	return !m_block_sq || m_block_sq->empty4();
-}
-
-void build_data::make_clean_block()
-{
-	if (!m_block_sq) {
-		m_block_sq = std::make_unique<oper_block>();
-	} else {
-		m_block_sq->clear();
-	}
-}
 
 size_t build_data::get_froot() const
 {
@@ -296,7 +287,7 @@ size_t build_data::get_froot() const
 
 bool build_data::can_create_view() const
 {
-	return !m_normal_parent && !m_changed && !empty() && m_bi.exists();
+	return !m_normal_parent && !m_changed && !empty() && m_bi.exists() && m_bb;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -513,7 +504,7 @@ bool build_data::init_custom_block(
 
 	auto& b = get_block();
 
-	m_bi.recalc_graph();
+	m_bi.set_to_recalc_graph();
 
 	let res = m_bi.init4(
 		b,

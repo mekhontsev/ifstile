@@ -1642,7 +1642,7 @@ std::string oper_block::get_block_decription() const
 
 bool oper_block::empty4() const
 {
-	return m_ops.empty() && !m_src2 && !m_parent;
+	return !m_parent && !m_class;
 }
 
 const oper_block* oper_block::elevate_empty() const

@@ -1026,7 +1026,7 @@ struct search_contex
 
 		
 		
-		ccl->m_bi2.recalc_graph();
+		ccl->m_bi2.set_to_recalc_graph();
 	
 		bi.init4(
 			ccl->get_block(), 

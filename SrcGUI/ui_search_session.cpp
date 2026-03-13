@@ -82,7 +82,7 @@ void ws_search_session::show()
 	}
 	{
 		SAME_LINE();
-		if (ims_button("+H", "Add checked to hot")) {
+		if (ims_button("+H", "Add the checked blocks to the hot list")) {
 			auto& vec = finder::get().m_bi_map_vec;
 			for (auto* q : get_vb().m_vis_blocks) {
 				if (!q->m_flags.checked)continue;
@@ -95,8 +95,8 @@ void ws_search_session::show()
 	}
 	{
 		SAME_LINE();
-		if (ims_button("SP", "Set current as prototype")) {
-			let* cb = vb.get_cur_block();
+		if (ims_button("SP", "Set the current block as a prototype")) {
+			let* cb = get_cur_block();
 			if (cb) {
 				finder::get().m_next_proto = cb;
 			}

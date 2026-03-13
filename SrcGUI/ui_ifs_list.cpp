@@ -48,6 +48,7 @@ void ws_ifs_list::show()
 {
 	auto& lst = ifs_list_get();
 	if (lst.empty()) {
+		ImGui::TextUnformatted("The list is empty");
 		return;
 	}
 

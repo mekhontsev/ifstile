@@ -324,7 +324,8 @@ visible_blocks& get_vb()
 
 oper_block* get_cur_block()
 {
-	return get_vb().get_cur_block();
+	auto* bd = get_global_bd();
+	return bd ? const_cast<oper_block*>(bd->m_bb) : nullptr;
 };
 
 
@@ -387,7 +388,7 @@ void ui_update_maps()
 {
 	auto* xd = get_global_bd();
 	if (!xd || xd->empty()) return;
-	xd->m_bi.recalc_graph();
+	xd->m_bi.set_to_recalc_graph();
 	xd->m_changed = true;
 }
 
@@ -435,7 +436,7 @@ void rand_current_set()
 static build_data* get_cur_for_save(ifs_object_type t)
 {
 	auto* xd = get_global_bd();
-	if (!xd || !xd->m_bi.exists())return nullptr;
+	if (!xd || xd->empty() || !xd->m_bi.exists())return nullptr;
 	xd->m_special.sync_builtins(false, *xd->get_direct(t));
 	return xd;
 }
@@ -513,13 +514,11 @@ bool editor_ready()
 
 void clear_before_load()
 {
-	//prevent the help block from crashing when CTRL-R is pressed
+	//prevents the help block from crashing when CTRL-R is pressed
 	for (auto& q : g_ps.m_build_data) {
 		q.clear();
 	}
-
 	ims_err_reset();
-
 	g_ims_info.reset();
 };
 
@@ -1211,14 +1210,11 @@ static size_t save(
 		const oper_block* b;
 		if (bi) {
 			b = &bi->get_block();
-		}
-		else if (mode == ifs_object_type::normal) {
-			b = get_vb().get_cur_block();
-		}
-		else {
+		}else if (mode == ifs_object_type::normal) {
+			b = get_cur_block();
+		}else {
 			return 0;
 		}
-
 		arr.emplace_back(b);
 	}
 
@@ -1454,6 +1450,7 @@ void console_print(e_what_print what)
 	if (!xd || !xd->m_block_sq)return;
 
 	auto& sr = xd->get_block();
+	if (sr.empty4())return;
 	auto& bi = xd->m_bi;
 
 	switch (what) {
@@ -1473,7 +1470,9 @@ void console_print(e_what_print what)
 		print_ifs_eval(sr, g_ps.m_ctx);
 		break;
 	case e_what_print::NormalMaps:
-		print_normal_maps(sr, g_ps.m_ctx);
+		if (sr.get_dim() > 0) {
+			print_normal_maps(sr, g_ps.m_ctx);
+		}
 		break;
 	case e_what_print::Projection:
 		//can only print the current block
@@ -1696,14 +1695,16 @@ void remove_checked()
 		}
 	}
 
-	//deleting building information
+	//delete building information
 	for (auto& q : g_ps.m_build_data) {
 		if (q.empty())continue;
 		let* p = q.get_block().m_parent;
 		if (p && p->m_flags.marked) {
-			q.clear_bd();
+			q.clear();
 		}
-	
+		if (q.m_bb && q.m_bb->m_flags.marked) {
+			q.m_bb = nullptr;
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////
@@ -1993,6 +1994,9 @@ void save_env_block(bool only_if_exists, bool fparams, bool rparams)
 	ims_info::link_refs_for_block(ims_info_get(), &b, ai);
 
 	if (!xb) {
+		if (g_ps.m_thumb_arr.empty()) {
+			g_ps.init7();//created before any other block
+		}
 		add_block2(nb, ims_keywords::search_params_block);
 	}
 };
@@ -2545,7 +2549,10 @@ void try_open_file(std::function<void()>&& F, bool use_confirm)
 		return;
 	}
 
-	if (!use_confirm || !ims_info_get().m_need_save) {
+	if (!use_confirm ||
+		ims_info_get().m_list.empty() ||
+		!ims_info_get().m_need_save)
+	{
 		stop_search_then(std::move(F));
 		return;
 	}
@@ -2898,7 +2905,7 @@ void open_file(
 
 			std::string err_msg;
 			if (!load_ok) {
-				err_msg = ehu.get_buf();		
+				err_msg = ehu.get_buf();
 				assert(!err_msg.empty());
 			}
 
@@ -2920,7 +2927,7 @@ void open_file(
 				g_file_open_in_progress = false;
 
 				if (!load_ok) {
-					std::cerr << err_msg;
+					std::cerr << err_msg << std::endl;
 					ims_show_message(err_msg);
 					update_ui_async();
 					return;
@@ -3207,7 +3214,7 @@ void ims_confirm_dlg(std::string_view msg, std::function<void()>&& F, bool show)
 
 static void do_save_picture()
 {
-	if (g_width == 0) {
+	if (g_width == 0 || g_ps.get_img_draw().empty()) {
 		ims_show_message("Image is not ready!\n");
 		return;
 	};
@@ -3489,7 +3496,7 @@ void do_create_anim(size_t ref_time)
 	build_data bd;
 
 	for (auto& kf : k) {
-		bd.clear_bd();
+		bd.clear();
 
 		auto& ei = get_global_ei();
 		auto& ac = get_global_ac();
@@ -4430,7 +4437,7 @@ static void ShowMainMenu()
 		{
 			auto* xd = get_global_bd();
 
-			let* bb = xd && xd->can_create_view() ? get_cur_block() : nullptr;
+			let* bb = xd && xd->can_create_view() ? xd ->m_bb : nullptr;
 
 			if (ImGui::MenuItem("View->List", "Ctrl =", false, bb != nullptr)) {
 				add_view_to_list(xd, bb);

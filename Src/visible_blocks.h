@@ -45,16 +45,12 @@ struct visible_blocks
 	//number of marked
 	std::atomic<uint32_t> m_checked{ 0 };
 
-
 	void reset_vis_blocks(const ifs_list& lst);
 	size_t find_vis_block(const oper_block* b);
 	
 	oper_block* get_vis(size_t idx) const;
-	
 
 	size_t get_vis_checked();
-
-	oper_block* get_cur_block();
 
 	size_t find_block_by_id(block_id_t id);
 

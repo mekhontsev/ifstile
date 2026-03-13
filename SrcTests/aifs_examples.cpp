@@ -67,7 +67,7 @@ TEST(testExamples, test_all)
 
 				++num_tested;
 				
-				t.bi.recalc_graph();
+				t.bi.set_to_recalc_graph();
 				if (!t.bi.init4(*b, t.ec, t.am, t.gid.get(), t.ac)) {
 					berr = b->str_id4();
 					if (berr.empty())berr = std::to_string(b->m_block_id);

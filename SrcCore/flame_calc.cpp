@@ -80,7 +80,7 @@ size_t calc_flame(
 			continue;
 		}
 
-		bi.recalc_graph();
+		bi.set_to_recalc_graph();
 
 		block_sq = std::make_unique<oper_block>();
 		block_sq->inherit_from(*sr, vp, ei.m_opinfo2, false);

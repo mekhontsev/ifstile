@@ -46,11 +46,9 @@ void ifs_list::release_block_entry(block_id_t id)
 	auto& d = m_id2data[id];
 	if (d.m_str_id != ims_max) {
 		m_idf.m_idx2unknown[d.m_str_id]->second.block_id = block_id_max;
-		assert(false);//everything is fine, I'm just curious
 	}
 	d.clear();
 	if (m_id2data.size() == id + 1) {//minor optimization
-		assert(false);//everything is fine, I'm just curious
 		m_id2data.pop_back();
 	} else {
 		m_free_blocks.emplace_back(id);

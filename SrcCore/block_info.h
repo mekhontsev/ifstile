@@ -61,10 +61,8 @@ struct block_info
 
 	//no errors occurred as a result of initialization
 	bool exists() const;
-	void recalc_graph();
+	void set_to_recalc_graph();
 	void gen_next_id();
-
-
 
 	//calculates graph, real maps, sizes of sets
 	//return false if no valid vertex could be found

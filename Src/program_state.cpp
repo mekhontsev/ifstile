@@ -87,7 +87,7 @@ bool program_state::can_upload_img(size_t ms) const
 void program_state::init7()
 {
 	m_build_data.resize(1);
-	m_build_data.front().clear_bd();
+	m_build_data.front().clear();
 
 	thumb_resize(1);
 	m_thumb_arr.front()->clear();
@@ -132,16 +132,14 @@ bool program_state::save_png(
 	std::vector<std::unique_ptr<oper_block>> bsa;
 	std::vector<const oper_block*> arr;
 
-
 	for (auto& dt : m_build_data) {
+		if (dt.empty())continue;
 		let* b = dt.get_direct(ifs_object_type::normal);
 		auto& dst = bsa.emplace_back(std::make_unique<oper_block>());
 		b->simple_copy(*dst);
-
 		dt.m_special.add_all_builtins(*dst, rpars, false);
 		arr.emplace_back(dst.get());
 	}
-
 
 	////////////////////////////////////////////////////////////////////////////
 	std::ostringstream ss;

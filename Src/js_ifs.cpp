@@ -24,7 +24,7 @@ static JSValue js_ifs_id(
 	const oper_block* b = nullptr;
 
 	if (argc == 0) {
-		b = get_vb().get_cur_block();
+		b = get_cur_block();
 	} else {
 
 		if (!JS_IsString(argv[0])) {
