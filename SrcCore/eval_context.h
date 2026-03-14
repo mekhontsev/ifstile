@@ -107,6 +107,8 @@ struct eval_context
 	const ims_val* vector_flat(ast_context p, bool is_geom);
 	const ast_context* resolve_topo_reference(const ast_context* ast);
 
+
+
 	//numeric conversions
 	//indexing
 	//traversing references
@@ -169,7 +171,15 @@ private:
 
 #endif
 
-
+	struct index_data
+	{
+		//one of the values below is valid
+		int64_t i{ 0 };//for ordinary indexing
+		pool_ptr ai;//for fancy indexing
+	};
+	bool eval_index_ex(ast_context p, index_data& d);
+	const ims_val* lazy_index(const ast_context* ast, index_data& d, bool is_geom);
+	bool adjust_index2(int64_t& idx, size_t arr_sz);
 
 #define def_ec_method2(func) const ims_val* func(ast_context c, bool is_geom)
 	def_ec_method2(eval_pow);

@@ -88,6 +88,12 @@ i = [0, 2, 4]
 b = a[i]  # equal to: [10 30 50]
 ```
 
+### Array lazy indexing
+Enables on-demand access to elements, avoiding full array computation. Use 'arr(index)' for that.
+```python
+a = [sin(5), cos(5)](1) # equal to: cos(5)
+```
+
 ### Array self-referencing
 When creating an array, we can access the already created part of the array using a special function: $(level), where level = 0, 1, ...
 * $(0) is a reference to the current array

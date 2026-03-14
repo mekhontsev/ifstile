@@ -1052,6 +1052,23 @@ a2 = x[i2]
 	EXPECT_TRUE(t.equal_vec("a2", { 20,20,20 }));
 };
 
+
+TEST(testArrFuncs, LazyIndexing)
+{
+	aifs_tester t(R"(
+@
+a = [7,11,13](1)
+b = [7,11,13]([0,0,2])
+c = [sin(1),cos(1)](0)
+d = [sin(1),cos(1)]([1,1])
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 11));
+	EXPECT_TRUE(t.equal_vec("b", { 7,7,13 }));
+	EXPECT_TRUE(t.approx("c", sin(1)));
+	EXPECT_TRUE(t.approx_vec("d", {cos(1), cos(1)}));
+};
+
 TEST(testArrFuncs, ArrFlat)
 {
 	aifs_tester t(R"(
@@ -1247,3 +1264,44 @@ f = imm[1];
 	EXPECT_TRUE(t.equal_vec("e", { 6,7 }));
 	EXPECT_TRUE(t.equal("f", 12));
 }
+
+TEST(testArrFuncs, LazyIndexing2)
+{
+	aifs_tester t(R"(
+export function inc(arg){
+	console.log("called")
+	return arg+1;
+}
+@@
+
+@
+a = [inc(1),11](1)
+)");
+	ext_console_clear();
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 11));
+
+	std::string s;
+	ext_console_sync(s);
+	EXPECT_TRUE(s.empty());
+};
+TEST(testArrFuncs, LazyIndexing3)
+{
+	aifs_tester t(R"(
+export function inc(arg){
+	console.log("called")
+	return arg+1;
+}
+@@
+
+@
+a = [inc(1),11](0)
+)");
+	ext_console_clear();
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 2));
+
+	std::string s;
+	ext_console_sync(s);
+	EXPECT_FALSE(s.empty());
+};
