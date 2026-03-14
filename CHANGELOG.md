@@ -1,3 +1,8 @@
+v4.1.2
+- AIFS: extend the conditional operator to compare arrays.
+- AIFS: lazy indexing
+- Fixed bugs
+---
 v4.1.1
 - Improve stability
 ---
