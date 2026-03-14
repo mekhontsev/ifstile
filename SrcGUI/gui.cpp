@@ -1439,6 +1439,7 @@ void console_execute(std::string_view script)
 	ta.m_stage_name = "JavaScript exec";
 	std::string s{ script };
 	ta.start([s = std::move(s)]() {
+		clock_print clock("JS execution time");
 		ims_info_get().m_js_engine.eval(s);
 	});
 }
