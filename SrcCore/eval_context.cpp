@@ -323,6 +323,7 @@ const ims_val* eval_context::eval_unk_ref(ast_context p, bool)
 	if (d.has_block()) {
 		return get_ast_val(p);
 	}
+
 	assert(d.has_js_entry());
 
 	if (m_nfo->m_js_engine.js_obj_is_function(d.js_export_entry)) {

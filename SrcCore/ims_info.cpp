@@ -36,13 +36,12 @@ void ims_info::release(var_subs_info::V* p)
 }
 #endif
 
-void ims_info::link_refs_for_block(
+bool ims_info::link_refs_for_block(
 	const ims_info& nfo, oper_block* b,  ast_stack& ai)
 {
 	//the class must always be
 	auto* cl = b->get_class();
 	if (!cl) {
-		//TODO: almost never uses ims_info
 		cl = &b->set_new_class(&nfo);
 	}
 	
@@ -99,6 +98,8 @@ void ims_info::link_refs_for_block(
 		vh.ref8 = var_header::pack(idx, is_subst);
 	}
 
+	let& idf = nfo.m_list.m_idf;
+
 	//fill in the references inside the bytecode
 	for (let& q : *b) {
 		ai.reset3({ b, &b->m_ops[q.pos5].hdr });
@@ -114,6 +115,12 @@ void ims_info::link_refs_for_block(
 				if (graph_ref != ims_max) {
 					p.h->set_reference(graph_ref);
 				}else {
+					let& d = idf.m_idx2unknown[unk_id]->second;
+					if (!d.has_block() && !d.has_js_entry()) {
+						ims_error("Undefined identifier '{}'",
+							idf.get_str_from_unk(unk_id));
+						return false;
+					}
 					p.h->tt = ETYPE::unk_reference;
 					p.h->set_offset(unk_id);
 				}
@@ -151,6 +158,8 @@ void ims_info::link_refs_for_block(
 		}
 		s->unk2description.clear();
 	}
+
+	return true;
 }
 
 bool ims_info::link_refs(const size_t idx_from)
@@ -210,7 +219,9 @@ bool ims_info::link_refs(const size_t idx_from)
 
 			if (b->m_flags.marked)continue;
 			b->m_flags.marked = true;//completed
-			link_refs_for_block(*this, b, ai);
+			if (!link_refs_for_block(*this, b, ai)) {
+				return false;
+			}
 		}
 	}
 

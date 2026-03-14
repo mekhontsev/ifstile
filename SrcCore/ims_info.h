@@ -41,7 +41,7 @@ struct ims_info: public boost::noncopyable
 	////////////////////////////////////////////////////////////////////////////
 
 	//at the time of the call, parent must already be set
-	static void link_refs_for_block(
+	static bool link_refs_for_block(
 		const ims_info& nfo, oper_block* b, ast_stack& ai);
 
 	//sets all parents and all references inside blocks to the tail of the list
