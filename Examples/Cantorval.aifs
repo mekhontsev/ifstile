@@ -1,0 +1,6 @@
+@Cantorval
+#[Topological, metric and fractal properties of one family of self-similar sets](https://arxiv.org/abs/2603.07575)
+$dim=1
+m=$number($integer(1,10))
+x=[$, 2*m-$(), [2*$(1)()-if (m-$(1)(), 0, 1)]]
+S=$union([[1/2/m, x, S]])

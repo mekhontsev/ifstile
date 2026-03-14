@@ -30,6 +30,7 @@ set (Examples
 	Quaquaversal.aifs
 	Square.aifs
 	Segment.aifs
+	Cantorval.aifs
 	Tesseract.aifs
 	x^2+2.aifs
 	x^2-2x+2_Twin_Dragon.aifs
