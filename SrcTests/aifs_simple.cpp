@@ -58,11 +58,12 @@ A=A*B
 	if (t.init())FAIL() << "should fail";
 };
 
+
 TEST(testEval, condition_wrong_na_fail)
 {
 	aifs_tester t(R"(
 @
-a=if(0, 1)
+a=if(0, 1, 2, 3)
 )");
 
 	if (t.init())FAIL() << "should fail";
@@ -101,9 +102,6 @@ A=A
 	if (!t.init())FAIL() << t.err_msg;
 };
 
-
-
-
 TEST(testLoad, AeqA1)
 {
 	aifs_tester t(R"(
@@ -114,9 +112,6 @@ A=A*1
 
 	if (!t.init())FAIL() << t.err_msg;
 };
-
-
-
 
 TEST(testLoad, AeqA1ex2)
 {
@@ -184,6 +179,57 @@ t3=t[3]
 	EXPECT_TRUE(t.equal("t3", 35));
 };
 
+TEST(testEval, condition_vec)
+{
+	aifs_tester t(R"(
+@
+a=if([7,11])
+b=if([13,0])
+c=if([7,[11,13]])
+d=if([7,[0,13]])
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+
+	EXPECT_TRUE(t.equal("a", 1));
+	EXPECT_TRUE(t.equal("b", 0));
+	EXPECT_TRUE(t.equal("c", 1));
+	EXPECT_TRUE(t.equal("d", 0));
+};
+
+TEST(testEval, condition_2arg)
+{
+	aifs_tester t(R"(
+@
+a0=if(7,3)
+a1=if(4,4)
+a2=if(2,8)
+a3=if(1,[1])
+a4=if([1],1)
+a5=if([1],[1])
+a6=if([1,1],[2])
+a7=if([2],[1,1])
+a8=if([1,2],[1,1])
+a9=if([1,2],[2,1])
+b0=if([1,[3,5]],[1,[3,5]])
+b1=if([1,[4,5]],[1,[3,5]])
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+
+	EXPECT_TRUE(t.equal("a0", 1));
+	EXPECT_TRUE(t.equal("a1", 0));
+	EXPECT_TRUE(t.equal("a2", -1));
+	EXPECT_TRUE(t.equal("a3", -1));
+	EXPECT_TRUE(t.equal("a4", 1));
+	EXPECT_TRUE(t.equal("a5", 0));
+	EXPECT_TRUE(t.equal("a6", 1));
+	EXPECT_TRUE(t.equal("a7", -1));
+	EXPECT_TRUE(t.equal("a8", 1));
+	EXPECT_TRUE(t.equal("a9", -1));
+	EXPECT_TRUE(t.equal("b0", 0));
+	EXPECT_TRUE(t.equal("b1", 1));
+};
 
 
 TEST(testEval, recursive_fib)

@@ -642,7 +642,7 @@ static bool parse_operator(
 							return reter();
 						}
 						if (bt == BUILTIN_FUNC::cond) {
-							if (na % 2 == 0) {
+							if (na != 2 && na % 2 == 0) {
 								pfo.err << INV_NARG;
 								return reter();
 							}

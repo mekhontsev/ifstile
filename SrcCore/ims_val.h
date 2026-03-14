@@ -210,7 +210,7 @@ public:
 	size_t num_vec_length() const;
 
 	bool is_true() const;//for the ternary operator
-
+	static int compare(const ims_val* a, const ims_val* b);
 
 	bool to_big_rational(ims_val_b::BigRational& v) const;
 	bool to_int(int64_t& v) const;

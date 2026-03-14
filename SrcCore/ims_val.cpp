@@ -30,23 +30,129 @@ size_t ims_val::num_vec_length() const
 
 bool ims_val::is_true() const
 {
+	size_t sz = 1;
 	switch (gt()) {
 	case ETP::number:
-		switch (gs())
-		{
-		case EST::rational:
-			return get_int().numerator() > 0;
-		case EST::real:
-			return get_real() > 0;
-		default:
-			return true;
-		}
+		break;
+	case ETP::vector:
+		sz = get_size();
+		break;
 	case ETP::uni:
 		assert(get_size() == 0);//empty set
 		return false;
+	case ETP::compos:
+		assert(get_size() == 0);//empty set
+		return true;
+	case ETP::string:
+		return get_size()>0;
 	default:
 		return true;
+	};
+
+	for (size_t i = 0; i < sz; ++i) {
+		switch (gs())
+		{
+		case EST::rational:
+			if (numerator(p_i(i)) <= 0)return false;
+			break;
+		case EST::big_rational:
+			if (numerator(p_b(i)) <= 0)return false;
+			break;
+		case EST::real:
+			if (p_r(i) <= 0)return false;
+			break;
+		case EST::other:
+			if (!p_v(i) || !p_v(i)->is_true()) {
+				return false;
+			}
+			break;
+		default:
+			break;
+		}
 	}
+	return true;
+}
+
+int ims_val::compare(const ims_val* a, const ims_val* b)
+{
+
+	if (a == b) {
+		return 0;
+	}
+	if (!a)return -1;
+	if (!b)return 1;
+
+	if (a->gt() != b->gt()) {
+		return a->gt() < b->gt() ? -1 : 1;
+	}
+
+	let na = a->num_el();
+	let nb = b->num_el();
+	if (na != nb) {
+		return na < nb ? -1 : 1;
+	}
+
+	if (a->gt() == ETP::string) {
+		int res = a->get_string().compare(b->get_string());
+		if (res == 0)return res;
+		return res > 0 ? 1 : -1;
+	}
+
+	if (na == 1 && a->gs() > EST::nan) {
+		return a < b ? -1 : 1;//compare by pointers
+	}
+
+	if (a->gs() == EST::other || b->gs() == EST::other) {
+		if (a->gs() != b->gs()) {
+			return a->gs() == EST::other ? 1 : -1;
+		}
+		for (size_t i = 0; i < na; ++i) {
+			int res = compare(a->p_v(i), b->p_v(i));
+			if (res != 0)return res;
+		}
+		return 0;
+	}
+
+	let s = a->common_subtype(b->gs());
+	for (size_t i = 0; i < na; ++i) {
+		switch (s)
+		{
+		case EST::rational:
+		{
+			let d = a->p_i(i) - b->p_i(i);
+			if (d != 0) {
+				return d < 0 ? -1 : 1;
+			}
+			break;
+		}
+		case EST::big_rational:
+		{
+			BigRational xa{}, xb{};
+			a->to_big_rational(xa);
+			b->to_big_rational(xb);
+			let d = xa - xb;
+			if (d != 0) {
+				return d < 0 ? -1 : 1;
+			}
+			break;
+		}
+		case ims_val_b::EST::real:
+		{
+			Real ra{}, rb{};
+			a->to_real(ra);
+			b->to_real(rb);
+			let d = ra - rb;
+			if (d != 0) {
+				return d < 0 ? -1 : 1;
+			}
+			break;
+		}
+		default:
+			assert(false);
+			break;
+		}
+	}
+	return 0;
 }
 
 bool ims_val::to_big_rational(ims_val_b::BigRational& v) const

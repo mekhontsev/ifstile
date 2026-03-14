@@ -36,12 +36,7 @@ When exporting to PNG, the application automatically embeds the full generation 
 
 ### Mathematical operations
 To perform calculation with numbers and affine maps it is possible to use ordinary operations like +,-,\*,/,^,% and brackets.\
-For numbers **sin**, **cos**, **tan**, **asin**, **acos**, **atan**, **exp**, **log**, **floor**, **ceil**, **abs**, **arg** are defined.\
-The '**if**' function is also defined:
-* if (cond, val1, val2) is equivalent to (cond > 0)?val1 : val2 in C-like languages.
-* if (cond) is a step function defined as if (cond, 1, 0).
-* if (cond1, val1, cond2, val2, ..., val_else) is equivalent to
-cond1>0 ? val1: (cond2>0 ? val2: ( ... : val_else)...)
+For numbers **sin**, **cos**, **tan**, **asin**, **acos**, **atan**, **exp**, **log**, **floor**, **ceil**, **abs**, **arg** are defined.
 
 ### Identifiers
 An identifier is a case-sensitive string that denotes a variable, an operator or a block. An identifier can consist of symbols \[a-z\], \[A-Z\], \[0-9\] and "\_", but cannot start with a digit.\
@@ -49,6 +44,23 @@ Identifiers beginning with $ and & symbols have a special meaning.\
 Variable with a name beginning with '$' symbol is considered as built-in variable.\
 Variable with a name beginning with '&' symbol is considered as substitution and recalculated in every place where used.\
 Each variable can be assigned only once, see [static single assignment form](https://en.wikipedia.org/wiki/Static_single_assignment_form), and the order of the definitions is not important.
+
+### Conditional operator
+'**if**' function:
+* if (cond, val1, val2) is equivalent to cond>0 ? val1 : val2 in C-like languages.
+* if (cond) is a step function defined as if (cond, 1, 0).
+* if (cond1, val1, cond2, val2, ..., val_else) is equivalent to
+if (cond1, val1, if (cond2, val2, if(..., val_else)...)
+
+It possible to use any array as a condition. In this case, the condition is met if all array elements are positive.
+
+Also, there is a 2 argments version, that defined as if (v1, v2):
+* 0 for v1==v1
+* -1 for v1<v2
+* +1 for v1>v2
+
+In this case, v1 and v2 can also be arrays, which we compare lexicographically.
+
 
 ### Arrays (Vectors)
 Like in many other languages, v=\[a1, a2, .., an\] defines the array of elements (a1, a2, .., an).\

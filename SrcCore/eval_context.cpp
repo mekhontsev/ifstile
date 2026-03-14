@@ -1044,6 +1044,13 @@ const ims_val* eval_context::eval_condition(ast_context p, bool is_geom)
 	let& op = p.h;
 
 	let na = op.num_args();
+
+	if (na == 2) {
+		pool_ptr a0(eval7(p.index(0), true));
+		pool_ptr a1(eval7(p.index(1), true));
+		return eval_pool::ep.get_scalar_int(ims_val::compare(a0.get(), a1.get()));
+	}
+
 	for (size_t i = 0; i < na; i += 2) {
 		//condition - always in geometric mode
 		pool_ptr a(eval7(p.index(i), true));
