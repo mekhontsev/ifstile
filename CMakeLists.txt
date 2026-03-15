@@ -328,7 +328,7 @@ prepend(SRC_QuickJS quickjs)
 #-------------------------------------------------------------------------------
 set (SRC_GENERAL
 ims_settings.h ims_settings.cpp draw_task.h 
-pch.h main.cpp main_utf8.cpp ims_to_x3d.cpp
+pch.h main.cpp main_utf8.cpp
 gl_helper.h gl_helper.cpp gl_helper_math.cpp  dx_helper.h 
 program_state.h program_state.cpp ims_help.h ims_help.cpp 
 visible_blocks.h visible_blocks.cpp 

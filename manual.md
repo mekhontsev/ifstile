@@ -54,7 +54,7 @@ if (cond1, val1, if (cond2, val2, if(..., val_else)...)
 
 It possible to use any array as a condition. In this case, the condition is met if all array elements are positive.
 
-Also, there is a 2 argments version, that defined as if (v1, v2):
+Also, there is a 2 arguments version, that defined as if (v1, v2):
 * 0 for v1==v1
 * -1 for v1<v2
 * +1 for v1>v2

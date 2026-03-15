@@ -53,8 +53,3 @@ void ims_to_flame(
 	const palette& pal,
 	const std::array<float, 4>& background
 );
-
-#ifndef NDEBUG
-void ims_to_x3d(const std::string& path, const ifs_list& lst);
-#endif // NDEBUG
-

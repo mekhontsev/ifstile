@@ -2138,18 +2138,6 @@ static void do_save_as()
 		
 	});
 }
-#ifndef NDEBUG
-static void do_save_x3d()
-{
-	redraw_gui(1);
-	get_fds().select_folder("Save As X3D", "", [](let& fn)
-		{
-			ims_to_x3d(fn, ifs_list_get());
-	return true;
-		});
-}
-#endif
-
 
 static bool from_image(float& x, float& y)
 {
@@ -4270,25 +4258,15 @@ static void ShowMainMenu()
 			do_show_clipboard_dlg();
 		}
 
-		
-#ifndef NDEBUG
-		if (ImGui::MenuItem("Save X3D")) {
-			do_save_x3d();
-		}
-#endif
-
 		ImGui::Separator();
 		if (ImGui::MenuItem("Save Picture As")) {
 			do_save_picture();
 		};
 
-
 		if (ImGui::MenuItem("Export CSV")) {
 			do_export_csv();
 		}
 #if 0
-	
-
 		ImGui::Separator();
 		if (ImGui::BeginMenu("Recent")) {
 			IMS_SCOPE([&] {ImGui::EndMenu(); });
@@ -4334,7 +4312,6 @@ static void ShowMainMenu()
 #endif
 
 	}
-
 
 	if (ImGui::BeginMenu("Build")) {
 		IMS_SCOPE([] {ImGui::EndMenu(); });

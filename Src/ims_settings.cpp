@@ -17,12 +17,9 @@
 #include "pch.h"
 #include "ims_settings.h"
 #include "ims_file.h"
-#include "ims_rw.h"
 #include "samples.h"
 #include "render_params.h"
-
 #include "ims_ini.h"
-
 #include "gui.h"//overkill
 
 
@@ -83,8 +80,6 @@ bool load_settings(const std::string& ini_filename)
 	inifile.get("ResolutionX", rend.m_resolution[0]);
 	inifile.get("ResolutionY", rend.m_resolution[1]);
 
-	
-
 	inifile.get("AO_Radius", rend.m_ssao_rad_perc);
 	inifile.get("AO_Amount", rend.m_ssao_density);
 	inifile.get("AO_Samples", rend.m_ssao_samples);
@@ -117,7 +112,6 @@ bool load_settings(const std::string& ini_filename)
 		get_samples().add_recent(val, false);
 	}
 
-
 	return true;
 }
 
@@ -142,13 +136,11 @@ bool save_settings(const std::string& ini_filename)
 	inifile.put("PaneMode", (int)st.m_window_mode);
 	inifile.put("DockedSize", st.m_docked_size);
 
-
 	inifile.put("Quality", rend.m_quality);
 	inifile.put("Thickness", rend.m_thickness);
 	inifile.put("Brightness", rend.m_brightness);
 	inifile.put("Contrast", rend.m_contrast);
 	inifile.put("Borders", rend.m_border_pow);
-
 
 	inifile.put("ResolutionX", rend.m_resolution[0]);
 	inifile.put("ResolutionY", rend.m_resolution[1]);
@@ -187,8 +179,6 @@ bool save_settings(const std::string& ini_filename)
 
 	return true;
 };
-
-
 
 size_t ims_setting::max_threads()
 {
