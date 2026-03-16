@@ -61,6 +61,7 @@ struct aifs_tester
 
 	//compares the variable from the last block
 	bool equal(std::string_view var, ims_val_b::Rational val);
+	bool equal_str(std::string_view var, std::string_view val);
 
 	bool approx(std::string_view var, ims_val_b::Real val);
 

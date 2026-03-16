@@ -213,6 +213,8 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 				('%' >> factor[modop(_val, _1)])
 				);
 
+		xstring = qi::as_string[qi::raw[qi::lexeme['"' >> +(qi::char_ - '"') >> '"']]];
+
 		factor = xfactor | simple;
 
 		xfactor = simple[_val = _1] >> +('^' >> simple[powop(_val, _1)]);
@@ -223,6 +225,7 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 			('-' >> xfactor[neg(_val, _1)]) |
 			strict_double[_val = _1] |
 			int_[_val = _1] |
+			xstring[_val = _1] |
 			index[_val = _1] |
 			field_call[_val = _1] |
 			function_call[_val = _1] |
@@ -296,7 +299,7 @@ struct oper_grammar: qi::grammar<Iterator, ascii::space_type, spirit::utree()>
 	qi::real_parser<double, qi::strict_real_policies<double>> strict_double;
 
 	qi::rule<Iterator, ascii::space_type, spirit::utree()>
-		expression, hmul, hsum, simple, vector, identifier, xlist,
+		expression, hmul, hsum, simple, vector, identifier, xlist, xstring,
 		factor, xfactor, function_call, xslice, field_call, index, tindex, tindex2,
 		//, expr_suffix_call, expr_suffix_index,
 		callable_or_indexable;
@@ -1107,11 +1110,19 @@ static bool parse_operator(
 	case spirit::utree_type::string_type://$pi, $i, etc
 	{
 		let r = ut.get<spirit::utf8_string_range_type>();
-		std::string str(r.begin(), r.end());
+		std::string_view str(r.begin(), r.end());
 
-		//TODO: rework?
+		if (str[0] == '"') {
+			assert(str.back() == '"');
+			str = str.substr(1, str.size() - 2);
+			if (!ims_operator::is_u24(str.size())) {
+				pfo.err << "string is too long";
+				return reter();
+			}
+			block.set_string(x, str);
+			return true;
+		}
 		if (str[0] == ims_keywords::builtin) {
-
 			let th = ims_operator::from_string(str);
 			switch (th) {
 			case ETYPE::distribution_int:

@@ -57,6 +57,7 @@ struct operator_ptr
 
 	std::span<const uint64_t> get_permutation_params(size_t& dim) const;
 
+	std::string_view get_string() const;
 };
 
 

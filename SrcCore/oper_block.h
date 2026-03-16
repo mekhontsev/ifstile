@@ -329,6 +329,9 @@ struct oper_block
 	void set_double(size_t idx, double v);
 	void set_double(ims_operator& h, double v);
 
+	char* as_string(size_t pos) const;
+	void set_string(size_t ds, std::string_view v);
+
 	//add after prev position, updating it
 	var_header::type add_var(uint32_t& prev, size_t ref, bool is_subs);
 	

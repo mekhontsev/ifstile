@@ -66,6 +66,9 @@ enum class ETYPE : uint8_t
 	//number
 	number,
 
+	//string
+	string,
+
 	//inverse: 1/arg
 	inv,
 
@@ -270,8 +273,6 @@ struct ims_operator
 	
 	uint64_t as64() const;
 
-	
-	
 	//guaranteed to be closed (for example, a ball)
 	bool is_closed() const;
 
@@ -284,7 +285,6 @@ struct ims_operator
 	size_t get_builtin_args() const;
 	void set_builtin_func(size_t id) { set_u24(id); };
 
-	
 	//number of operator arguments
 	size_t num_args() const { return get_u24(); };
 	size_t get_offset() const { return u32; };
@@ -301,6 +301,8 @@ struct ims_operator
 	void set(ETYPE t, size_t primary, size_t secondary);
 	
 	bool get_int_imm(int64_t& numerator, int64_t& denominator) const;
+
+	static size_t str_data_args(size_t sz);
 
 	static ETYPE from_string(std::string_view str);
 	static std::string_view to_string(ETYPE t);

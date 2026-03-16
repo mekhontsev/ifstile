@@ -572,6 +572,9 @@ static JSValue create_js_value(
 			auto el = create_js_value(ctx, pi, false);//recursion
 			JS_SetPropertyUint32(ctx, val, i, el);//val[i]=el
 		}
+	} else if (h.tt == ETYPE::string) {
+		let s = p.get_string();
+		val = JS_NewStringLen(ctx, s.data(), s.size());
 	}
 
 	return val;

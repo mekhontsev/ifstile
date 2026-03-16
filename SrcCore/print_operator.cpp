@@ -255,6 +255,9 @@ void print_operator(
 	case ETYPE::number:
 		write_num(str, b.m_ops[ofs], op.ts, par_type, fmt);
 		break;
+	case ETYPE::string:
+		str << "\""<< ptr.get_string()<< "\"";
+		break;
 	case ETYPE::call_built_in:
 	{
 		let f = op.get_builtin_func();

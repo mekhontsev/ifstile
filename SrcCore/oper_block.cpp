@@ -154,7 +154,7 @@ size_t oper_block::add(size_t num)
 	size_t ret = m_ops.size();
 	m_ops.resize(ret + num);
 	for (size_t i = 0; i < num; ++i) {
-		m_ops[ret + i].hdr.clear();
+		m_ops[ret + i].hdr.clear();//important!
 	}
 	return ret;
 }
@@ -705,6 +705,19 @@ void oper_block::remove_builtin(builtin_ids bid)
 	};
 };
 
+
+char* oper_block::as_string(size_t pos) const
+{
+	let* r = reinterpret_cast<const char*>(m_ops.data() + pos);
+	return const_cast<char*>(r);
+}
+
+void oper_block::set_string(size_t ds, std::string_view v)
+{
+	let p = add_args(ds, ETYPE::string, ims_operator::str_data_args(v.size()));
+	m_ops[ds].hdr.set_u24(v.size());
+	std::copy(v.begin(), v.end(), as_string(p));
+}
 
 void oper_block::set_one_vector_arg(
 	std::span<const int64_t> p, size_t ds, ETYPE t)

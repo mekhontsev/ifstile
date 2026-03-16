@@ -184,6 +184,15 @@ bool ims_operator::get_int_imm(int64_t& numerator, int64_t& denominator) const
 	}
 }
 
+size_t ims_operator::str_data_args(size_t sz)
+{
+	let nlimbs = sz / sizeof(sval);
+	if (sz == nlimbs * sizeof(sval)) {
+		return nlimbs;
+	}
+	return nlimbs + 1;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 ims_static std::array<std::string, (size_t)ETYPE::min_priority> s_keywords;
@@ -355,6 +364,8 @@ size_t ims_operator::data_args() const
 	switch (tt) {
 	case ETYPE::number:
 		return 1;
+	case ETYPE::string:
+		return str_data_args(get_u24());
 	case ETYPE::distribution_int:
 	case ETYPE::distribution_real:
 		return 2;//distribution - the same layout as vector_imm[real, 2]
@@ -375,6 +386,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::number_imm:
 	case ETYPE::undef:
 	case ETYPE::number:
+	case ETYPE::string:
 	case ETYPE::vector_imm:
 	case ETYPE::exchange:
 	case ETYPE::inversion:

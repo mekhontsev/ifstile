@@ -1014,6 +1014,10 @@ const ims_val* eval_context::eval_number_imm(ast_context p, bool)
 	return eval_pool::ep.get_scalar_int({ an[0], an[1] });
 };
 
+const ims_val* eval_context::eval_string(ast_context p, bool)
+{
+	return eval_pool::ep.get_string(p.get_string());
+}
 
 const ims_val* eval_context::eval_number(ast_context p, bool)
 {
@@ -2187,6 +2191,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::color_style:	ret = eval_color_style(p, is_geom); break;
 	case ETYPE::number_imm:		ret = eval_number_imm(p, is_geom); break;
 	case ETYPE::number:			ret = eval_number(p, is_geom); break;
+	case ETYPE::string:			ret = eval_string(p, is_geom); break;
 	case ETYPE::condition:		ret = eval_condition(p, is_geom); break;
 	case ETYPE::call_built_in:	ret = eval_call_built_in(p, is_geom); break;
 	case ETYPE::diagonal:		ret = eval_diagonal(p, is_geom); break;

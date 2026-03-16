@@ -126,6 +126,22 @@ A=A*B^-1
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+
+
+TEST(testEval, types)
+{
+	aifs_tester t(R"(
+@
+a = 1
+b = 1.0
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal("a", 1));
+	EXPECT_TRUE(t.approx("b", 1));
+};
+
+
 TEST(testEval, pi)
 {
 	aifs_tester t(R"(
@@ -1350,4 +1366,15 @@ a = [inc(1),11](0)
 	std::string s;
 	ext_console_sync(s);
 	EXPECT_FALSE(s.empty());
+};
+
+TEST(testStrings, Str1)
+{
+	aifs_tester t(R"(
+@
+a = "12 3"
+)");
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_str("a", "12 3"));
+	EXPECT_EQ(t.get_def("a"), "\"12 3\"");
 };

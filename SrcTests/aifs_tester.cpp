@@ -216,6 +216,15 @@ bool aifs_tester::equal(std::string_view var, ims_val_b::Rational val)
 	return v->get_int() == val;
 }
 
+bool aifs_tester::equal_str(std::string_view var, std::string_view val)
+{
+	let* v = eval(var);
+	if (!v || !v->is(ims_val_b::ETP::string)) {
+		return false;
+	}
+	return v->get_string() == val;
+}
+
 bool aifs_tester::approx(std::string_view var, ims_val_b::Real val)
 {
 	let* v = eval(var);

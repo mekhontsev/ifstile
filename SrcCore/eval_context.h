@@ -193,6 +193,7 @@ private:
 	def_ec_method2(eval_color_style);
 	def_ec_method2(eval_number_imm);
 	def_ec_method2(eval_number);
+	def_ec_method2(eval_string);
 	def_ec_method2(eval_condition);
 	def_ec_method2(eval_call_built_in);
 	def_ec_method2(eval_vector_imm);

@@ -41,6 +41,12 @@ std::span<const uint64_t> operator_ptr::get_permutation_params(size_t& dim) cons
 	return { &p->u64, sz };
 }
 
+std::string_view operator_ptr::get_string() const
+{
+	assert(h.tt == ETYPE::string);
+	return { a->as_string(h.get_offset()), h.get_u24() };
+}
+
 template<typename T>
 bool cmp_int(T v1, T v2, intptr_t& res)
 {
