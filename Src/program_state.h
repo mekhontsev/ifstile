@@ -19,19 +19,15 @@
 #include "ims_num_traits.h"
 #include "def_number_types.h"
 #include "build_data.h"
-#include "affine_calc.h"
-#include "eval_info.h"
-#include "eval_context.h"
-
 #include "builder.h"
 #include "builder2d.h"
 #include "builder3d.h"
 #include "builder_ext.h"
 #include "gbuffer3d.h"
-
 #include "draw_task.h"
 #include "report_params.h"
-#include "ast_maps.h"
+
+#include "eval_data.h"
 
 struct oper_block;
 struct visible_blocks;
@@ -128,6 +124,7 @@ struct thumb_elem
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
+
 struct program_state
 {
 	using real_number = DefNumTypes::Real;	
@@ -183,11 +180,7 @@ struct program_state
 
 	////////////////////////////////////////////////////////////////////////////
 
-	affine_calc m_bc;
-	eval_info m_ev;
-	eval_context m_ctx;
-	ast_maps m_am;
-
+	eval_data m_ed;
 	state_stack m_ss;
 	ims_cmap<real_number> m_cm;
 

@@ -1296,6 +1296,8 @@ const ims_val* flat(const ims_val* a)
 					v->p_r()[j] = a->affine_real_get_elem(j, i);
 				}
 				break;
+			default:
+				v = nullptr;
 			}
 			ret->p_v()[i] = v;
 		}

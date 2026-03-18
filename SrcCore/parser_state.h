@@ -29,6 +29,9 @@ struct parser_state
 	std::ostringstream err;
 	ims_identifiers* unk = nullptr;
 	uint32_t m_pos2 = 0;
+
+	//offset, where the definition of the current variable began.
+	size_t m_start_pos = 0;
 };
 
 

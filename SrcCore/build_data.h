@@ -24,6 +24,7 @@
 struct report_params;
 struct ims_identifiers;
 struct oper_block;
+struct eval_data;
 
 struct build_data
 {
@@ -68,20 +69,13 @@ struct build_data
 		const oper_block* db, //block from the list
 		const variator_params& vp);
 
-	bool init_normal_block(
-		eval_info& ei,
-		eval_context& ec, 
-		ast_maps& am,
-		affine_calc& bc);
+	bool init_normal_block(eval_data& ed);
 
 	bool init_custom_block(
+		eval_data& ed,
 		ims_identifiers& idf,
 		ifs_object_type mode,
-		const report_params& rp,
-		eval_info& ei,
-		eval_context& ec,
-		ast_maps& am,
-		affine_calc& bc);
+		const report_params& rp);
 
 	////////////////////////////////////////////////////////////////////////////
 

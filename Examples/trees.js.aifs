@@ -6,21 +6,21 @@ export const $info = `
 
 let params = [
 	["Maps in the trunk",
-		[7n, 2, 20]],
+		[7, 2, 20]],
 	["Maps in the branches",
-		[0n, 0, 100]],
+		[0, 0, 100]],
 	["Max algebraic dimension",
-		[2n, 1, 8]],
+		[2, 1, 8]],
 	["Palindromic",
-		[0n, 0, 1]],
+		[0, 0, 1]],
 	["Maximum coefficient of a polynomial",
-		[3n, 1, 10]],
+		[3, 1, 10]],
 	["Maximum used order of the group generator: s^E, s^-E",
-		[3n, 1, 15]],
+		[3, 1, 15]],
 	["Max numerator (for irrational search only)",
-		[1n, 1, 10]],
+		[1, 1, 10]],
 	["Max denominator (for irrational search only)",
-		[1n, 1, 10]],
+		[1, 1, 10]],
 ]
 
 function create() {

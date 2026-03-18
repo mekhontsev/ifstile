@@ -187,32 +187,6 @@ bool ims_val::to_int(int64_t& v) const
 	return true;
 }
 
-bool ims_val::to_real(Real& v) const
-{
-	if (!is(ETP::number))return false;
-
-	switch (gs()) {
-	case EST::rational:
-	{
-		let& ival = get_int();
-		v = static_cast<Real>(ival.numerator()) /
-			static_cast<Real>(ival.denominator());
-		return true;
-	}
-	case EST::big_rational:
-	{
-		let& bval = get_big_rational();
-		v = bval.convert_to<double>();
-		return true;
-	}
-	case EST::real:
-		v = get_real();
-		return true;
-	default:
-		assert(false);
-		return false;
-	}
-}
 
 ims_val::ETP ims_val::common_affine_type(ETP t, size_t dim) const
 {
@@ -266,6 +240,7 @@ bool ims_val::is_normal() const
 	return true;
 }
 
+
 size_t ims_val::num_el() const
 {
 	switch (m_t)
@@ -293,23 +268,201 @@ size_t ims_val::num_el() const
 }
 
 
+static void ensure_indexable(
+	[[maybe_unused]] const ims_val* v,
+	[[maybe_unused]] size_t idx)
+{
+	//it should be checked outside
+	assert(v->is(ims_val_b::ETP::ptr) || v->is(ims_val_b::ETP::number) || v->is(ims_val_b::ETP::vector));
+	assert(idx < (v->is(ims_val_b::ETP::vector) ? v->get_size() : 1));
+}
+
+bool ims_val::set_i64(int64_t src, size_t idx)
+{
+	ensure_indexable(this, idx);
+
+	switch (gs()) {
+	case ims_val_b::EST::rational:
+	{
+		ps_i()[idx] = src;
+		return true;
+	}
+	case ims_val_b::EST::real:
+	{
+		let dv = static_cast<ims_val_b::Real>(src);
+		if (src != static_cast<int64_t>(dv)) {
+			return false;
+		}
+		ps_r()[idx] = dv;
+		return true;
+	}
+	case ims_val_b::EST::big_rational:
+	{
+		ps_b()[idx] = src;
+		return true;
+	}
+	case ims_val_b::EST::other:
+	{
+		auto* q = gp<ims_val*>();
+		auto* v = q[idx];
+		if (v && v->is(ims_val_b::ETP::number) && v->set_i64(src)) {
+			return true;
+		}
+		return false;
+	}
+	default:
+	{
+		return false;
+	}
+	}
+}
+
+bool ims_val::get_i64(int64_t& dst, size_t idx) const
+{
+	ensure_indexable(this, idx);
+
+	switch (gs()) {
+		case ims_val_b::EST::rational:
+		{
+			let& di = ps_i()[idx];
+			if (denominator(di) != 1)return false;
+			dst = numerator(di);
+			return true;
+		}
+		case ims_val_b::EST::real:
+		{
+			let v = ps_r()[idx];
+			let iv = static_cast<int64_t>(v);
+			if (v != iv) {
+				return false;
+			}
+			dst = iv;
+			return true;
+		}
+		case ims_val_b::EST::big_rational:
+		{
+			let& di = ps_b()[idx];
+			if (denominator(di) != 1)return false;
+			let& n = numerator(di);
+
+			static constexpr auto min_val = std::numeric_limits<int64_t>::min();
+			static constexpr auto max_val = std::numeric_limits<int64_t>::max();
+			if (n < min_val || n > max_val) {
+				return false;
+			}
+			dst = n.convert_to<int64_t>();
+			return true;
+		}
+		case ims_val_b::EST::other:
+		{
+			let* v = p_v()[idx];
+			if (v && v->is(ims_val_b::ETP::number)) {
+				return v->get_i64(dst);
+			}
+			return false;
+		}
+		default:
+		{
+			return false;
+		}
+	}
+}
+
+
+bool ims_val::get_f64(double& dst, size_t idx) const
+{
+	ensure_indexable(this, idx);
+
+	switch (gs()) {
+	case ims_val_b::EST::rational:
+	{
+		dst = boost::rational_cast<double>(ps_i()[idx]);
+		return true;
+	}
+	case ims_val_b::EST::real:
+	{
+		dst = ps_r()[idx];
+		return true;
+	}
+	case ims_val_b::EST::big_rational:
+	{
+		dst = ps_b()[idx].convert_to<double>();
+		return true;
+	}
+	case ims_val_b::EST::other:
+	{
+		let* v = p_v()[idx];
+		if (v && v->is(ims_val_b::ETP::number)) {
+			return v->get_f64(dst);
+		}
+		return false;
+	}
+	default:
+	{
+		return false;
+	}
+	}
+}
+
+bool ims_val::set_f64(double src, size_t idx)
+{
+	ensure_indexable(this, idx);
+
+	switch (gs()) {
+	case ims_val_b::EST::rational:
+	{
+		let iv = static_cast<int64_t>(src);
+		if (static_cast<double>(iv) != src) {
+			return false;
+		}
+		ps_i()[idx] = iv;
+		return true;
+	}
+	case ims_val_b::EST::real:
+	{
+		ps_r()[idx] = src;
+		return true;
+	}
+	case ims_val_b::EST::big_rational:
+	{
+		let iv = static_cast<ims_integer_big>(src);
+		if (static_cast<double>(iv) != src) {
+			return false;
+		}
+		ps_b()[idx] = iv;
+		return true;
+	}
+	case ims_val_b::EST::other:
+	{
+		auto* v = gp<ims_val*>()[idx];
+		if (v && v->is(ims_val_b::ETP::number)) {
+			return v->set_f64(src);
+		}
+		return false;
+	}
+	default:
+	{
+		return false;
+	}
+	}
+}
+bool ims_val::to_real(Real& v) const
+{
+	if (!is(ETP::number))return false;
+	return get_f64(v);
+}
+
 ims_val::Real ims_val::get_real() const
 {
-	assert(is(EST::real));
-	return *p_r();
+	return get_v<EST::real>();
 }
 
 ims_val::Rational ims_val::get_int() const
 {
-	assert(is(EST::rational));
-	return *p_i();
+	return get_v<EST::rational>();
 }
 
 ims_val::BigRational& ims_val::get_big_rational() const
 {
-	assert(is(EST::big_rational));
-	return *p_b();
+	return get_v<EST::big_rational>();
 }
-
-
-

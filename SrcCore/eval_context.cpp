@@ -315,6 +315,13 @@ const ims_val* eval_context::eval_reference(ast_context p, bool is_geom)
 	return get_ast_val(p);
 };
 
+const ims_val* eval_context::eval_param(ast_context p, bool)
+{
+	assert(p.h.num_args() == 1);
+	++m_geom_templates;
+	return eval7(p.index(0), true);
+}
+
 const ims_val* eval_context::eval_unk_ref(ast_context p, bool)
 {
 	let uid = p.h.get_unk_id();
@@ -998,7 +1005,7 @@ const ims_val* eval_context::eval_color_style(ast_context p, bool)
 	return eval_pool::ep.get_scalar_real(arg, ims_val::ETP::style2);
 };
 
-const ims_val* eval_context::eval_number_imm(ast_context p, bool)
+const ims_val* eval_context::eval_number_imm(operator_ptr p)
 {
 	let& op = p.h;
 
@@ -1014,12 +1021,12 @@ const ims_val* eval_context::eval_number_imm(ast_context p, bool)
 	return eval_pool::ep.get_scalar_int({ an[0], an[1] });
 };
 
-const ims_val* eval_context::eval_string(ast_context p, bool)
+const ims_val* eval_context::eval_string(operator_ptr p)
 {
 	return eval_pool::ep.get_string(p.get_string());
 }
 
-const ims_val* eval_context::eval_number(ast_context p, bool)
+const ims_val* eval_context::eval_number(operator_ptr p)
 {
 	let& op = p.h;
 
@@ -1129,7 +1136,7 @@ const ims_val* eval_context::eval_call_built_in(ast_context p, bool)
 
 
 
-const ims_val* eval_context::eval_vector_imm(ast_context p, bool)
+const ims_val* eval_context::eval_vector_imm(operator_ptr p)
 {
 	let& op = p.h;
 	let nv = op.num_args();
@@ -1562,7 +1569,7 @@ eval_context::lazy_index(const ast_context* ast, index_data& idx, bool is_geom)
 	}
 
 	if (ast->h.tt == ETYPE::vector_imm) {
-		pool_ptr arr(eval_vector_imm(*ast, true));
+		pool_ptr arr(eval_vector_imm(*ast));
 		if (!arr) {
 			return nullptr;
 		}
@@ -1586,10 +1593,9 @@ eval_context::lazy_index(const ast_context* ast, index_data& idx, bool is_geom)
 				return br;
 			};
 			default:
+				assert(false);
 				return nullptr;
 			}
-
-			return get_ast_val({ ast->index_imm(idx.i), ast->call_offset });
 		}
 
 		//fancy indexing
@@ -1623,6 +1629,7 @@ eval_context::lazy_index(const ast_context* ast, index_data& idx, bool is_geom)
 			return ret.release();
 		};
 		default:
+			assert(false);
 			return nullptr;
 		}
 	}
@@ -2168,6 +2175,41 @@ const ims_val* eval_context::eval_pi(ast_context, bool)
 	return eval_pool::ep.get_scalar_real(boost::math::constants::pi<ims_val_b::Real>());
 };
 
+const ims_val* eval_context::eval_imm(operator_ptr p)
+{
+	switch (p.h.tt)
+	{
+	case ETYPE::number_imm:
+	{
+		return eval_number_imm(p);
+	}
+	case ETYPE::number:
+	{
+		return eval_number(p);
+	}
+	case ETYPE::vector_imm:
+	{
+		return eval_vector_imm(p);
+	}
+	case ETYPE::string:
+	{
+		return eval_string(p);
+	}
+	case ETYPE::vector:
+	{
+		//vector, recursively calculate the components
+		let na = p.h.num_args();
+		pool_ptr v(eval_pool::ep.get_vector(na, ims_val::ETP::vector));
+		for (size_t i = 0; i < na; ++i) {
+			v->p_v()[i] = eval_imm(p.index_base(i));//can be nullptr
+		}
+		return eval_pool::ep.adjust_vec_type(v.get());
+	}
+	default:
+		return nullptr;
+	}
+}
+
 const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 {
 	if (!is_geom && !ims_operator::is_topo_eval(p.h.tt)) {
@@ -2184,14 +2226,15 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::id:				ret = eval_id(p, is_geom); break;
 	case ETYPE::pi:				ret = eval_pi(p, is_geom); break;
 	case ETYPE::reference:		ret = eval_reference(p, is_geom); break;
+	case ETYPE::param:			ret = eval_param(p, is_geom); break;
 	case ETYPE::exchange:		ret = eval_exchange(p, is_geom); break;
 	case ETYPE::inversion:		ret = eval_inversion(p, is_geom); break;
 	case ETYPE::call:			ret = eval_call(p, is_geom); break;
 	case ETYPE::thickness:		ret = eval_thickness(p, is_geom); break;
 	case ETYPE::color_style:	ret = eval_color_style(p, is_geom); break;
-	case ETYPE::number_imm:		ret = eval_number_imm(p, is_geom); break;
-	case ETYPE::number:			ret = eval_number(p, is_geom); break;
-	case ETYPE::string:			ret = eval_string(p, is_geom); break;
+	case ETYPE::number_imm:		ret = eval_number_imm(p); break;
+	case ETYPE::number:			ret = eval_number(p); break;
+	case ETYPE::string:			ret = eval_string(p); break;
 	case ETYPE::condition:		ret = eval_condition(p, is_geom); break;
 	case ETYPE::call_built_in:	ret = eval_call_built_in(p, is_geom); break;
 	case ETYPE::diagonal:		ret = eval_diagonal(p, is_geom); break;
@@ -2200,7 +2243,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::csg:			ret = eval_csg(p, is_geom); break;
 	case ETYPE::vector_union:	ret = eval_vector_uni(p, is_geom); break;
 	case ETYPE::vector:			ret = eval_vector(p, is_geom); break;
-	case ETYPE::vector_imm:		ret = eval_vector_imm(p, is_geom); break;
+	case ETYPE::vector_imm:		ret = eval_vector_imm(p); break;
 	case ETYPE::this_vector:	ret = eval_this_vector(p, is_geom); break;
 	case ETYPE::companion:		ret = eval_companion(p, is_geom); break;
 	case ETYPE::mod:			ret = eval_mod(p, is_geom); break;
@@ -2238,6 +2281,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 #endif
 	return ret;
 }
+
 
 #ifdef use_eval_arg_cahche
 

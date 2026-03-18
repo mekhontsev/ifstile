@@ -208,12 +208,6 @@ build_data* get_global_bd();
 
 void rand_current_set();
 
-struct affine_calc;
-affine_calc& get_global_ac();
-
-struct eval_info;
-eval_info& get_global_ei();
-
 void show_generic_error_msg();
 
 

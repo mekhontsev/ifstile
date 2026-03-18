@@ -256,7 +256,7 @@ ims_keywords.h ims_operator.h ims_operator.cpp block_class.h block_class.cpp
 data_column.cpp data_column.h def_number_types.h ims_random.h ims_random.cpp 
 ims_info.h ims_info.cpp call_thread.h aifs_printer.h aifs_printer.cpp
 search_info.h print_operator.cpp oper_block.h oper_block.cpp
-ovr_data.h ovr_data.cpp 
+ovr_data.h ovr_data.cpp eval_data.h
 eval_info.h eval_context.h eval_context.cpp  
 geom_solver.h dist_solver.h dist_solver.cpp diam_solver.h diam_solver.cpp 
 clock_print.h block_info.h  block_info.cpp  block_category.h
@@ -285,6 +285,7 @@ test_alloc_hook.h test_alloc_hook.cpp edge_ball.h edge_ball.cpp
 edge_map.h dyn_mat_vec.h ims_number.h cardinality.h
 pool_ptr.h pool_ptr.cpp graph_builder.h graph_builder.cpp string_view_hash.h
 block_graph.h block_vars.cpp indexed_maps.h indexed_maps.cpp
+param_walker.h param_walker.cpp
 
 mat_operations.h matrix_helper.h matrix_helper.cpp
 box.h ball3d.h ifs_metrics.h 

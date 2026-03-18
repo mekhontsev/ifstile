@@ -314,6 +314,7 @@ void print_operator(
 
 		break;
 	}
+
 	case ETYPE::set_interval:
 	case ETYPE::set_vector:
 	{
@@ -465,6 +466,7 @@ void print_operator(
 	case ETYPE::condition:
 	case ETYPE::vector_union:
 	case ETYPE::set_permutation:
+	case ETYPE::param:
 	{
 		let sz = op.num_args();
 
@@ -489,7 +491,6 @@ void print_operator(
 				str << lst.m_idf.get_str_from_unk(unk_id);
 			}
 		}
-
 		break;
 	}
 	default:

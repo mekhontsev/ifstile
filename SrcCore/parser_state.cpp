@@ -785,6 +785,30 @@ static bool parse_operator(
 						block.set_zero_arg(x, th);
 						return true;
 					}
+					case ETYPE::param:
+					{
+						if (na != 1) {
+							pfo.err << INV_NARG;
+							return reter();
+						}
+
+						const char* err_msg=
+							"use var = $param(var2) syntax";
+
+						if (x != pfo.m_start_pos) {
+							pfo.err << err_msg;
+							return reter();
+						}
+						let ar = block.add_args(x, th, 1);
+						if (!parse_operator(*nit, pfo, block, ar)) {
+							return reter();
+						}
+						if (block.m_ops[ar].hdr.tt != ETYPE::reference) {
+							pfo.err << err_msg;
+							return reter();
+						}
+						return true;
+					}
 					case ETYPE::set_interval:
 					{
 						let ar = block.add_args(x, th, 1);
@@ -1185,8 +1209,8 @@ static bool parse_operator(
 
 
 bool parser_state::parse7(
-	std::string_view str, 
-	oper_block& block, 
+	std::string_view str,
+	oper_block& block,
 	size_t x)
 {
 	using boost::spirit::ascii::space;
@@ -1212,6 +1236,8 @@ bool parser_state::parse7(
 	std::cout << ut << std::endl;
 #endif
 
+
+	m_start_pos = x;
 	return parse_operator(ut, *this, block, x);
 
 }

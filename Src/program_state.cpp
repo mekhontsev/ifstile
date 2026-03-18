@@ -314,20 +314,12 @@ void program_state::build_image(
 
 		auto& dt = m_build_data[0];
 
-		if (!dt.init_normal_block(m_ev, m_ctx, m_am, m_bc)) {
+		if (!dt.init_normal_block(m_ed)) {
 			return;
 		}
 
 		if (mode != ifs_object_type::normal) {
-			if (!dt.init_custom_block(
-				idf,
-				mode,
-				rp,
-				m_ev,
-				m_ctx,
-				m_am,
-				m_bc))
-			{
+			if (!dt.init_custom_block(m_ed,	idf, mode, rp)){
 				return;
 			};
 		}
@@ -429,7 +421,7 @@ void program_state::build_image(
 			return;
 		}
 
-		if (!cdt.init_normal_block(m_ev, m_ctx, m_am, m_bc)) {
+		if (!cdt.init_normal_block(m_ed)) {
 			continue;
 		}
 
@@ -437,15 +429,7 @@ void program_state::build_image(
 			return;
 		}
 		if (mode != ifs_object_type::normal) {
-			if (!cdt.init_custom_block(
-				idf,
-				mode,
-				rp,
-				m_ev,
-				m_ctx,
-				m_am,
-				m_bc))
-			{
+			if (!cdt.init_custom_block(m_ed, idf, mode, rp)){
 				continue;
 			};
 		}

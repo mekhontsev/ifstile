@@ -116,6 +116,9 @@ struct eval_context
 	//returns nullptr on error
 	const ims_val* eval7(ast_context p, bool is_geom);
 
+	//evaluate immediate values: numbers, strings and nested arrays
+	//the caller is the exclusive owner of the return value
+	static const ims_val* eval_imm(operator_ptr p);
 	
 	//are there variations - only for own_ctx
 	bool has_vars() const;
@@ -182,21 +185,24 @@ private:
 	bool adjust_index2(int64_t& idx, size_t arr_sz);
 
 #define def_ec_method2(func) const ims_val* func(ast_context c, bool is_geom)
+#define def_ec_method2s(func) static const ims_val* func(operator_ptr c)
+	def_ec_method2s(eval_number_imm);
+	def_ec_method2s(eval_number);
+	def_ec_method2s(eval_string);
+	def_ec_method2s(eval_vector_imm);
+	def_ec_method2(eval_vector);
 	def_ec_method2(eval_pow);
 	def_ec_method2(eval_mod);
 	def_ec_method2(eval_reference);
+	def_ec_method2(eval_param);
 	def_ec_method2(eval_unk_ref);
 	def_ec_method2(eval_call);
 	def_ec_method2(eval_thickness);
 	def_ec_method2(eval_exchange);
 	def_ec_method2(eval_inversion);
 	def_ec_method2(eval_color_style);
-	def_ec_method2(eval_number_imm);
-	def_ec_method2(eval_number);
-	def_ec_method2(eval_string);
 	def_ec_method2(eval_condition);
 	def_ec_method2(eval_call_built_in);
-	def_ec_method2(eval_vector_imm);
 	def_ec_method2(eval_diagonal);
 	def_ec_method2(eval_charpoly);
 	def_ec_method2(eval_numden);
@@ -206,7 +212,6 @@ private:
 	def_ec_method2(eval_neg);
 	def_ec_method2(eval_index);
 	def_ec_method2(eval_uni);
-	def_ec_method2(eval_vector);
 	def_ec_method2(eval_mul);
 	def_ec_method2(eval_sum);
 	def_ec_method2(eval_empty);

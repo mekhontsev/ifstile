@@ -20,303 +20,154 @@
 #include "eval_pool.h"
 #include "ui_utils.h"
 #include "edit_helper.h"
+#include "param_walker.h"
 
-static bool get_i64(const ims_val* d, int64_t& dst)
+
+void ims_val_widget::show(const ims_val* d, int& next_id)
 {
-	if (d->to_int(dst)) {
-		return true;
-	}
-	if (!d->is(ims_val_b::EST::real)) {
-		return false;
-	}
-	let v = d->p_r(0);
-	let iv = static_cast<int64_t>(v);
-	if (v != iv) {
-		return false;
-	}
-	dst = iv;
-	return true;
-}
+	auto ui_handler =[&next_id](
+		const param_walker& t,
+		size_t,
+		const ims_val* d, 
+		pool_ptr& v)->bool
+	{
 
-static void show_invalid_field()
-{
-	ImGui::TextUnformatted("**Invalid field**");
-}
-
-static size_t entry_size(const ims_val* d)
-{
-	if (!d || !d->is(ims_val_b::ETP::vector, ims_val_b::EST::other)) {
-		return 0;
-	}
-
-	let sz = d->get_size();
-	for (size_t i = 0; i < sz; ++i) {
-		if (!d->p_v(i)) {
-			return i;
-		}
-	};
-
-	return sz;
-}
-
-void ims_val_widget::show_ui_for_val(
-	const ims_val* d, pool_ptr& v, int& next_id, size_t rec_level)
-{
-	let sz = entry_size(d);
-
-	bool err = true;
-
-	IMS_SCOPE([&] {
-		if (err)show_invalid_field();
-		});
-
-	//recognize field type
-
-	if (sz == 0) {
-		return;
-	}
-
-	let* d0 = d->p_v(0);
-
-	if (sz >= 2 && d0->is(ims_val_b::ETP::number) &&
-		d->p_v(1)->is(ims_val_b::ETP::string))
-	{//drop down list
-
-		int64_t def_val = 0;
-		if (!get_i64(d0, def_val)) {
-			return;
-		}
-		if (def_val < 0 || def_val >= (int64_t)sz - 1) {
-			return;
-		}
-		for (size_t i = 2; i < sz; ++i) {
-			if (!d->p_v(i)->is(ims_val_b::ETP::string)) {
-				return;
+		if (!v && t.m_t != param_walker::node_type::struct_type) {
+			ImGui::TextUnformatted("Invalid value");
+			ImGui::SameLine();
+			if (ims_button("Reset", nullptr, &next_id)) {
+				return true;
 			}
+			return false;
 		}
 
-		if (!v || !v->is(ims_val_b::ETP::number, ims_val_b::EST::rational)) {
-			v = eval_pool::ep.get_scalar_int(def_val);
-		}
-		int64_t cur_val = def_val;
-		if (!v->to_int(cur_val)) {
-			*v->p_i() = def_val;
-		}
+		bool ret = false;
 
-		std::vector<std::string> items;
-		items.reserve(sz - 1);
-		for (size_t i = 1; i < sz; ++i) {
-			let sv = d->p_v(i)->get_string();
-			items.emplace_back(sv.data(), sv.size());
-		}
-
-		std::string item;
-		auto get_text = [&](size_t idx) {
-			item = d->p_v(idx + 1)->get_string();
-			return item.c_str();
-			};
-
-		ImGui::PushID(next_id++);
-		if (ImGui::BeginCombo("", get_text(cur_val))) {
-			for (size_t i = 0; i < sz - 1; ++i) {
-				bool selected = (i == (size_t)cur_val);
-				ImGui::PushID(next_id++);
-				if (ImGui::Selectable(get_text(i), selected)) {
-					*v->p_i() = i;
-				}
-				ImGui::PopID();
-			}
-			ImGui::EndCombo();
-		}
-		ImGui::PopID();
-
-		err = false;
-		return;
-	}
-	if (sz >= 2 && d0->is(ims_val_b::ETP::number) &&
-		entry_size(d->p_v(1)) > 0)
-	{//array
-		int64_t def_size = 0;
-
-		if (!get_i64(d0, def_size)) {
-			return;
-		}
-		if (def_size < 0 || def_size > 1024) {
-			return;
-		}
-
-		if (!v || !v->is(ims_val_b::ETP::vector, ims_val_b::EST::other)) {
-			v = eval_pool::ep.get_vector(def_size);
-		}
-
-		int arr_sz = static_cast<int>(v->get_size());
-		ImGui::PushID(next_id++);
-		if (ImGui::InputInt("", &arr_sz)){
-			if (arr_sz < 0)arr_sz = 0;
-			v.reset(eval_pool::ep.update_vec_size(v.get_mut(), size_t(arr_sz)));
-		}
-		ImGui::PopID();
-
-		for (size_t i = 0; i < v->get_size(); ++i) {
-			pool_ptr vi = v->p_v(i);
-			if (vi)vi->add_ref();
-			show_ui_for_val(d->p_v(1), vi, next_id, rec_level + 1);//recursive call
-			if (v->p_v(i)) eval_pool::ep.release(v->p_v(i));
-			v->p_v()[i] = vi.release();
-		}
-		err = false;
-		return;
-	}
-	if (entry_size(d0) > 0)
-	{//struct
-		if (!v ||
-			!v->is(ims_val_b::ETP::vector, ims_val_b::EST::other) ||
-			v->get_size() != (size_t)sz)
+		switch (t.m_t) {
+		case param_walker::node_type::drop_down:
 		{
-			v = eval_pool::ep.get_vector(sz);
-		}
-
-		for (size_t i = 0; i < sz; ++i) {
-			let* entry = d->p_v(i);
-			let szi = entry_size(entry);
-			if (szi < 2) {
-				show_invalid_field();
-				continue;
-			}
-			auto* id = entry->p_v(0);
-			if (!id->is(ims_val_b::ETP::string)) {
-				show_invalid_field();
-				continue;
+			assert(d->is(ims_val_b::ETP::vector, ims_val_b::EST::other));
+			let sz = (size_t)t.m_i[2]+1;
+	
+			std::string item;
+			auto get_text = [&](size_t i) {
+				item = d->p_v(i + 1)->get_string();
+				return item.c_str();
 			};
-			let str = entry->p_v(0)->get_string();
+
+			int64_t cv = 0;
+			v->get_i64(cv);
+			ImGui::PushID(next_id++);
+			if (ImGui::BeginCombo("", get_text(cv))) {
+				for (size_t i = 0; i < sz; ++i) {
+					bool selected = (i == (size_t)cv);
+					ImGui::PushID(next_id++);
+					if (ImGui::Selectable(get_text(i), selected)) {
+						v.get_mut()->set_i64((int64_t)i);
+						ret = true;
+					}
+					ImGui::PopID();
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::PopID();
+			return ret;
+		}
+		case param_walker::node_type::array:
+		{
+			int64_t cv;
+			v->get_i64(cv);
+
+			int arr_sz = static_cast<int>(cv);
+			ImGui::PushID(next_id++);
+			if (ImGui::InputInt("", &arr_sz)) {
+				if (arr_sz < 0)arr_sz = 0;
+				v.get_mut()->set_i64(arr_sz);
+				ret = true;
+			}
+			ImGui::PopID();
+			return ret;
+		}
+		case param_walker::node_type::struct_type:
+		{
+			let str = d->p_v(0)->get_string();
 			if (str.length() > 0) {
 				ImGui::PushTextWrapPos(0.0f);
 				ImGui::TextUnformatted(str.data(), str.data() + str.size());
 				ImGui::PopTextWrapPos();
 			}
-			pool_ptr vi = v->p_v(i);
-			if (vi)vi->add_ref();
-			show_ui_for_val(entry->p_v(1), vi, next_id, rec_level + 1);//recursive call
-			if (v->p_v(i)) eval_pool::ep.release(v->p_v(i));
-			v->p_v()[i] = vi.release();
+			return ret;
 		}
-		err = false;
-		return;
-	};
-	if (d0->is(ims_val_b::ETP::string))
-	{//string
-		let def_val = d0->get_string();
-
-		static std::string val;
-		if (v && v->is(ims_val_b::ETP::string)) {
-			val = v->get_string();
-		} else {
-			v.reset(eval_pool::ep.get_string(def_val));
-			val = def_val;
-		}
-
-		edit_helper::begin(next_id++);
-		if (ImGui::InputText("", &val)) {
-			v.reset(eval_pool::ep.update_string(v.get_mut(), val));
-		};
-		edit_helper::end();
-
-		err = false;
-		return;
-	};
-
-	if (!d0->is(ims_val_b::ETP::number)) {
-		return;
-	}
-
-
-	if (d0->is(ims_val_b::EST::rational))
-	{//integer
-		int64_t def_val = 0;
-
-		if (sz < 3 || !d0->to_int(def_val)) {
-			return;
-		}
-
-		int64_t vmin = 0, vmax = 0;
-		if (!get_i64(d->p_v(1), vmin) || !get_i64(d->p_v(2), vmax)) {
-			return;
-		}
-
-		if (def_val < vmin || def_val > vmax) {
-			return;
-		}
-
-		if (!v || !v->is(ims_val_b::ETP::number, ims_val_b::EST::rational)) {
-			v = eval_pool::ep.get_scalar_int(def_val);
-		}
-		int64_t cur_val = def_val;
-		if (!v->to_int(cur_val) || cur_val < vmin || cur_val > vmax) {
-			*v->p_i() = def_val;
-		}
-
-		ImGui::PushID(next_id++);
-
-		if (vmin == 0 && vmax == 1) {
-			bool b = (cur_val != 0);
-			ImGui::SameLine();
-			if (ImGui::Checkbox("", &b)) {
-				*v->p_i() = b ? 1 : 0;
-			}
-		} else {
-			if (ImGui::DragScalar("", ImGuiDataType_S64, &cur_val,
-				0.5f / float(vmax - vmin + 1), &vmin, &vmax))
-			{
-				*v->p_i() = cur_val;
-			}
-		}
-		ImGui::PopID();
-
-		err = false;
-		return;
-	}
-
-	if (d0->is(ims_val_b::EST::real))
-	{//real
-		double def_val = 0;
-
-		if (sz < 3 || !d0->to_real(def_val)) {
-			return;
-		}
-
-		double vmin = 0, vmax = 0;
-		if (!d->p_v(1)->to_real(vmin) || !d->p_v(2)->to_real(vmax)) {
-			return;
-		}
-
-		if (def_val<vmin || def_val>vmax) {
-			return;
-		}
-
-		if (!v || !v->is(ims_val_b::ETP::number, ims_val_b::EST::real)) {
-			v = eval_pool::ep.get_scalar_real(def_val);
-		}
-		double cur_val = *v->p_r();
-		if (cur_val < vmin || cur_val > vmax) {
-			*v->p_r() = def_val;
-		}
-
-		ImGui::PushID(next_id++);
-		if (ImGui::DragScalar("", ImGuiDataType_Double, &cur_val,
-			0.5f / float(vmax - vmin + 1), &vmin, &vmax))
+		case param_walker::node_type::string:
 		{
-			*v->p_r() = cur_val;
-		};
-		ImGui::PopID();
-		err = false;
-		return;
+			static std::string val;
+			val = v->get_string();
+
+			edit_helper::begin(next_id++);
+			if (ImGui::InputText("", &val)) {
+				v.reset(eval_pool::ep.update_string(v.get_mut(), val));
+			};
+			edit_helper::end();
+			return ret;
+		}
+		case param_walker::node_type::i64:
+		{
+			int64_t cv = 0;
+			v->get_i64(cv);
+
+			let both_lim = !t.m_e1 && !t.m_e2;
+			ImGui::PushID(next_id++);
+			if (both_lim && t.m_i[1] == 0 && t.m_i[2] == 1) {
+				bool b = (cv != 0);
+				ImGui::SameLine();
+				if (ImGui::Checkbox("", &b)) {
+					v.get_mut()->set_i64(b ? 1 : 0);
+					ret = true;
+				}
+			} else {
+				let speed = both_lim ? 0.5f / float(t.m_i[2] - t.m_i[1] + 1) : 1;
+				if (ImGui::DragScalar("", ImGuiDataType_S64, &cv, speed,
+					t.m_e1 ? nullptr : &t.m_i[1],
+					t.m_e2 ? nullptr : &t.m_i[2]))
+				{
+					v.get_mut()->set_i64(cv);
+					ret = true;
+				}
+			}
+			ImGui::PopID();
+			return ret;
+		}
+		case param_walker::node_type::f64:
+		{
+			double cv = 0;
+			v->get_f64(cv);
+
+			let both_lim = !t.m_e1 && !t.m_e2;
+		
+			ImGui::PushID(next_id++);
+			let speed = both_lim ? 0.5f / float(t.m_r[2] - t.m_r[1] + 1) : 1;
+			if (ImGui::DragScalar("", ImGuiDataType_Double, &cv, speed,
+				t.m_e1 ? nullptr : &t.m_r[1],
+				t.m_e2 ? nullptr : &t.m_r[2]))
+			{
+				v.get_mut()->set_f64(cv);
+				ret = true;
+			};
+			ImGui::PopID();
+			return ret;
+		}
+		default:
+		{
+			break;
+		}
+		}
+		return ret;
+	};
+
+	param_walker t;
+	if (t.check_type(d)) {
+		t.process(d, m_value, 0, ui_handler);
 	}
-
-};
-
-void ims_val_widget::show(const ims_val* d, int& next_id)
-{
-	show_ui_for_val(d, m_value, next_id, 0);
 }
 
 void ims_val_widget::reset()

@@ -25,36 +25,51 @@ struct alignas(16) ims_val : public ims_val_b
 {
 private:
 
-	//can be temporarily used for other purposes if reference counting is not needed
-	mutable std::atomic<size_t> m_use_count;
+	mutable uint32_t m_use_count;
+
+	//32-bit block
+	ETP	m_t;
+	EST	m_s;
+	uint8_t m_bucket : 5;	//bucket index in the pool, capacity for data
+	uint8_t m_flags3 : 3;	//for various purposes
+	uint8_t m_reserved;
 
 	//for scalars it can be used for other purposes
 	union {
 		//for vectors: number of elements
 		//for strings: length
-		//for jsval - index in the js_engine
-		uint32_t m_size;
+		size_t m_size;
 		//for matrices - dimensions: rows, cols
-		std::array<uint16_t, 2> m_ex;
+		std::array<uint32_t, 2> m_ex;
+		//for ETP::ptr
+		void* m_ptr;
 	};
-	
-	//32-bit block
-	uint8_t m_reserved;	//if necessary, m_size can be expanded to 40 bits
-	uint8_t m_bucket:5;	//bucket index in the pool, capacity for data
-	uint8_t m_flags:3;	//for various purposes
-	ETP	m_t;
-	EST	m_s;
 
 	//uint64_t m_data[];//https://en.wikipedia.org/wiki/Flexible_array_member
 
 public:
 
-	static size_t get_dim_field(size_t rows, size_t cols)
-	{
-		assert(rows <= 0xFFFF);
-		assert(cols <= 0xFFFF);
-		return rows | (cols << 16);
-	};
+	template<typename T> auto* gp() const { return (T*)(this + 1); }
+	template<ims_val_b::EST s> auto* gps() const { return gp<typename get_t<s>::t>(); }
+
+	auto* p_r() const { assert(is(EST::real));	return gp<Real>(); };
+	auto* p_i()	const { assert(is(EST::rational));	return gp<Rational>(); };
+	auto* p_b() const { assert(is(EST::big_rational));	return gp<BigRational>(); };
+	auto* p_v() const { assert(is(EST::other));	return gp<const ims_val*>(); };
+
+	auto p_r(size_t idx) const { return p_r()[idx]; };
+	auto p_i(size_t idx) const { return p_i()[idx]; };
+	auto p_b(size_t idx) const { return p_b()[idx]; };
+	let* p_v(size_t idx) const { return p_v()[idx]; };
+
+
+	ETP	gt() const { return m_t; };
+	EST	gs() const { return m_s; };
+
+	bool is(ETP t, EST sbt) const { return gt() == t && gs() == sbt; };
+	bool is(ETP t) const { return gt() == t; }
+	bool is(EST s) const { return gs() == s; }
+
 
 	template<typename T>
 	static consteval EST get_subtype()
@@ -68,6 +83,25 @@ public:
 		else
 			return EST::other;
 	}
+
+
+	template<ims_val_b::EST s>
+	get_t<s>::t& get_v() const
+	{
+		if constexpr (s == ims_val_b::EST::rational) {
+			assert(is(EST::rational));
+			return *p_i();
+		}
+		if constexpr (s == ims_val_b::EST::real) {
+			assert(is(EST::real));
+			return *p_r();
+		}
+		if constexpr (s == ims_val_b::EST::big_rational) {
+			assert(is(EST::big_rational));
+			return *p_b();
+		}
+	}
+
 
 	//returns whether the ball can be modified under its action
 	//cutting is not a change!
@@ -99,29 +133,23 @@ public:
 		return arr[(size_t)t];
 	}
 
-	
 
-	template<typename T> auto* gp() const { return (T*)(this + 1); }
+	static size_t get_dim_field(size_t rows, size_t cols)
+	{
+		assert(rows <= std::numeric_limits<uint32_t>::max());
+		assert(cols <= std::numeric_limits<uint32_t>::max());
+		return rows | (cols << 32);
+	};
 
-	auto* p_r() const { assert(is(EST::real));	return gp<Real>(); };
-	auto* p_i()	const { assert(is(EST::rational));	return gp<Rational>(); };
-	auto* p_b() const { assert(is(EST::big_rational));	return gp<BigRational>(); };
-	auto* p_v() const { assert(is(EST::other));	return gp<const ims_val*>(); };
-	
-	auto p_r(size_t idx) const { return p_r()[idx]; };
-	auto p_i(size_t idx) const { return p_i()[idx]; };
-	auto p_b(size_t idx) const { return p_b()[idx]; };
-	let* p_v(size_t idx) const { return p_v()[idx]; };
-	
-
-	ETP	gt() const { return m_t; };
-	EST	gs() const { return m_s; };
-
-	bool is(ETP t, EST sbt) const { return gt() == t && gs() == sbt; };
-	bool is(ETP t) const { return gt() == t; }
-	bool is(EST s) const { return gs() == s; }
-
-	////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////
+	auto* s_r() const  { assert(is(ETP::ptr, EST::real));return static_cast<Real*>(m_ptr); };
+	auto* s_i()	const  { assert(is(ETP::ptr, EST::rational));return static_cast<Rational*>(m_ptr); };
+	auto* s_b() const  { assert(is(ETP::ptr, EST::big_rational));return static_cast<BigRational*>(m_ptr); };
+	auto* s_v() const  { assert(is(ETP::ptr, EST::other));	return static_cast<ims_val*>(m_ptr); };
+	auto* ps_r() const { assert(is(EST::real)); return is(ETP::ptr) ? s_r() : p_r(); };
+	auto* ps_i() const { assert(is(EST::rational)); return is(ETP::ptr) ? s_i() : p_i(); };
+	auto* ps_b() const { assert(is(EST::big_rational)); return is(ETP::ptr) ? s_b() : p_b(); };
+	///////////////////////////////////////////////////////////////////////////
 
 	//for example, we can immediately compare both matrix sizes
 	size_t raw_size() const
@@ -136,13 +164,13 @@ public:
 		return p_r();
 	}
 
-	void set_flags(uint8_t f) { m_flags = f; };
-	uint8_t get_flags() const { return m_flags; };
+	void set_flags(uint8_t f) { m_flags3 = f; };
+	uint8_t get_flags() const { return m_flags3; };
 
 	//for debugging purposes
 	bool is_normal() const;
 
-	static size_t affine_num_elems(size_t dim) 
+	static size_t affine_num_elems(size_t dim)
 	{
 		return dim * (dim + 1);
 	}
@@ -152,7 +180,6 @@ public:
 		if (!is_affine())return 0;
 		return affine_num_elems(extent(0));
 	}
-
 
 	size_t extent(size_t idx) const
 	{
@@ -174,6 +201,12 @@ public:
 	{
 		return m_size;
 	};
+
+
+	bool get_i64(int64_t& dst, size_t idx = 0) const;
+	bool get_f64(double& dst, size_t idx = 0) const;
+	bool set_i64(int64_t src, size_t idx = 0);
+	bool set_f64(double src, size_t idx = 0);
 
 	std::string_view get_string() const
 	{
@@ -197,7 +230,7 @@ public:
 	void shrink(size_t new_size) 
 	{
 		assert(new_size <= m_size);
-		m_size = static_cast<uint32_t>(new_size);
+		m_size = new_size;
 	}
 
 	Real get_real() const;
@@ -362,18 +395,9 @@ public:
 	void set_size(size_t sz)
 	{
 		assert(is(ETP::string) || is(ETP::vector));
-		m_size = static_cast<uint32_t>(sz);
+		m_size = sz;
 	}
 
-	//for pool only
-	ims_val(size_t size, uint8_t bucket, ims_val::ETP t, ims_val::EST s) :
-		m_use_count{ 1 },
-		m_size{ static_cast<uint32_t>(size) },
-		m_reserved{ 0 },
-		m_bucket{ bucket },
-		m_flags{ 0 },
-		m_t{ t },
-		m_s{ s } {};
 
 	uint8_t get_bucket() const
 	{
@@ -383,12 +407,12 @@ public:
 	size_t dec_ref() const
 	{
 		check_ref();
-		return --m_use_count;
+		return std::atomic_ref{ m_use_count }.fetch_sub(1, std::memory_order_acq_rel);
 	};
 
 	void add_ref() const
 	{
-		++m_use_count;
+		std::atomic_ref{ m_use_count }.fetch_add(1, std::memory_order_relaxed);
 	}
 
 	void check_ref() const
@@ -402,6 +426,21 @@ public:
 	using EST = ims_val_b::EST;
 	using Rational = ims_val_b::Rational;
 	using Real = ims_val_b::Real;
+
+private:
+	friend struct eval_pool;
+
+	//for pool only
+	ims_val(size_t size, uint8_t bucket, ETP t, EST s) :
+		m_use_count{ 1 },
+		m_t{ t },
+		m_s{ s },
+		m_bucket{ bucket },
+		m_flags3{ 0 },
+		m_reserved{ 0 },
+		m_size{ size }
+	{};
+
 };
 
 

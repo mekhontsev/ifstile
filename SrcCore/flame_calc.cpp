@@ -26,14 +26,11 @@
 #include "edge_map.h"
 
 #include "block_graph.h"
-#include "eval_info.h"
+#include "eval_data.h"
 
 size_t calc_flame(
 	std::ostream& of,
-	eval_info& ei,
-	eval_context& ec,
-	ast_maps& am,
-	affine_calc& bc,
+	eval_data& ed,
 	const save_type st,
 	const variator_params& vp,
 	const palette& pal,
@@ -83,14 +80,14 @@ size_t calc_flame(
 		bi.set_to_recalc_graph();
 
 		block_sq = std::make_unique<oper_block>();
-		block_sq->inherit_from(*sr, vp, ei.m_opinfo2, false);
+		block_sq->inherit_from(*sr, vp, ed.m_ev.m_opinfo2, false);
 
 		bi.init4(
 			*block_sq,
-			ec,
-			am,
-			ei.m_idata4.get(),
-			bc);
+			ed.m_ctx,
+			ed.m_am,
+			ed.m_ev.m_idata4.get(),
+			ed.m_bc);
 
 		if (!bi.exists()) {
 			continue;
@@ -99,7 +96,7 @@ size_t calc_flame(
 		//TODO:
 		//m_special.eval_builtins(get_block(), dim_proj(), ec);
 
-		if (!bi.compute_metrics(bc.m_dim_calc)) {
+		if (!bi.compute_metrics(ed.m_bc.m_dim_calc)) {
 			continue;
 		}
 

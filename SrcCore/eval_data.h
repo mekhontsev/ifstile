@@ -16,26 +16,15 @@
 
 #pragma once
 
-struct ims_val;
+#include "affine_calc.h"
+#include "eval_info.h"
+#include "eval_context.h"
+#include "ast_maps.h"
 
-//smart shared pointer for ims_val
-struct pool_ptr
+struct eval_data
 {
-	~pool_ptr() noexcept { reset(); };
-	pool_ptr(const ims_val* v = nullptr) noexcept : m_v(v) {};
-	pool_ptr(const pool_ptr& other) noexcept;
-	pool_ptr(pool_ptr&& other) noexcept;
-	pool_ptr& operator=(pool_ptr other) noexcept;//argument - by value
-	void swap(pool_ptr& other) noexcept;
-	explicit operator bool() const { return m_v; };
-	const ims_val& operator*() const { return *m_v; };
-	const ims_val* operator->() const { return m_v; };
-	const ims_val* get() const { return m_v; };
-	ims_val* get_mut() { return const_cast<ims_val*>(m_v); };
-	void reset(const ims_val* nv = nullptr);
-	void reset_if(const ims_val* nv);
-
-	const ims_val* release();
-private:
-	const ims_val* m_v;
+	affine_calc m_bc;
+	eval_info m_ev;
+	eval_context m_ctx;
+	ast_maps m_am;
 };

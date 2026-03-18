@@ -24,15 +24,9 @@ struct ims_val_widget
 
 	void show(const ims_val* d, int& next_id);
 	void reset();
-
 	const ims_val* get_val() { return m_value.get(); }
 
 private:
 
 	pool_ptr m_value;
-
-	//d - type (structure or array)
-	//v - value to edit, can be null
-	void show_ui_for_val(
-		const ims_val* d, pool_ptr& v, int& next_id, size_t rec_level);
 };

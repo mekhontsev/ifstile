@@ -211,6 +211,7 @@ static void s_init()
 		case ETYPE::empty:				d = "e";			break;
 		case ETYPE::id:					d = "i";			break;
 		case ETYPE::pi:					d = "pi";			break;
+		case ETYPE::param:				d = "param";		break;
 		case ETYPE::set_interval:		d = "number";		break;
 		case ETYPE::set_semigroup:		d = "semigroup";	break;
 		case ETYPE::set_vector:			d = "vector";		break;
@@ -410,6 +411,7 @@ size_t ims_operator::oper_args() const
 	case ETYPE::color_style:
 	case ETYPE::thickness:
 	case ETYPE::set_semigroup://vector
+	case ETYPE::param://vector
 		return 1;
 	case ETYPE::power:
 		return 2;

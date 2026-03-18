@@ -30,18 +30,12 @@ struct variator_params;
 struct palette;
 struct background;
 struct oper_block;
-struct affine_calc;
-struct eval_info;
-struct eval_context;
-struct ast_maps;
+struct eval_data;
 template<typename Real> struct screen_disk;
 
 size_t calc_flame(
 	std::ostream& of,
-	eval_info& ei,
-	eval_context& ec,
-	ast_maps& am,
-	affine_calc& bc,
+	eval_data& ed,
 	const save_type st,
 	const variator_params& vp,
 	const palette& pal,

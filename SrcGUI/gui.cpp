@@ -1459,7 +1459,7 @@ void console_print(e_what_print what)
 		print_ifs_def(sr);
 		break;
 	case e_what_print::AST:
-		print_ast(sr, bi, g_ps.m_am);
+		print_ast(sr, bi, g_ps.m_ed.m_am);
 		break;
 	case e_what_print::Data:
 	{
@@ -1468,11 +1468,11 @@ void console_print(e_what_print what)
 		break;
 	}
 	case e_what_print::Evaluation:
-		print_ifs_eval(sr, g_ps.m_ctx);
+		print_ifs_eval(sr, g_ps.m_ed.m_ctx);
 		break;
 	case e_what_print::NormalMaps:
 		if (sr.get_dim() > 0) {
-			print_normal_maps(sr, g_ps.m_ctx);
+			print_normal_maps(sr, g_ps.m_ed.m_ctx);
 		}
 		break;
 	case e_what_print::Projection:
@@ -1600,19 +1600,6 @@ size_t apply_converters()
 
 	return num;
 }
-
-
-
-affine_calc& get_global_ac()
-{
-	return g_ps.m_bc;
-};
-
-eval_info& get_global_ei()
-{
-	return g_ps.m_ev;
-};
-
 
 void show_generic_error_msg()
 {
@@ -2099,14 +2086,11 @@ static void do_save_as()
 				vis = get_vb().m_vis_blocks;
 			}
 
-			
+			eval_data ed;
 
 			num_saved = calc_flame(
 				ofs,
-				get_global_ei(),
-				g_ps.m_ctx,
-				g_ps.m_am,
-				get_global_ac(), 
+				ed,
 				st,
 				vp,
 				get_rpars().m_palette,
@@ -3469,7 +3453,6 @@ void do_create_anim(size_t ref_time)
 		return;
 	};
 
-
 	bool error_in_console = false;
 	IMS_SCOPE([&] {
 		if (error_in_console) {
@@ -3484,17 +3467,13 @@ void do_create_anim(size_t ref_time)
 
 	build_data bd;
 
+	eval_data ed;
 	for (auto& kf : k) {
 		bd.clear();
 
-		auto& ei = get_global_ei();
-		auto& ac = get_global_ac();
-		auto& ec = g_ps.m_ctx;
-		auto& am = g_ps.m_am;
-
 		bd.pre_init(&kf.b, vp);
 
-		if (!bd.init_normal_block(ei, ec, am, ac)) {
+		if (!bd.init_normal_block(ed)) {
 			ims_error("Block {}: evaluation error", kf.b.m_name);
 			error_in_console = true;
 			return;

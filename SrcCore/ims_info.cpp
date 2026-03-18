@@ -122,7 +122,6 @@ bool ims_info::link_refs_for_block(
 						return false;
 					}
 					p.h->tt = ETYPE::unk_reference;
-					p.h->set_offset(unk_id);
 				}
 			}else if (p.h->ts == ESUBTYPE::ref_js) {
 				p.h->set_reference(unk_id + start_unnamed_ref);

@@ -49,6 +49,9 @@ struct eval_pool: public boost::noncopyable
 
 	ims_val* update_vec_size(ims_val* v, size_t new_sz);
 
+	ims_val* get_pointer(void* p, EST s);
+	const ims_val* get_pointer(ims_val* v, size_t idx);
+
 	ims_val* get_scalar_int(Rational v);
 	ims_val* get_scalar_real(Real v, ETP t = ETP::number);
 	//allocates a scalar value of type BigRational initialized to zero.
@@ -78,6 +81,15 @@ struct eval_pool: public boost::noncopyable
 	ims_val* get_vector_big_rational(size_t sz);
 	ims_val* get_vector_real(size_t sz);
 	ims_val* get_vector(size_t sz, ETP t = ETP::vector);
+
+	template<ims_val_b::EST s>
+	ims_val* get_vector_ex(size_t sz, ETP t = ETP::vector)
+	{
+		return alloc(t, s, sizeof(typename ims_val_b::get_t<s>::t) * sz, sz);
+	}
+
+	template<ims_val_b::EST s>
+	ims_val* get_matrix_ex(size_t r, size_t c);
 
 	ims_val* get_matrix_int(size_t rows, size_t cols);
 	ims_val* get_matrix_real(size_t rows, size_t cols);

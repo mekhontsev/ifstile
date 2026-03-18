@@ -33,7 +33,6 @@ struct ims_val_b
 	using MVecInt = Eigen::Map<DynVec<Rational>>;
 	using MVecBigRational = Eigen::Map<DynVec<BigRational>>;
 
-
 	static_assert(std::is_same_v<BigRational::value_type, boost::multiprecision::cpp_int>);
 	static_assert(std::is_same_v<Rational::int_type, Integer>);
 
@@ -42,19 +41,17 @@ struct ims_val_b
 
 	static_assert(ims_get<BigRational>::is_big);
 	static_assert(!ims_get<Rational>::is_big);
-	
-
 
 	enum class ETP : uint8_t
 	{
 		number,
+		ptr,		//void*
 		ast_ptr,	//ast_context
 		string,		//array of chars
 		inversion,	//mobius, relative to the unit ball
 
 		style2,		//index in the palette - real number
 		thickness,	//real number
-
 		////////////////////////////////////////////////////////////////////////
 		//vector types start here (use the m_dim field)
 		vector,	
@@ -65,7 +62,6 @@ struct ims_val_b
 		matrix,	//rectangular matrix, column-major as in Eigen
 		csg,	//$csg - Other vector of 4 elements
 		mobius,	//size is (m_dim + 2)^2, column-major as in Eigen
-		
 
 		//specifies a point that belongs to the basin of attraction of the set
 		//when iterating through any loop containing this set
@@ -86,4 +82,11 @@ struct ims_val_b
 		nan = other,
 		pod,	//POD subtype, does not require special processing
 	};
+
+	template<EST s> struct get_t { using t = void; };
 };
+
+template<> struct ims_val_b::get_t<ims_val_b::EST::rational> { using t = ims_val_b::Rational; };
+template<> struct ims_val_b::get_t<ims_val_b::EST::real> { using t = ims_val_b::Real; };
+template<> struct ims_val_b::get_t<ims_val_b::EST::big_rational> { using t = ims_val_b::BigRational; };
+template<> struct ims_val_b::get_t<ims_val_b::EST::other> { using t = struct ims_val*; };

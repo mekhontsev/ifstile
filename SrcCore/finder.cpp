@@ -30,7 +30,7 @@
 #include "block_graph.h"
 #include "ims_val.h"
 #include "edge_map.h"
-#include "eval_context.h"
+#include "eval_data.h"
 #include "neighbors_data.h"
 #include "variable.h"
 
@@ -689,11 +689,7 @@ struct search_contex
 			return *m_block_sq;
 		}
 
-
-		affine_calc m_bc;
-		eval_info m_ev;
-		eval_context m_ec;
-		ast_maps m_am;
+		eval_data m_ed;
 	
 		////////////////////////////////////////////////////////////////////////////
 		//the real block from which all the others originated
@@ -740,7 +736,7 @@ struct search_contex
 		auto* ccl = thread_graphs[sr_idx].get();
 
 		ccl->reset();
-		ccl->m_block_sq->inherit_from(*sr, var, ccl->m_ev.m_opinfo2, false);
+		ccl->m_block_sq->inherit_from(*sr, var, ccl->m_ed.m_ev.m_opinfo2, false);
 
 		return true;
 	};
@@ -1016,16 +1012,13 @@ struct search_contex
 		auto& irn = ims_random::getR();
 
 		auto& bi = ccl->m_bi2;
-		auto& bc = ccl->m_bc;
-		auto& ei = ccl->m_ev;
-		auto& ec = ccl->m_ec;
-		auto& am = ccl->m_am;
-	
+		auto& bc = ccl->m_ed.m_bc;
+		auto& ei = ccl->m_ed.m_ev;
+		auto& ec = ccl->m_ed.m_ctx;
+		auto& am = ccl->m_ed.m_am;
 
 		assert(ccl->m_block_sq);
 
-		
-		
 		ccl->m_bi2.set_to_recalc_graph();
 	
 		bi.init4(

@@ -7,6 +7,11 @@
   <DisplayString Condition="m_t==ETP::number &amp;&amp; m_s==EST::real">[Real={*(Real*)(this+1)} refs={m_use_count}]</DisplayString>
   <DisplayString Condition="m_t==ETP::number &amp;&amp; m_s==EST::big_rational">[br={*(ims_val_b::BigRational*)(this+1)} refs={m_use_count}]</DisplayString>
 
+  <DisplayString Condition="m_t==ETP::ptr &amp;&amp; m_s==EST::rational">[*Rational={*(Rational*)m_ptr} refs={m_use_count}]</DisplayString>
+  <DisplayString Condition="m_t==ETP::ptr &amp;&amp; m_s==EST::real">[*Real={*(Real*)m_ptr} refs={m_use_count}]</DisplayString>
+  <DisplayString Condition="m_t==ETP::ptr &amp;&amp; m_s==EST::big_rational">[*br={*(ims_val_b::BigRational*)m_ptr} refs={m_use_count}]</DisplayString>
+  <DisplayString Condition="m_t==ETP::ptr &amp;&amp; m_s==EST::other">[other={*(ims_val*)m_ptr} refs={m_use_count}]</DisplayString>
+
   <DisplayString Condition="m_t==ETP::string">[String={(char*)(this+1), [m_size]nas8b} refs={m_use_count}]</DisplayString>
 
   <DisplayString Condition="m_t==ETP::matrix">[matrix {m_ex[0]}x{m_ex[1]}, {m_s}, refs={m_use_count}]</DisplayString>

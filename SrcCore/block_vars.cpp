@@ -32,10 +32,15 @@
 #include "ovr_data.h"
 
 
-//	&R = $semigroup([s,r])
+//	O = [s,r]
+//	&R = $semigroup(O)
 //		==========>
-//	S = [1, s, s^2, s^3, r, r*s, r*s^2, r*s^3]
-//	&R = S[$number($integer(0, 7))]
+//	O = [1, s, s^2, s^3, r, r*s, r*s^2, r*s^3]
+//	&R = O[$number($integer(0, 7))]
+//	==========>
+//	O = [1, s, s^2, s^3, r, r*s, r*s^2, r*s^3]
+//  p = $number($integer(0, 7))
+//	&R = O[p]
 
 static bool replace_semigroups(oper_block& b)
 {
