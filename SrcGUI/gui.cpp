@@ -481,11 +481,26 @@ void set_block_direct(const oper_block* b)
 
 void set_block_ex(size_t idx)
 {
-	let* src = get_vb().get_vis(idx);
+	auto* src = get_vb().get_vis(idx);
 	if (!src) {
 		assert(false);
 		return;
 	}
+
+	//try to keep the same root if possible
+	auto* old = get_cur_block();
+	if (old) {
+		let old_root = old->get_active_ref();
+		if (old_root != ims_max) {
+			let unk_id = old->get_class()->m_refs[old_root].unk_id;
+			auto* new_cls = src->get_class();
+			let new_root = new_cls->find_var(unk_id);
+			if (new_root != ims_max) {
+				new_cls->m_active_ref = new_root;
+			}
+		}
+	}
+
 	get_vb().m_cur_block_pos = idx;
 
 	set_block_direct(src);
