@@ -106,8 +106,8 @@ enum class ETYPE : uint8_t
 	//reference to another operator (header only)
 	reference,
 
-	//reference to a string identifier, not replaced by the linker
-	unk_reference,
+	//string identifier, not replaced by the linker
+	identifier,
 
 	//built-in function
 	call_built_in,

@@ -265,7 +265,7 @@ void aifs_printer::add_depends(const ifs_list& lst, ast_stack& ai, bool ignore_j
 		for (let& q : *b) {
 			ai.reset3({ b, &b->m_ops[q.pos5].hdr });
 			for (auto& x : ai) {
-				if (x.h->tt != ETYPE::unk_reference)continue;
+				if (x.h->tt != ETYPE::identifier)continue;
 				let* bx = lst.get_block_from_unk(x.h->get_unk_id());
 				if (bx)add_dep_block(bx);
 			}

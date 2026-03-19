@@ -121,7 +121,7 @@ bool ims_info::link_refs_for_block(
 							idf.get_str_from_unk(unk_id));
 						return false;
 					}
-					p.h->tt = ETYPE::unk_reference;
+					p.h->tt = ETYPE::identifier;
 				}
 			}else if (p.h->ts == ESUBTYPE::ref_js) {
 				p.h->set_reference(unk_id + start_unnamed_ref);

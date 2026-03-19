@@ -322,7 +322,7 @@ const ims_val* eval_context::eval_param(ast_context p, bool)
 	return eval7(p.index(0), true);
 }
 
-const ims_val* eval_context::eval_unk_ref(ast_context p, bool)
+const ims_val* eval_context::eval_identifier(ast_context p, bool)
 {
 	let uid = p.h.get_unk_id();
 
@@ -606,7 +606,7 @@ eval_context::get_func_for_call(
 		return ast->a;
 	}
 
-	if (ast->h.tt != ETYPE::unk_reference) {
+	if (ast->h.tt != ETYPE::identifier) {
 		return nullptr;
 	}
 
@@ -813,7 +813,7 @@ const ims_val* eval_context::eval_call(ast_context p, bool is_geom)
 
 			size_t idx;
 
-			if (ai.h.tt == ETYPE::unk_reference) {
+			if (ai.h.tt == ETYPE::identifier) {
 				let unk_idx = (size_t)ai.h.get_offset();
 				idx = fb->get_var_from_unk(unk_idx);
 			} else {
@@ -2256,7 +2256,7 @@ const ims_val* eval_context::eval7(ast_context p, bool is_geom)
 	case ETYPE::uni:			ret = eval_uni(p, is_geom); break;
 	case ETYPE::mul:			ret = eval_mul(p, is_geom); break;
 	case ETYPE::sum:			ret = eval_sum(p, is_geom); break;
-	case ETYPE::unk_reference:	ret = eval_unk_ref(p, is_geom); break;
+	case ETYPE::identifier:		ret = eval_identifier(p, is_geom); break;
 	case ETYPE::set_interval:
 	case ETYPE::set_vector:
 	case ETYPE::set_permutation:

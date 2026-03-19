@@ -301,7 +301,7 @@ void ims_operator::hash_combine(size_t& ret) const
 
 	switch (tt) {
 	case ETYPE::reference:
-	case ETYPE::unk_reference:
+	case ETYPE::identifier:
 		boost::hash_combine(ret, get_offset());
 		break;
 	case ETYPE::number_imm:
@@ -336,7 +336,7 @@ intptr_t ims_operator::lexic_compare(ims_operator h1, ims_operator h2)
 	if (cmp_int(h1.tt, h2.tt, v))return v;
 	switch (h1.tt) {
 	case ETYPE::reference://call_offset is only important here
-	case ETYPE::unk_reference:
+	case ETYPE::identifier:
 		if (cmp_int(h1.get_offset(), h2.get_offset(), v))return v;
 		break;
 	case ETYPE::number_imm: 
@@ -383,7 +383,7 @@ size_t ims_operator::oper_args() const
 	switch (tt) {
 		//types without additional operator arguments
 	case ETYPE::reference:
-	case ETYPE::unk_reference:
+	case ETYPE::identifier:
 	case ETYPE::number_imm:
 	case ETYPE::undef:
 	case ETYPE::number:

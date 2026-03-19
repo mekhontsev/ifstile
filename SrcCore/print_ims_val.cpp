@@ -193,7 +193,7 @@ void print_ims_val_ex(std::ostream& str, const ims_val* v, const ifs_list* lst)
 	case ims_val::ETP::ast_ptr:
 	{
 		let* ast = v->gp<ast_context>();
-		if (ast->h.tt == ETYPE::unk_reference) {
+		if (ast->h.tt == ETYPE::identifier) {
 			let unk_id = ast->h.get_offset();
 			str << ims_keywords::block << lst->m_idf.get_str_from_unk(unk_id);
 		} else {

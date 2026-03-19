@@ -195,7 +195,7 @@ private:
 	def_ec_method2(eval_mod);
 	def_ec_method2(eval_reference);
 	def_ec_method2(eval_param);
-	def_ec_method2(eval_unk_ref);
+	def_ec_method2(eval_identifier);
 	def_ec_method2(eval_call);
 	def_ec_method2(eval_thickness);
 	def_ec_method2(eval_exchange);

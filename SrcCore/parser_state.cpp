@@ -691,7 +691,7 @@ static bool parse_operator(
 								let sr = it->get<spirit::utf8_symbol_range_type>();
 								let unk_id = pfo.unk->get_unk_id({ sr.begin(), sr.end() });
 								auto& h = a[ar + arg_pos].hdr;
-								h.tt = ETYPE::unk_reference;
+								h.tt = ETYPE::identifier;
 								h.set_u32(unk_id);
 							} else {
 								if (!parse_operator(*it, pfo, block, ar + arg_pos)) {

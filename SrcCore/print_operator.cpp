@@ -172,7 +172,7 @@ void print_operator(
 		
 		break;
 	}
-	case ETYPE::unk_reference:
+	case ETYPE::identifier:
 	{
 		str << lst.m_idf.get_str_from_unk(ofs);
 		

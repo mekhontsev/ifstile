@@ -1672,7 +1672,7 @@ void remove_checked()
 		for (let& q : *b) {
 			ai.reset3({ b, &b->m_ops[q.pos5].hdr });
 			for (auto& x : ai) {
-				if (x.h->tt != ETYPE::unk_reference)continue;
+				if (x.h->tt != ETYPE::identifier)continue;
 				auto* p = lst.get_block_from_unk(x.h->get_unk_id());
 
 				if (p->m_flags.marked) {
