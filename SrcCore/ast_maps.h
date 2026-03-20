@@ -22,7 +22,7 @@
 struct variable;
 struct ims_val;
 
-struct ast_maps: public boost::noncopyable
+struct ast_maps
 {
 	std::vector<pool_ptr> m_atoms;
 	indexed_maps m_ixm;

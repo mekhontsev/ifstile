@@ -19,8 +19,6 @@
 #include "ims_random.h"
 #include "block_form.h"
 #include "graph_poly.h"
-#include "graph_init_data_ptr.h"
-
 
 ims_static const std::initializer_list<creator_state::group_info> 
 g_creator_group_info
@@ -266,8 +264,8 @@ bool creator_state::graph::parse(std::string_view line)
 	}
 	
 	///////////////////////////////////////////////////////////////////////////
-	graph_init_data_ptr m_idata;
-	m_ig2.init(m_idata.get());
+
+	m_ig2.init();
 
 	size_t comp = ims_max;
 	for (size_t i = 0; i < m_ig2.m_comp.size(); ++i) {

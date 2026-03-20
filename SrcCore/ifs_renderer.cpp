@@ -17,10 +17,6 @@
 #include "pch.h"
 #include "ifs_renderer.h"
 #include "ifs_data_text.h"
-#include "eval_context.h"
-#include "ast_maps.h"
-#include "graph_init_data_ptr.h"
-#include "affine_calc.h"
 
 void check_block(const oper_block*);
 
@@ -84,14 +80,9 @@ bool ifs_renderer::init(const std::string& aifs)
 		return false;
 	}
 
-	eval_context ec;
-	ast_maps am;
-	graph_init_data_ptr gd;
-	affine_calc ac;
-	if (!m_bi.init4(*b, ec, am,  gd.get(), ac)) {
+	if (!m_bi.init4(*b)) {
 		return false;
 	}
-
 
 	//root is needed before building,
 	//because below we change the graph (set_active_ref)
@@ -105,16 +96,13 @@ bool ifs_renderer::init(const std::string& aifs)
 	}
 	b->set_active_ref(root);
 	
-	m_sv.eval_builtins(*b, ec);
-
-
+	m_sv.eval_builtins(*b, m_bi.m_ctx);
 
 	////////////////////////////////////////////////////////////////////
 
 	//even if the moment or dimension could not be calculated correctly
 	//important values are filled with acceptable values
-	affine_dim_calc dc;
-	if (!m_bi.compute_metrics(dc)) {
+	if (!m_bi.compute_metrics()) {
 		return false;
 	}
 
@@ -126,8 +114,7 @@ bool ifs_renderer::init(const std::string& aifs)
 bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
 {
 	clear_color(dst);
-	
-	
+
 	let root2 = m_bb->get_froot();
 	let dim_set = m_bi.m_ver_dim[root2];
 	if (dim_set == ims_max || dim_set == 0) {
@@ -162,12 +149,10 @@ bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
 			--start_idx;
 		}
 
-
 		for (int c = 0; c < b.cols(); ++c) {
 			b.col(b.cols() - 1 - c) = me.Q.col(start_idx + c);
 		}
 	}
-
 
 	si.init_si();
 

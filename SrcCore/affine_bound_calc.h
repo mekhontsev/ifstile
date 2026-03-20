@@ -71,8 +71,6 @@ struct affine_bound_calc
 		void exchange(affine_elem* e);
 	};
 
-
-
 	//prepared elements
 	big_array<affine_elem> m_elems_heap;
 

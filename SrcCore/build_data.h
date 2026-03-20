@@ -24,25 +24,22 @@
 struct report_params;
 struct ims_identifiers;
 struct oper_block;
-struct eval_data;
 
 struct build_data
 {
 	using Integer = int64_t;
 	using Real = double;
 
-	variator_params m_vp;
-
 	//fully materialized block
 	block_info m_bi;
+	variator_params m_vp;
+	//TODO: It is only stored here and is almost never used in build_data
+	standard_vars m_special;
 
 	std::unique_ptr<oper_block> m_block_sq;
 
 	//the parent of the custom block.
 	std::unique_ptr<oper_block> m_normal_parent;
-
-	//TODO: It is only stored here and is almost never used in build_data
-	standard_vars m_special;
 
 	//which one from the list it corresponds to (or null_ptr if deleted)
 	const oper_block* m_bb = nullptr;
@@ -69,10 +66,9 @@ struct build_data
 		const oper_block* db, //block from the list
 		const variator_params& vp);
 
-	bool init_normal_block(eval_data& ed);
+	bool init_normal_block();
 
 	bool init_custom_block(
-		eval_data& ed,
 		ims_identifiers& idf,
 		ifs_object_type mode,
 		const report_params& rp);

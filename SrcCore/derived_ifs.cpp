@@ -22,7 +22,6 @@
 #include "block_class.h"
 #include "ims_graph.h"
 #include "clock_print.h"
-#include "graph_init_data_ptr.h"
 #include "ims_identifiers.h"
 #include "block_graph.h"
 #include "eval_context.h"
@@ -253,7 +252,6 @@ bool create_neghbours(
 	ims_full_graph fgc;
 	ims_graph  fgc_G;
 
-	graph_init_data_ptr idata2;
 
 	std::vector<bool> used_vers;//vertices used during filtering
 
@@ -278,7 +276,7 @@ bool create_neghbours(
 		if (res) {
 			fgc.get_nbh_graph(dig, fgc_G.m_edges);
 
-			fgc_G.init(idata2.get());
+			fgc_G.init();
 
 			for (size_t i = 0; i < 2; ++i) {
 				if (!nbx[i])continue;
@@ -332,7 +330,7 @@ bool create_neghbours(
 
 
 				//filter connections by 2, 3, 4...
-				tgraph.init(idata2.get());
+				tgraph.init();
 				filter_func(used_vers, rp->filer_post, tgraph);
 				if (ims_need_stop()) {
 					return false;
@@ -533,7 +531,7 @@ bool create_neghbours(
 		//Caution! Uses idx_graph
 		nb.create_boundary(dig, boundary, rp? nm: 0);
 
-		boundary.init(idata2.get());
+		boundary.init();
 
 		for (size_t j = 0; j < nb.m_data.size(); ++j) {
 			let& cn = nb.m_data[j];
@@ -724,11 +722,11 @@ bool create_neghbours(
 			if (rp->intersections) {
 				fi.get_graph_x(tgraph.m_edges, dig, inum);
 			
-				tgraph.init(idata2.get());//finds components of dimension 0
+				tgraph.init();//finds components of dimension 0
 
 				//filter intersections by 3,4,...
 				if (rp->only_strong_intres) {
-					tgraph.remove_non_strong_edges(idata2.get());
+					tgraph.remove_non_strong_edges();
 				}
 
 				filter_func(used_vers, rp->filer_post, tgraph);

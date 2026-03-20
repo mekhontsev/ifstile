@@ -317,9 +317,6 @@ void print_ifs_proj(const oper_block& sr, const block_info& bi)
 {
 	print_header("Projected IFS:"); IMS_SCOPE(print_footer);
 	
-	using Real = double;
-
-	
 	let* g = sr.get_class();
 	let* lst = &sr.get_list();
 	
@@ -471,11 +468,12 @@ void print_normal_maps(const oper_block& sr, eval_context& ec)
 	};
 }
 
-void print_ast(const oper_block& sr, const block_info& bi, const ast_maps& am)
+void print_ast(const oper_block& sr, const block_info& bi)
 {
 	print_header("AST:"); IMS_SCOPE(print_footer);
 
 	let* g = sr.get_class();
+	auto& am = bi.m_am;
 
 	for (size_t i = 0; i < bi.m_em.size(); ++i) {
 

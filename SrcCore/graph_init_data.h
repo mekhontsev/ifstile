@@ -16,14 +16,15 @@
 
 #pragma once
 
-struct graph_init_data;
+#include "dfs.h"
 
-struct graph_init_data_ptr : boost::noncopyable
+struct graph_init_data: public boost::noncopyable
 {
-	graph_init_data_ptr();
-	~graph_init_data_ptr();
-	graph_init_data& get() { return *pimpl; };
+	static graph_init_data& get();
 
-private:
-	graph_init_data* pimpl = nullptr;
+	boost::compressed_sparse_row_graph<boost::directedS> g;
+	std::vector<size_t> comp_sorted;
+	std::vector<size_t> topo_map;
+
+	dfs_po dfs;
 };

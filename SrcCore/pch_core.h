@@ -124,6 +124,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/container/small_vector.hpp>
+#include <boost/container/deque.hpp>
 #include <boost/unordered/unordered_map.hpp>
 #include <boost/unordered/unordered_set.hpp>
 #define EIGEN_MPL2_ONLY
@@ -139,6 +140,8 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/integer/extended_euclidean.hpp>
+#include <boost/graph/compressed_sparse_row_graph.hpp>
+#include <boost/graph/strong_components.hpp>
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <Eigen/Core>

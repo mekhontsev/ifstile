@@ -16,33 +16,12 @@
 
 #include "pch.h"
 #include "ims_graph.h"
-#include "graph_init_data_ptr.h"
+#include "graph_init_data.h"
 
 #if 0
 #include "dfs.h"
 #endif
 
-#include <boost/graph/compressed_sparse_row_graph.hpp>
-#include <boost/graph/strong_components.hpp>
-
-struct graph_init_data
-{
-	boost::compressed_sparse_row_graph<boost::directedS> g;
-	std::vector<size_t> comp_sorted;
-	std::vector<size_t> topo_map;
-#if 0
-	dfs_po dfs;
-#endif
-};
-
-graph_init_data_ptr::graph_init_data_ptr()
-{
-	pimpl = new graph_init_data;
-}
-graph_init_data_ptr::~graph_init_data_ptr()
-{
-	delete pimpl;
-}
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -70,7 +49,7 @@ size_t ims_graph::get_ver(size_t comp_idx, size_t ver_in_comp) const
 };
 
 
-void ims_graph::remove_non_strong_edges(graph_init_data& idata)
+void ims_graph::remove_non_strong_edges()
 {
 	let nv = num_ver();
 
@@ -78,11 +57,13 @@ void ims_graph::remove_non_strong_edges(graph_init_data& idata)
 		return m_ver2com[e.first] != m_ver2com[e.second];
 	});
 
-	init(idata, nv);
+	init(nv);
 };
 
-void ims_graph::init(graph_init_data& idata, size_t nv0, bool remove_edge_dups)
+void ims_graph::init(size_t nv0, bool remove_edge_dups)
 {
+	auto& idata = graph_init_data::get();
+
 	std::sort(m_edges.begin(), m_edges.end());
 
 	//remove duplicates (only after sorting)
@@ -133,11 +114,9 @@ void ims_graph::init(graph_init_data& idata, size_t nv0, bool remove_edge_dups)
 #endif	
 	////////////////////////////////////////////////////////////////////////////
 	let nv = m_vers.size();
-	
 
 	ims_resize(m_ver2com, nv);
 	ims_resize(m_ver_in_comp, nv);
-	
 
 	//edges are sorted by set_vertex_index
 	//the only requirement here is to sort by first

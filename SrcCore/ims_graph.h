@@ -17,9 +17,6 @@
 #pragma once
 #include "ims_graph_base.h"
 
-struct graph_init_data;
-
-
 //can be copied
 struct  ims_graph: public ims_graph_base
 {
@@ -32,7 +29,7 @@ struct  ims_graph: public ims_graph_base
 	//(and set_vertex_index was called),
 	//then there is no need to call init again since the connected components contain
 	//correct (but perhaps not completely accurate) information
-	void init(graph_init_data& idata, size_t nv = 0, bool remove_edge_dups = false);
+	void init(size_t nv = 0, bool remove_edge_dups = false);
 
 	
 	//remove components of dimension 0;
@@ -50,7 +47,7 @@ struct  ims_graph: public ims_graph_base
 	size_t get_ver(size_t comp_idx, size_t ver_in_comp) const;
 
 	//removes edges leading to other components, reinitializes
-	void remove_non_strong_edges(graph_init_data& idata);
+	void remove_non_strong_edges();
 
 	size_t get_comp_hash() const;
 

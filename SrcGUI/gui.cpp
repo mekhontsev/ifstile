@@ -366,11 +366,6 @@ build_data* get_global_bd()
 	return xd;
 };
 
-eval_data& get_global_ed()
-{
-	return g_ps.m_ed;
-};
-
 static oper_block* get_global_block(ifs_object_type t)
 {
 	auto* xd = get_global_bd();
@@ -1479,7 +1474,7 @@ void console_print(e_what_print what)
 		print_ifs_def(sr);
 		break;
 	case e_what_print::AST:
-		print_ast(sr, bi, g_ps.m_ed.m_am);
+		print_ast(sr, bi);
 		break;
 	case e_what_print::Data:
 	{
@@ -1488,11 +1483,11 @@ void console_print(e_what_print what)
 		break;
 	}
 	case e_what_print::Evaluation:
-		print_ifs_eval(sr, g_ps.m_ed.m_ctx);
+		print_ifs_eval(sr, bi.m_ctx);
 		break;
 	case e_what_print::NormalMaps:
 		if (sr.get_dim() > 0) {
-			print_normal_maps(sr, g_ps.m_ed.m_ctx);
+			print_normal_maps(sr, bi.m_ctx);
 		}
 		break;
 	case e_what_print::Projection:
@@ -2106,11 +2101,8 @@ static void do_save_as()
 				vis = get_vb().m_vis_blocks;
 			}
 
-			eval_data ed;
-
 			num_saved = calc_flame(
 				ofs,
-				ed,
 				st,
 				vp,
 				get_rpars().m_palette,
@@ -3487,13 +3479,12 @@ void do_create_anim(size_t ref_time)
 
 	build_data bd;
 
-	eval_data ed;
 	for (auto& kf : k) {
 		bd.clear();
 
 		bd.pre_init(&kf.b, vp);
 
-		if (!bd.init_normal_block(ed)) {
+		if (!bd.init_normal_block()) {
 			ims_error("Block {}: evaluation error", kf.b.m_name);
 			error_in_console = true;
 			return;
@@ -3762,7 +3753,7 @@ static void check_base_input(float mx, float my, const bool* mouse_clicked)
 //cx,cy - where did user start drag from
 //mx,my - drag offset
 static bool check_mouse_dragging(
-	build_data* bd,
+	standard_vars& sv,
 	float cx, float cy,
 	float mx, float my,
 	MouseAction act)
@@ -3815,8 +3806,6 @@ static bool check_mouse_dragging(
 
 		return false;
 	}
-
-	auto& sv = bd->m_special;
 
 	auto& si = sv.m_si2;
 	auto& xc = sv.m_xcam2;
@@ -5292,7 +5281,8 @@ static void draw_base(const frect& rc)
 							auto* bd = get_global_bd();
 							if (bd) {
 								let act = get_action(but);
-								bool b = check_mouse_dragging(bd, cx, cy, md.x, md.y, act);
+								bool b = check_mouse_dragging(bd->m_special,
+									cx, cy, md.x, md.y, act);
 								if (b && !get_thread(e_ims_threads::build).is_running()) {
 									ImGui::ResetMouseDragDelta(but);
 								}

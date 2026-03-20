@@ -20,13 +20,10 @@
 #include "eval_context.h"
 #include "matrix_group.h"
 #include "block_class.h"
-
 #include "ims_val.h"
 #include "eval_helpers.h"
 #include "variable.h"
-
 #include "graph_builder.h"
-#include "graph_init_data_ptr.h"
 #include "block_graph.h"
 #include "pool_ptr.h"
 #include "ovr_data.h"
@@ -248,18 +245,17 @@ static bool create_graph(oper_block& b, eval_stack& es)
 	auto& g = *b.get_graph();
 
 	graph_builder gb2;
-	graph_init_data_ptr idata;
-	
+
 	if (!gb2.create(g, user_vars, ec.m_refs5)) {
 		b.m_graph.reset();//error indicator
 		b.m_ctx.reset();
 		return false;
 	}
 
-	g.m_g1.init(idata.get());
+	g.m_g1.init();
 
 	g.m_deps.m_edges = std::move(es.m_edges);
-	g.m_deps.init(idata.get(), user_vars, true);
+	g.m_deps.init(user_vars, true);
 
 	return true;
 }

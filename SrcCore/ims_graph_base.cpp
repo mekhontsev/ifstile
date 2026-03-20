@@ -17,8 +17,6 @@
 #include "pch.h"
 #include "ims_graph_base.h"
 
-
-
 int ims_graph_base::compare_vers(size_t v1, size_t v2) const
 {
 	let n1 = num_edges(v1);

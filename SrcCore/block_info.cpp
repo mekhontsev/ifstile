@@ -16,17 +16,15 @@
 
 #include "pch.h"
 #include "block_info.h"
-#include "affine_calc.h"
 #include "oper_block.h"
 #include "math_helpers.h"
-#include "eval_info.h"
 #include "matrix_helper.h"
 #include "eval_helpers.h"
 #include "ims_val.h"
 #include "block_graph.h"
 #include "edge_map.h"
 #include "edge_ball.h"
-#include "dfs.h"
+#include "graph_init_data.h"
 #include "eval_context.h"
 #include "variable.h"
 #include "ast_maps.h"
@@ -52,13 +50,11 @@ bool block_info::exists() const
 }
 
 bool block_info::init4(
-	const oper_block& b,
-	eval_context& ec,
-	ast_maps& am,
-	graph_init_data& gid,
-	affine_calc& ac)
+	const oper_block& b)
 {
 	bool err = true;
+
+	auto& dfs = graph_init_data::get().dfs;
 
 	assert(m_id8 == 0);
 	IMS_SCOPE([&] {
@@ -71,14 +67,14 @@ bool block_info::init4(
 	});
 
 	if (!b.m_flags.ready) {
-		if (!check_block_ex(const_cast<oper_block&>(b), ec, am)){
+		if (!check_block_ex(const_cast<oper_block&>(b), m_ctx, m_am)){
 			return false;
 		}
 	} else {
-		if (!b.m_graph || !ec.set_block(b)) {
+		if (!b.m_graph || !m_ctx.set_block(b)) {
 			return false;
 		}
-		am.inherit(b.m_graph->m_am, ec.m_refs5);
+		m_am.inherit(b.m_graph->m_am, m_ctx.m_refs5);
 	}
 	
 	
@@ -87,13 +83,13 @@ bool block_info::init4(
 
 	m_proj_data.recheck();
 
-	ims_resize(m_atom_data, am.m_atoms.size());
+	ims_resize(m_atom_data, m_am.m_atoms.size());
 
 	for (size_t i = 0; i < m_atom_data.size(); ++i) {
-		if (!am.atom_is_used(i)) continue;
+		if (!m_am.atom_is_used(i)) continue;
 
 		auto& a = m_atom_data[i];
-		auto& v = am.m_atoms[i];
+		auto& v = m_am.m_atoms[i];
 
 		ast_context* ast = nullptr;
 
@@ -102,15 +98,15 @@ bool block_info::init4(
 		} else {
 			ast = v->gp<ast_context>();
 			a.m_ast = ast;
-			if (i < am.m_num_refs) {
-				a.m_v = ec.m_refs5[i].v[0];
+			if (i < m_am.m_num_refs) {
+				a.m_v = m_ctx.m_refs5[i].v[0];
 			}
 			if (!a.m_v) {
 				if (ast->h.is_xundef()) {
 					a.m_v = eval_pool::ep.get_empty_val();
 					continue;
 				}
-				a.m_v = ec.eval7(*ast, true);
+				a.m_v = m_ctx.eval7(*ast, true);
 				if (!a.m_v) {
 					continue;
 				}
@@ -131,7 +127,7 @@ bool block_info::init4(
 			proj = ast_context(b.m_subspace, 0);
 		}
 
-		a.project(ec, proj, m_proj_data, true);
+		a.project(m_ctx, proj, m_proj_data, true);
 	}
 
 
@@ -147,9 +143,9 @@ bool block_info::init4(
 	for (size_t i = 0; i < nmaps; ++i) {
 		auto& mi = m_map_info[i];
 
-		let& m = am.get_map(i);
+		let& m = m_am.get_map(i);
 		for (size_t j = 0; j < m.num; ++j) {
-			let& a = get_atom(j + m.start, am);
+			let& a = get_atom(j + m.start, m_am);
 
 			if (a.m_v && a.m_v->is_empty()) {
 				mi.status = map_info::empty;
@@ -172,7 +168,7 @@ bool block_info::init4(
 
 		//DFS - find empty vertices
 		auto pred = [&](const ims_edge& e) {return m_map_info[e.m].status != map_info::empty; };
-		for (size_t v = m_dfs.init(g, pred); v < nvers; v = m_dfs.next(g)) {
+		for (size_t v = dfs.init(g, pred); v < nvers; v = dfs.next(g)) {
 			let ne = g.num_edges(v);
 			bool all_empty = true;
 			for (size_t e = 0; e < ne; ++e) {
@@ -194,7 +190,7 @@ bool block_info::init4(
 		if (!init_fg(g, true)) {
 			return true;
 		};
-		m_fg.init(gid, g.num_ver());
+		m_fg.init(g.num_ver());
 	} else {
 		m_cur_fg = &g;
 	}
@@ -205,9 +201,9 @@ bool block_info::init4(
 		auto& mi = m_map_info[i];
 		if (mi.status == map_info::empty)continue;
 
-		let& m = am.get_map(i);
+		let& m = m_am.get_map(i);
 		for (size_t j = 0; j < m.num; ++j) {
-			let& a = get_atom(j + m.start, am);
+			let& a = get_atom(j + m.start, m_am);
 
 
 			if (a.invalid()) {
@@ -268,7 +264,7 @@ bool block_info::init4(
 		if (!init_fg(g)) {
 			return true;
 		}
-		m_fg.init(gid, g.num_ver());
+		m_fg.init(g.num_ver());
 	}
 
 	any_to_used(g.m_edges);
@@ -288,7 +284,7 @@ bool block_info::init4(
 		}
 
 		auto& emi = m_em[i];
-		emi.m = create_proj_map(i, am);
+		emi.m = create_proj_map(i, m_am);
 		emi.used = true;
 	}
 
@@ -340,7 +336,7 @@ bool block_info::init4(
 		set_map(emi, emi.m.get(), mi.dim_p);
 	}
 
-	ac.m_af_point_calc.process(m_vb, m_em, get_fg());
+	m_af_point_calc.process(m_vb, m_em, get_fg());
 
 	//adjust dims
 	for (size_t i = 0; i < m_vb.size(); ++i) {
@@ -349,16 +345,16 @@ bool block_info::init4(
 		vb.reset(eval_helpers::extend_real_vector_size(vb.get(), m_ver_dim[i] + 1));
 	}
 
-	ac.m_af_bc.calc_bounds(
+	m_af_bc.calc_bounds(
 		m_vb,
-		ac.m_af_point_calc.m_points_in_comp,
+		m_af_point_calc.m_points_in_comp,
 		m_em,
 		get_fg());
 
 	////////////////////////////////////////////////////////////////////////////
 	has_invalid_vers = false;
 	for (size_t i = 0; i < get_fg().m_comp.size(); ++i) {
-		if (ac.m_af_bc.m_comp_valid[i])continue;
+		if (m_af_bc.m_comp_valid[i])continue;
 		has_invalid_vers = true;
 		let& c = get_fg().m_comp[i];
 		for (size_t j = 0; j < c.num_ver; ++j) {//over all vertices of the component
@@ -380,7 +376,7 @@ bool block_info::init4(
 			return true;
 		}
 
-		m_fg.init(gid, g.num_ver());
+		m_fg.init(g.num_ver());
 	}
 
 	err = false;//passed all checks
@@ -410,7 +406,7 @@ bool block_info::init4(
 			continue;//algebraic matrices need inverse matrices
 		}
 
-		emi.ma = create_alg_map(mi.proj_id, i, am);
+		emi.ma = create_alg_map(mi.proj_id, i, m_am);
 	}
 
 	////////////////////////////////////////////////////////////////////////////
@@ -944,16 +940,16 @@ bool block_info::init_fg(const ims_graph& g, bool allow_invalid)
 }
 
 
-bool block_info::compute_metrics(affine_dim_calc& dc)
+bool block_info::compute_metrics()
 {
-	dc.compute_all_dims(m_im, get_fg(), 
+	m_dim_calc.compute_all_dims(m_im, get_fg(),
 		ims_view(&m_em.data()->det_rootn, sizeof(edge_map)));
 
 	if (ims_need_stop()) {
 		return false;
 	}
 
-	return dc.compute_moments(m_im, m_em, get_fg(), m_ver_dim);
+	return m_dim_calc.compute_moments(m_im, m_em, get_fg(), m_ver_dim);
 }
 
 

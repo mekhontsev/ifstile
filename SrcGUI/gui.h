@@ -206,8 +206,6 @@ oper_block* get_global_block();
 struct build_data;
 build_data* get_global_bd();
 
-struct eval_data;
-eval_data& get_global_ed();
 
 void rand_current_set();
 

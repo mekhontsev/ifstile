@@ -19,16 +19,15 @@
 struct oper_block;
 struct block_info;
 struct eval_context;
-struct ast_maps;
 
+void print_ifs_data(const oper_block& sr);
+void print_ifs_def(const oper_block& sr);
+void print_normal_maps(const oper_block& sr, eval_context& ec);
+void print_ifs_eval(const oper_block& sr, eval_context& ec);
 bool print_dimensions(std::ostream& sout, const block_info& bi);
 void print_balls(const oper_block& sr, const block_info* bi);
 void print_diams(const oper_block& sr, const block_info* bi);
 void print_measure(const oper_block& sr, const block_info* bi);
-void print_ifs_def(const oper_block& sr);
 void print_ifs_proj(const oper_block& sr, const block_info& bi);
-void print_normal_maps(const oper_block& sr, eval_context& ec);
-void print_ifs_eval(const oper_block& sr, eval_context& ec);
-void print_ast(const oper_block& sr, const block_info& bi, const ast_maps& am);
+void print_ast(const oper_block& sr, const block_info& bi);
 void print_subspaces(const oper_block& sr, const block_info* bi);
-void print_ifs_data(const oper_block& sr);

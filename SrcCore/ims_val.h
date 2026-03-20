@@ -40,7 +40,7 @@ private:
 		//for strings: length
 		size_t m_size;
 		//for matrices - dimensions: rows, cols
-		std::array<uint32_t, 2> m_ex;
+		std::array<uint16_t, 2> m_ex;
 		//for ETP::ptr
 		void* m_ptr;
 	};
@@ -135,9 +135,9 @@ public:
 
 	static size_t get_dim_field(size_t rows, size_t cols)
 	{
-		assert(rows <= std::numeric_limits<uint32_t>::max());
-		assert(cols <= std::numeric_limits<uint32_t>::max());
-		return rows | (cols << 32);
+		assert(rows <= std::numeric_limits<uint16_t>::max());
+		assert(cols <= std::numeric_limits<uint16_t>::max());
+		return rows | (cols << 16);
 	};
 
 	///////////////////////////////////////////////////////////////////////////
@@ -297,19 +297,19 @@ public:
 	MMatInt MI() const
 	{
 		assert(is(ETP::matrix, EST::rational));
-		return { p_i(), m_ex[0], m_ex[1] };
+		return { p_i(), (Eigen::Index)m_ex[0], (Eigen::Index)m_ex[1] };
 	}
 
 	MMatBigRational MB() const
 	{
 		assert(is(ETP::matrix, EST::big_rational));
-		return { p_b(), m_ex[0], m_ex[1] };
+		return { p_b(), (Eigen::Index)m_ex[0], (Eigen::Index)m_ex[1] };
 	}
 
 	MMatReal MR() const
 	{
 		assert(is(ETP::matrix, EST::real));
-		return { p_r(), m_ex[0], m_ex[1] };
+		return { p_r(), (Eigen::Index)m_ex[0], (Eigen::Index)m_ex[1] };
 	}
 
 	////////////////////////////////////////////////////////////////////////////

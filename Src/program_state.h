@@ -27,7 +27,6 @@
 #include "draw_task.h"
 #include "report_params.h"
 
-#include "eval_data.h"
 
 struct oper_block;
 struct visible_blocks;
@@ -180,7 +179,6 @@ struct program_state
 
 	////////////////////////////////////////////////////////////////////////////
 
-	eval_data m_ed;
 	state_stack m_ss;
 	ims_cmap<real_number> m_cm;
 

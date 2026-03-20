@@ -20,9 +20,7 @@
 #include "ims_bitmap.h"
 #include "ims_worker.h"
 #include "ims_graph.h"//init_cmaps
-
 #include "edge_ball.h"
-
 #include "big_array.h"
 #include "geometry.h"
 #include "box.h"

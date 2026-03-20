@@ -14,17 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#pragma once
 
-#include "affine_calc.h"
-#include "eval_info.h"
-#include "eval_context.h"
-#include "ast_maps.h"
+#include "graph_init_data.h"
 
-struct eval_data
+ims_static thread_local graph_init_data s_graph_init_data;
+
+graph_init_data& graph_init_data::get()
 {
-	affine_calc m_bc;
-	eval_info m_ev;
-	eval_context m_ctx;
-	ast_maps m_am;
-};
+	return s_graph_init_data;
+}
+

@@ -24,13 +24,10 @@
 #include "affine_subspace.h"
 #include "clock_print.h"
 #include "block_info.h"
-#include "affine_calc.h"
-#include "eval_info.h"
 #include "ifs_list.h"
 #include "block_graph.h"
 #include "ims_val.h"
 #include "edge_map.h"
-#include "eval_data.h"
 #include "neighbors_data.h"
 #include "variable.h"
 
@@ -610,61 +607,36 @@ struct search_contex
 	using real_number = finder::real_number;
 
 	variator_ex vex;
-
 	integer_ims imsc;
 	neighbors_data nb;
-
 	ims_full_graph fgc;
 	ims_graph fgc_g;
 	affine_builder ab;
-
 	ims_full_inter fgi;
-
 	uniq_array<real_number> sim_nfo;
-
 	//all graph maps sorted by linear part
 	std::vector<const ims_val*> smaps;
-
 	//gives the serial number of the determinant based on the map number in the graph
 	std::vector<size_t> map_det_idx;
-
 	//is the map used?
 	std::vector<bool> l_map_used;
-
 	ims_graph inters;
-
 	ims_graph inters_copy;
-
 	std::vector<uint32_t> inter_counter;
-
 	ims_graph::color_refinement_data crd;
 	ims_graph_base topo_graph;
-
 	uniq_array<real_number> dim_uniq;//dimensions of components in ascending order
-
 	ims_graph inter_graph;
 	std::vector<size_t> temp_inter;
-
 	ifs_metrics<real_number> boundary_measure;
-
 	dist_solver dhb;
-
 	std::vector<ver_info_ex> thinfo_vers;
-
-	graph_init_data_ptr idata2;
-
 	std::vector<real_number> rad_invariant;
-
 	std::vector<size_t> temp_hash;
-
 	std::vector<size_t> idx_available_to_replace;
-
 	search_info br;
-
 	structure_info thinfo;
-
 	std::vector<edge_ball> vb;
-
 	affine_point_calc card_calc;
 
 	//use per_graph to avoid reinitialization during runtime
@@ -673,6 +645,7 @@ struct search_contex
 	struct thread_data
 	{
 		block_info m_bi2;//cannot be put into vector(
+
 		std::unique_ptr<oper_block> m_block_sq;
 
 		void reset() 
@@ -689,8 +662,6 @@ struct search_contex
 			return *m_block_sq;
 		}
 
-		eval_data m_ed;
-	
 		////////////////////////////////////////////////////////////////////////////
 		//the real block from which all the others originated
 		const oper_block* m_base_x = nullptr;
@@ -699,7 +670,6 @@ struct search_contex
 
 	};
 	std::vector<std::unique_ptr<thread_data>> thread_graphs;
-
 
 #if 0
 	struct result
@@ -736,7 +706,7 @@ struct search_contex
 		auto* ccl = thread_graphs[sr_idx].get();
 
 		ccl->reset();
-		ccl->m_block_sq->inherit_from(*sr, var, ccl->m_ed.m_ev.m_opinfo2, false);
+		ccl->m_block_sq->inherit_from(*sr, var, ccl->m_bi2.m_cv, false);
 
 		return true;
 	};
@@ -781,9 +751,8 @@ struct search_contex
 		}
 
 		return &sr;
-		
 	}
-	
+
 	oper_block* extract_block(
 		finder& fnd4,
 		std::mutex& hot_mut,
@@ -800,7 +769,6 @@ struct search_contex
 		//TODO - should not be accessible from here
 		thread_data* ccl = nullptr;
 
-		
 		num_changed = 0;
 
 		auto sd = fnd4.m_search_domain;
@@ -862,8 +830,6 @@ struct search_contex
 			bcl->force_proto(next_proto);
 			ccl->m_base_x = ccl->m_proto_x = next_proto;
 		}
-		
-
 
 		if(!bcl){
 			bcl = &fnd4.m_bi_map_vec[irn.rng() % fnd4.m_bi_map_vec.size()];
@@ -882,10 +848,6 @@ struct search_contex
 		ccl = thread_graphs[idx].get();
 
 		ccl->reset();
-
-		
-
-		
 
 		//decrement the counter and try to extract the virtual
 		if(bcl->m_attempts_remain == 0){
@@ -953,7 +915,6 @@ struct search_contex
 			}
 		}
 
-	
 		//extract from the entire list
 		if(!ccl->m_base_x){
 			auto* qq = bcl->extract_base_from_list(irn, sd);
@@ -966,8 +927,6 @@ struct search_contex
 			bcl->set_attempts(0);
 		}
 
-
-		
 		sr = &ccl->get_block();
 	
 	
@@ -991,9 +950,6 @@ struct search_contex
 		return sr;
 	};
 
-
-	
-	
 	finder::check_result one_step(
 		ifs_list& full_list,
 		oper_block*& drx,//can be replaced
@@ -1001,7 +957,6 @@ struct search_contex
 		const columns& cols)
 	{
 		oper_block* sr = drx;
-
 
 		let base_block_id = get_base_block_id(sr);
 		let sr_index = fnd2.m_bi_map[base_block_id];
@@ -1012,21 +967,12 @@ struct search_contex
 		auto& irn = ims_random::getR();
 
 		auto& bi = ccl->m_bi2;
-		auto& bc = ccl->m_ed.m_bc;
-		auto& ei = ccl->m_ed.m_ev;
-		auto& ec = ccl->m_ed.m_ctx;
-		auto& am = ccl->m_ed.m_am;
 
 		assert(ccl->m_block_sq);
 
 		ccl->m_bi2.set_to_recalc_graph();
 	
-		bi.init4(
-			ccl->get_block(), 
-			ec, 
-			am,
-			ei.m_idata4.get(), 
-			bc);
+		bi.init4(ccl->get_block());
 
 		if(ims_need_stop()){
 			return finder::interrupted;
@@ -1054,7 +1000,6 @@ struct search_contex
 				return finder::other;
 			}
 		}
-	
 
 		////////////////////////////////////////////////////////////////////
 		let num_maps = bi.m_em.size();
@@ -1095,8 +1040,6 @@ struct search_contex
 		sim_nfo.init();
 
 		//////////////////////////////////////////////////
-
-	
 
 		std::sort(smaps.begin(), smaps.end(), [](let* m1, let* m2)
 		{
@@ -1248,7 +1191,7 @@ struct search_contex
 
 			let is_cantor_set = nb.m_data.empty();
 			
-			inters.init(idata2.get());
+			inters.init();
 
 
 			//collect information about each vertex of the graph
@@ -1306,7 +1249,7 @@ struct search_contex
 
 			inters.color_refinement(crd);
 
-			inters.init(idata2.get());
+			inters.init();
 
 			thinfo.m_reduced_n_graph_hash = inters.get_hash();
 
@@ -1329,7 +1272,7 @@ struct search_contex
 				br.m_structure = &*res;
 			}
 
-			bc.m_dim_calc.compute_all_dims(
+			bi.m_dim_calc.compute_all_dims(
 				boundary_measure,
 				inters,
 				sim_nfo.m_arr);
@@ -1445,7 +1388,7 @@ struct search_contex
 				real_number cdim_cur = -1;//the dimension of connectedness of the current set
 				for(size_t k = 0; k < dim_uniq.m_arr.size(); ++k){
 
-					inter_graph.init(idata2.get());
+					inter_graph.init();
 
 					if (inter_graph.m_comp.size() != 1 || 
 						inter_graph.num_ver() != inter_graph.m_comp[0].num_ver ||
@@ -1499,7 +1442,7 @@ struct search_contex
 
 				if(fgc.find_neighborhoods(dig, nb, false)){
 					fgc.get_nbh_graph(dig, fgc_g.m_edges);
-					fgc_g.init(idata2.get());
+					fgc_g.init();
 
 					for(let& c : fgc_g.m_comp){
 						if(c.has_other())continue;
@@ -1572,7 +1515,7 @@ struct search_contex
 				if(inter_all_num > 0){
 					inters.clear();
 					fgi.get_graph_x(inters.m_edges, dig, 2);
-					inters.init(idata2.get());
+					inters.init();
 
 					//find the power
 					card_calc.process(vb, bi.m_em, inters);
@@ -1583,7 +1526,7 @@ struct search_contex
 						q.m = map_det_idx[q.m];
 					};
 
-					bc.m_dim_calc.compute_all_dims(
+					bi.m_dim_calc.compute_all_dims(
 						boundary_measure,
 						inters, sim_nfo.m_arr);
 
@@ -1695,7 +1638,7 @@ graph_not_ok:
 		//calculate but don't insert the metric_id yet
 
 		metric_key mk;
-		let metric_ok = bi.compute_metrics(bc.m_dim_calc);
+		let metric_ok = bi.compute_metrics();
 
 		if(ims_need_stop()){
 			return finder::interrupted;

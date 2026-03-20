@@ -19,12 +19,8 @@
 #include "ims_val.h"
 #include "oper_block.h"
 #include "block_class.h"
-#include "ifs_data_text.h"
-#include "pool_ptr.h"
 #include "variable.h"
 #include "block_graph.h"
-#include "edge_ball.h"
-#include "edge_map.h"
 #include "aifs_load.h"
 
 void print_operator(
@@ -175,13 +171,13 @@ bool aifs_tester::init()
 	if (!b)return true;
 
 	bi.set_to_recalc_graph();
-	if (!bi.init4(*b, ec, am, gid.get(), ac)) {
+	if (!bi.init4(*b)) {
 		return false;
 	}
 
 	//the block must be inheritable
 	inh.clear();
-	inh.inherit_from(*b, vp, cv, true);
+	inh.inherit_from(*b, vp, bi.m_cv, true);
 	check_block(&inh);
 	if (inh.is_invalid()) {
 		return false;
@@ -199,7 +195,7 @@ const ims_val* aifs_tester::eval(std::string_view var, bool is_geom /*= true*/)
 		assert(false);
 		return nullptr;
 	}
-	return ec.eval_ref(ref, is_geom);
+	return bi.m_ctx.eval_ref(ref, is_geom);
 }
 
 bool aifs_tester::valid(std::string_view var)

@@ -30,12 +30,10 @@ struct variator_params;
 struct palette;
 struct background;
 struct oper_block;
-struct eval_data;
 template<typename Real> struct screen_disk;
 
 size_t calc_flame(
 	std::ostream& of,
-	eval_data& ed,
 	const save_type st,
 	const variator_params& vp,
 	const palette& pal,

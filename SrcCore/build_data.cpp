@@ -16,21 +16,14 @@
 
 #include "pch.h"
 #include "build_data.h"
-
-
-#include "affine_calc.h"
 #include "oper_block.h"
 #include "block_class.h"
-#include "eval_info.h"
-
 #include "clock_print.h"
 #include "eval_context.h"
 #include "block_graph.h"
 #include "variable.h"
-
 #include "ast_stack.h"
 #include "ims_info.h"
-#include "eval_data.h"
 
 ims_info& ims_info_get();
 
@@ -195,7 +188,7 @@ void build_data::on_change_mode()
 	m_bi.set_to_recalc_graph();
 }
 
-bool build_data::init_normal_block(eval_data& ed)
+bool build_data::init_normal_block()
 {
 	if (m_bi.m_id8 > 0) {//cached
 		return m_bi.exists();
@@ -216,16 +209,11 @@ bool build_data::init_normal_block(eval_data& ed)
 			return false;
 		}
 
-		m_changed = b->inherit_from(*m_bb, m_vp, ed.m_ev.m_opinfo2, true);
+		m_changed = b->inherit_from(*m_bb, m_vp, m_bi.m_cv, true);
 		b->m_name = m_bb->m_name;
 	}
 
-	let res = m_bi.init4(
-		*b,
-		ed.m_ctx,
-		ed.m_am,
-		ed.m_ev.m_idata4.get(),
-		ed.m_bc);
+	let res = m_bi.init4(*b);
 
 	if (!res) {
 		return false;
@@ -252,7 +240,7 @@ bool build_data::init_normal_block(eval_data& ed)
 		b->set_active_ref(root);
 	}
 
-	m_special.eval_builtins(get_block(), ed.m_ctx);
+	m_special.eval_builtins(get_block(), m_bi.m_ctx);
 
 	////////////////////////////////////////////////////////////////////
 
@@ -262,7 +250,7 @@ bool build_data::init_normal_block(eval_data& ed)
 
 	//even if the moment or dimension could not be calculated correctly
 	//important values are filled with acceptable values
-	if (!m_bi.compute_metrics(ed.m_bc.m_dim_calc)) {
+	if (!m_bi.compute_metrics()) {
 		return false;
 	}
 
@@ -295,13 +283,14 @@ bool build_data::can_create_view() const
 
 static bool create_custom_block(
 	std::unique_ptr<oper_block>& dst,
-	const block_info& ci,
+	block_info& ci,
 	const oper_block& src,
 	ims_identifiers& idf,
-	affine_dim_calc& dim_calc,
 	ifs_object_type mode,
 	const report_params& rp)
 {
+	auto& dim_calc = ci.m_dim_calc;
+
 	using Real = block_info::Real;
 	let bmode = mode == ifs_object_type::boundary;
 
@@ -418,12 +407,10 @@ static bool create_custom_block(
 	//pre-filter
 	std::vector<bool> used;
 
-	graph_init_data_ptr idata2;
-
-	boundary.init(idata2.get());//finds components of dimension 0
+	boundary.init();//finds components of dimension 0
 
 	if (rp.only_strong_intres) {
-		boundary.remove_non_strong_edges(idata2.get());
+		boundary.remove_non_strong_edges();
 	}
 	filter_func(used, flt, boundary);
 	if (ims_need_stop()) {
@@ -463,7 +450,6 @@ static bool create_custom_block(
 
 
 bool build_data::init_custom_block(
-	eval_data& ed,
 	ims_identifiers& idf,
 	ifs_object_type mode,
 	const report_params& rp)
@@ -480,7 +466,6 @@ bool build_data::init_custom_block(
 		m_bi,
 		*get_block().elevate_empty(),
 		idf,
-		ed.m_bc.m_dim_calc,
 		mode,
 		rp))
 	{
@@ -499,12 +484,7 @@ bool build_data::init_custom_block(
 
 	m_bi.set_to_recalc_graph();
 
-	let res = m_bi.init4(
-		b,
-		ed.m_ctx,
-		ed.m_am,
-		ed.m_ev.m_idata4.get(),
-		ed.m_bc);
+	let res = m_bi.init4(b);
 
 
 	if (!res) {
@@ -521,7 +501,7 @@ bool build_data::init_custom_block(
 	}
 
 
-	if (!m_bi.compute_metrics(ed.m_bc.m_dim_calc)) {
+	if (!m_bi.compute_metrics()) {
 		return false;
 	}
 	if (ims_need_stop()) {

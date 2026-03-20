@@ -256,21 +256,21 @@ ims_keywords.h ims_operator.h ims_operator.cpp block_class.h block_class.cpp
 data_column.cpp data_column.h def_number_types.h ims_random.h ims_random.cpp 
 ims_info.h ims_info.cpp call_thread.h aifs_printer.h aifs_printer.cpp
 search_info.h print_operator.cpp oper_block.h oper_block.cpp
-ovr_data.h ovr_data.cpp eval_data.h
-eval_info.h eval_context.h eval_context.cpp  
+ovr_data.h ovr_data.cpp eval_context.h eval_context.cpp
 geom_solver.h dist_solver.h dist_solver.cpp diam_solver.h diam_solver.cpp 
-clock_print.h block_info.h  block_info.cpp  block_category.h
-dfs.h dfs.cpp ims_graph_base.h ims_graph_base.cpp  ims_graph.cpp ims_graph.h
-conbuf.h conbuf.cpp version.h ims_num_traits.cpp 
+clock_print.h block_info.h block_info.cpp  block_category.h
+dfs.h dfs.cpp ims_graph_base.h ims_graph_base.cpp ims_graph.cpp ims_graph.h
+conbuf.h conbuf.cpp version.h ims_num_traits.cpp
 geometry.h var_subs_info.h ims_info_counted_map.h
- ifs_data_text.h  ifs_data_text.cpp  variator.h variator.cpp 
-integer_ims.h integer_ims.cpp error_helper.h error_helper.cpp  
+ ifs_data_text.h  ifs_data_text.cpp  variator.h variator.cpp
+integer_ims.h integer_ims.cpp error_helper.h error_helper.cpp
 ims_num_traits.h ims_val_b.h ims_val.h ims_val.cpp throw_exception.cpp
 block_form.h block_form.cpp inter_type.h inter_type.cpp
-neighbors_data.h neighbors_data.cpp math_helpers.h mprec.h 
+neighbors_data.h neighbors_data.cpp math_helpers.h mprec.h
 poly_funcs.h poly_roots.h combinator.h combinator.cpp
 finder.h finder.cpp column_id.h pch_core.h pch.h
-columns.h columns.cpp graph_init_data_ptr.h ifs_list.h ifs_list.cpp
+columns.h columns.cpp graph_init_data.h graph_init_data.cpp
+ifs_list.h ifs_list.cpp
 projector.h projector.cpp env_block.h env_block.cpp ims_identifiers.cpp ims_identifiers.h
 ims_full_graph.h ims_full_graph.cpp ims_worker.h ims_worker.cpp 
 utf8.h utf8.cpp main_utf8.h ims_chrono.h ims_ini.h ims_ini.cpp
@@ -289,7 +289,6 @@ param_walker.h param_walker.cpp
 
 mat_operations.h matrix_helper.h matrix_helper.cpp
 box.h ball3d.h ifs_metrics.h 
-affine_calc.h
 affine_dim_calc.h affine_dim_calc.cpp 
 affine_bound_calc.h affine_bound_calc.cpp 
 affine_point_calc.h affine_point_calc.cpp

@@ -17,13 +17,9 @@
 #pragma once
 #include "operator_ptr.h"
 #include "ims_info.h"
-#include "eval_context.h"
 #include "error_helper.h"
 #include "ims_val_b.h"
 #include "block_info.h"
-#include "graph_init_data_ptr.h"
-#include "affine_calc.h"
-#include "ast_maps.h"
 #include "variator.h"
 
 struct ims_val;
@@ -32,14 +28,11 @@ struct aifs_tester
 {
 	std::unique_ptr<ims_info> nfo;
 	block_info bi;
-	eval_context ec;
-	ast_maps am;
-	affine_calc ac;
+	variator_params vp;
+
 	std::string aifs;
 	std::string err_msg;
-	graph_init_data_ptr gid;
-	variator_params vp;
-	control_values2 cv;
+
 	oper_block inh;
 	
 	static constexpr ims_val_b::Real eps = 1e-15;

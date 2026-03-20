@@ -324,7 +324,7 @@ x4=f2.b
 
 	if (!t.init())FAIL() << t.err_msg;
 
-	EXPECT_EQ(t.ec.m_refs5.size(), 7);//no duplicates
+	EXPECT_EQ(t.bi.m_ctx.m_refs5.size(), 7);//no duplicates
 
 	EXPECT_TRUE(t.equal("x1", 5));
 	EXPECT_TRUE(t.equal("x2", 5));

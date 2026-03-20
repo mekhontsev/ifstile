@@ -20,10 +20,14 @@
 #include "geometry.h" //style
 #include "pool_ptr.h"
 #include "proj_data.h"
-#include "dfs.h"
 #include "ims_graph.h"
 #include "edge_ball.h"
 #include "edge_map.h"
+#include "eval_context.h"
+#include "ast_maps.h"
+#include "affine_dim_calc.h"
+#include "affine_bound_calc.h"
+#include "affine_point_calc.h"
 
 //maps act in Hilbert space
 //the dimension of a map is the number of the coordinate from which it acts as the identity
@@ -32,16 +36,7 @@
 //dimensionless maps (e.g. scalars) - do not affect the dimension calculation
 //edge_mul does not perform collapse_compos when going deeper into a lower dimension
 
-struct affine_dim_calc;
-struct variator_params;
-struct affine_calc;
-struct report_params;
-struct eval_context;
-struct eval_info;
-
 struct ims_val;
-struct ims_identifiers;
-struct ast_maps;
 
 enum class ifs_object_type : size_t
 {
@@ -56,8 +51,7 @@ struct block_info
 	using Integer = int64_t;
 	using Real = double;
 
-
-	bool compute_metrics(affine_dim_calc& dc);
+	bool compute_metrics();
 
 	//no errors occurred as a result of initialization
 	bool exists() const;
@@ -66,12 +60,7 @@ struct block_info
 
 	//calculates graph, real maps, sizes of sets
 	//return false if no valid vertex could be found
-	bool init4(
-		const oper_block& b,
-		eval_context& ec,
-		ast_maps& am,
-		graph_init_data& gid,
-		affine_calc& ac);
+	bool init4(const oper_block& b);
 
 	const ims_graph& get_fg() const { return *m_cur_fg; };
 
@@ -82,7 +71,6 @@ struct block_info
 	//get an affine map from an algebraic space
 	void get_affine(Real* dst, const Real* src, alg_id_t alg_id) const;
 
-
 	//returns the single dimension of the projection, if it exists, or 0
 	size_t common_dim_proj() const;
 
@@ -90,6 +78,13 @@ struct block_info
 	const proj_data& get_proj_data() const;
 
 public:
+
+	affine_point_calc	m_af_point_calc;
+	affine_bound_calc	m_af_bc;
+	affine_dim_calc		m_dim_calc;
+	control_values2		m_cv;
+	eval_context m_ctx;
+	ast_maps m_am;
 
 	ifs_metrics<Real> m_im;
 
@@ -145,14 +140,7 @@ public:
 
 	std::vector<style<Real>> m_style;
 
-
-
-
 private:
-
-	dfs_po m_dfs;//TODO: move to graph_init_data ?
-
-
 
 
 	struct atom_data
@@ -180,8 +168,6 @@ private:
 
 	////////////////////////////////////////////////////////////////////////////
 
-
-
 	std::vector<atom_data> m_atom_data;
 
 	//the algebraic component ID is equal to the dimension for the trivial projector
@@ -190,10 +176,7 @@ private:
 
 	static constexpr alg_id_t s_first_non_trivail_alg_id = 1024;
 
-
-
 	proj_data m_proj_data;
-
 
 private: 
 
@@ -212,7 +195,6 @@ private:
 		size_t& proj_id,//returns the projector ID
 		size_t idx,
 		const ast_maps& am) const;
-
 
 private:
 
