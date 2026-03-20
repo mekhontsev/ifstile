@@ -29,7 +29,8 @@
 #include "ifs_list.h"
 #include "eval_context.h"
 #include "variable.h"
-
+#include "eval_data.h"
+#include "ims_val.h"
 
 const char* ws_editor::get_title()
 {
@@ -277,7 +278,7 @@ void ws_editor::show()
 
 
 	if (xd->m_normal_parent) {
-		ImGui::TextUnformatted("Controls are not available in boundary mode...");
+		ImGui::TextUnformatted("Controls are not available in the boundary mode...");
 		return;
 	}
 
@@ -385,6 +386,15 @@ void ws_editor::show()
 		///////////////////////////////////////////////////////////////////////
 
 		auto ctl_ptr = e->m_refs5[em.ref].c;
+
+		if (ctl_ptr.h.tt == ETYPE::param) {
+			auto& ed = get_global_ed();
+			let* v = ed.m_ctx.eval_ref(em.ref);
+			let* d = e->get_ref4(em.ref).v[0].get();
+			m_val_widget.m_value = v; v->add_ref();
+			m_val_widget.show(d, id);
+		}
+
 
 		while (ctl_ptr.h.tt == ETYPE::reference) {
 			ctl_ptr = e->m_refs5[ctl_ptr.h.get_offset()].c;

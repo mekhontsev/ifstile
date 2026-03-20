@@ -84,7 +84,6 @@ public:
 			return EST::other;
 	}
 
-
 	template<ims_val_b::EST s>
 	get_t<s>::t& get_v() const
 	{
@@ -353,7 +352,6 @@ public:
 		return { p_b() + d * d, d };
 	}
 
-
 	MVecReal TrR() const
 	{
 		assert(is(EST::real));
@@ -398,7 +396,6 @@ public:
 		m_size = sz;
 	}
 
-
 	uint8_t get_bucket() const
 	{
 		return m_bucket;
@@ -420,6 +417,12 @@ public:
 		assert(m_use_count < 0xFFFFFF);//something wrong happens
 		assert(m_use_count > 0);
 	}
+
+	bool is_exclusive() const
+	{
+		return m_use_count == 1;
+	}
+
 
 	//for .natvis only
 	using ETP = ims_val_b::ETP;

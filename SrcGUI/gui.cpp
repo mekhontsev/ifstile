@@ -366,6 +366,11 @@ build_data* get_global_bd()
 	return xd;
 };
 
+eval_data& get_global_ed()
+{
+	return g_ps.m_ed;
+};
+
 static oper_block* get_global_block(ifs_object_type t)
 {
 	auto* xd = get_global_bd();

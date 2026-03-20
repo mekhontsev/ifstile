@@ -17,6 +17,7 @@
 #pragma once
 #include "ui_window.h"
 #include "ui_source.h"
+#include "ims_val_widget.h"
 
 struct ws_editor : public window_state
 {
@@ -44,6 +45,8 @@ struct ws_editor : public window_state
 	int m_eidt_type = EDITOR_CONTROLS;
 
 	ws_source m_source_editor;
+
+	ims_val_widget m_val_widget;
 
 };
 

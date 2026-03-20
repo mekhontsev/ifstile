@@ -793,7 +793,7 @@ static bool parse_operator(
 						}
 
 						const char* err_msg=
-							"use var = $param(var2) syntax";
+							"use var = $param(...) syntax";
 
 						if (x != pfo.m_start_pos) {
 							pfo.err << err_msg;
@@ -801,10 +801,6 @@ static bool parse_operator(
 						}
 						let ar = block.add_args(x, th, 1);
 						if (!parse_operator(*nit, pfo, block, ar)) {
-							return reter();
-						}
-						if (block.m_ops[ar].hdr.tt != ETYPE::reference) {
-							pfo.err << err_msg;
 							return reter();
 						}
 						return true;

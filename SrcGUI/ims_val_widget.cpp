@@ -25,153 +25,175 @@
 
 void ims_val_widget::show(const ims_val* d, int& next_id)
 {
-	auto ui_handler =[&next_id](
+	auto ui_handler =[this](
 		const param_walker& t,
-		size_t,
 		const ims_val* d, 
-		pool_ptr& v)->bool
+		ims_val* v,
+		param_action& res)->bool
 	{
-
-		if (!v && t.m_t != param_walker::node_type::struct_type) {
-			ImGui::TextUnformatted("Invalid value");
-			ImGui::SameLine();
-			if (ims_button("Reset", nullptr, &next_id)) {
-				return true;
-			}
-			return false;
-		}
-
-		bool ret = false;
-
-		switch (t.m_t) {
-		case param_walker::node_type::drop_down:
-		{
-			assert(d->is(ims_val_b::ETP::vector, ims_val_b::EST::other));
-			let sz = (size_t)t.m_i[2]+1;
-	
-			std::string item;
-			auto get_text = [&](size_t i) {
-				item = d->p_v(i + 1)->get_string();
-				return item.c_str();
-			};
-
-			int64_t cv = 0;
-			v->get_i64(cv);
-			ImGui::PushID(next_id++);
-			if (ImGui::BeginCombo("", get_text(cv))) {
-				for (size_t i = 0; i < sz; ++i) {
-					bool selected = (i == (size_t)cv);
-					ImGui::PushID(next_id++);
-					if (ImGui::Selectable(get_text(i), selected)) {
-						v.get_mut()->set_i64((int64_t)i);
-						ret = true;
-					}
-					ImGui::PopID();
-				}
-				ImGui::EndCombo();
-			}
-			ImGui::PopID();
-			return ret;
-		}
-		case param_walker::node_type::array:
-		{
-			int64_t cv;
-			v->get_i64(cv);
-
-			int arr_sz = static_cast<int>(cv);
-			ImGui::PushID(next_id++);
-			if (ImGui::InputInt("", &arr_sz)) {
-				if (arr_sz < 0)arr_sz = 0;
-				v.get_mut()->set_i64(arr_sz);
-				ret = true;
-			}
-			ImGui::PopID();
-			return ret;
-		}
-		case param_walker::node_type::struct_type:
-		{
-			let str = d->p_v(0)->get_string();
-			if (str.length() > 0) {
-				ImGui::PushTextWrapPos(0.0f);
-				ImGui::TextUnformatted(str.data(), str.data() + str.size());
-				ImGui::PopTextWrapPos();
-			}
-			return ret;
-		}
-		case param_walker::node_type::string:
-		{
-			static std::string val;
-			val = v->get_string();
-
-			edit_helper::begin(next_id++);
-			if (ImGui::InputText("", &val)) {
-				v.reset(eval_pool::ep.update_string(v.get_mut(), val));
-			};
-			edit_helper::end();
-			return ret;
-		}
-		case param_walker::node_type::i64:
-		{
-			int64_t cv = 0;
-			v->get_i64(cv);
-
-			let both_lim = !t.m_e1 && !t.m_e2;
-			ImGui::PushID(next_id++);
-			if (both_lim && t.m_i[1] == 0 && t.m_i[2] == 1) {
-				bool b = (cv != 0);
-				ImGui::SameLine();
-				if (ImGui::Checkbox("", &b)) {
-					v.get_mut()->set_i64(b ? 1 : 0);
-					ret = true;
-				}
-			} else {
-				let speed = both_lim ? 0.5f / float(t.m_i[2] - t.m_i[1] + 1) : 1;
-				if (ImGui::DragScalar("", ImGuiDataType_S64, &cv, speed,
-					t.m_e1 ? nullptr : &t.m_i[1],
-					t.m_e2 ? nullptr : &t.m_i[2]))
-				{
-					v.get_mut()->set_i64(cv);
-					ret = true;
-				}
-			}
-			ImGui::PopID();
-			return ret;
-		}
-		case param_walker::node_type::f64:
-		{
-			double cv = 0;
-			v->get_f64(cv);
-
-			let both_lim = !t.m_e1 && !t.m_e2;
-		
-			ImGui::PushID(next_id++);
-			let speed = both_lim ? 0.5f / float(t.m_r[2] - t.m_r[1] + 1) : 1;
-			if (ImGui::DragScalar("", ImGuiDataType_Double, &cv, speed,
-				t.m_e1 ? nullptr : &t.m_r[1],
-				t.m_e2 ? nullptr : &t.m_r[2]))
-			{
-				v.get_mut()->set_f64(cv);
-				ret = true;
-			};
-			ImGui::PopID();
-			return ret;
-		}
-		default:
-		{
-			break;
-		}
-		}
-		return ret;
+		return handler(t, d, v, res);
 	};
 
+	m_next_id = next_id;
+
 	param_walker t;
-	if (t.check_type(d)) {
-		t.process(d, m_value, 0, ui_handler);
+	if (t.init(d)) {
+		t.process(d, m_value, ui_handler);
 	}
 }
 
 void ims_val_widget::reset()
 {
 	m_value.reset();
+}
+
+bool ims_val_widget::handler(
+	const param_walker& t,
+	const ims_val* d,
+	ims_val* v,
+	param_action& res)
+{
+	assert(res.a == param_action::action::idle);
+
+	bool ret = false;
+
+	if (!v && t.m_t != param_walker::node_type::struct_type) {
+		ImGui::TextUnformatted("Invalid value");
+		ImGui::SameLine();
+		if (ims_button("Reset", nullptr, &m_next_id)) {
+			res.a = param_action::action::reset;
+			ret = true;
+		}
+		return false;
+	}
+
+	switch (t.m_t) {
+	case param_walker::node_type::drop_down:
+	{
+		assert(d->is(ims_val_b::ETP::vector, ims_val_b::EST::other));
+		let sz = (size_t)t.m_i[2] + 1;
+
+		std::string item;
+		auto get_text = [&](size_t i) {
+			item = d->p_v(i + 1)->get_string();
+			return item.c_str();
+		};
+
+		int64_t cv = 0;
+		if (!v->get_i64(cv)) {
+			return false;
+		}
+		ImGui::PushID(m_next_id++);
+		if (ImGui::BeginCombo("", get_text(cv))) {
+			for (size_t i = 0; i < sz; ++i) {
+				bool selected = (i == (size_t)cv);
+				ImGui::PushID(m_next_id++);
+				if (ImGui::Selectable(get_text(i), selected)) {
+					v->set_i64((int64_t)i);
+					ret = true;
+				}
+				ImGui::PopID();
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopID();
+		return ret;
+	}
+	case param_walker::node_type::array:
+	{
+		int64_t cv;
+		if (!v->get_i64(cv)) {
+			return false;
+		}
+		int arr_sz = static_cast<int>(cv);
+		ImGui::PushID(m_next_id++);
+		if (ImGui::InputInt("", &arr_sz)) {
+			if (arr_sz < 0)arr_sz = 0;
+			v->set_i64(arr_sz);
+			ret = true;
+		}
+		ImGui::PopID();
+		return ret;
+	}
+	case param_walker::node_type::struct_type:
+	{
+		let str = d->p_v(0)->get_string();
+		if (str.length() > 0) {
+			ImGui::PushTextWrapPos(0.0f);
+			ImGui::TextUnformatted(str.data(), str.data() + str.size());
+			ImGui::PopTextWrapPos();
+		}
+		return false;
+	}
+	case param_walker::node_type::string:
+	{
+		static std::string val;
+		val = v->get_string();
+
+		edit_helper::begin(m_next_id++);
+		if (ImGui::InputText("", &val)) {
+			res.v = eval_pool::ep.update_string(v, val);
+			ret = true;
+		};
+		edit_helper::end();
+		return ret;
+	}
+	case param_walker::node_type::i64:
+	{
+		int64_t cv = 0;
+		v->get_i64(cv);
+
+		let both_lim = !t.m_e1 && !t.m_e2;
+		ImGui::PushID(m_next_id++);
+		if (both_lim && t.m_i[1] == 0 && t.m_i[2] == 1) {
+			bool b = (cv != 0);
+			ImGui::SameLine();
+			if (ImGui::Checkbox("", &b)) {
+				if (v->set_i64(b ? 1 : 0)) {
+					ret = true;
+				}
+			}
+		} else {
+			let speed = both_lim ? 0.5f / float(t.m_i[2] - t.m_i[1] + 1) : 1;
+			if (ImGui::DragScalar("", ImGuiDataType_S64, &cv, speed,
+				t.m_e1 ? nullptr : &t.m_i[1],
+				t.m_e2 ? nullptr : &t.m_i[2]))
+			{
+				if (v->set_i64(cv)) {
+					ret = true;
+				}
+			}
+		}
+		ImGui::PopID();
+		return ret;
+	}
+	case param_walker::node_type::f64:
+	{
+		double cv = 0;
+		if (!v->get_f64(cv)) {
+			return false;
+		}
+
+		let both_lim = !t.m_e1 && !t.m_e2;
+
+		ImGui::PushID(m_next_id++);
+		let speed = both_lim ? 0.5f / float(t.m_r[2] - t.m_r[1] + 1) : 1;
+		if (ImGui::DragScalar("", ImGuiDataType_Double, &cv, speed,
+			t.m_e1 ? nullptr : &t.m_r[1],
+			t.m_e2 ? nullptr : &t.m_r[2]))
+		{
+			if (v->set_f64(cv)) {
+				ret = true;
+			}
+		};
+		ImGui::PopID();
+		return ret;
+	}
+	default:
+	{
+		break;
+	}
+	}
+	return ret;
 }
 

@@ -16,8 +16,25 @@
 
 #pragma once
 #include "ims_val_b.h"
+#include "pool_ptr.h"
 
 struct pool_ptr;
+struct ims_val;
+
+struct param_action
+{
+	enum class action
+	{
+		idle,		//call handlers (UI for example)
+		reset,		//reset all unconditionally
+		fix,		//reset invalid only
+		rand,		//random change relative to the default value
+		walk		//random change relative to the current value
+	};
+
+	pool_ptr	v;
+	action		a{};
+};
 
 struct param_walker
 {
@@ -39,28 +56,23 @@ struct param_walker
 	std::array<int64_t, 3> m_i;	//def, min, max
 	std::array<double, 3> m_r;	//def, min, max
 
-
 	//0 indicates not an object array, empty array or error
 	static size_t checked_size(const ims_val* d);
 
 	static node_type classify(const ims_val* d);
 
-	bool check_type(const ims_val* d);
-
-	//returns true if a value reset was requested
-	using Func = bool(
-		const param_walker& t,
-		size_t rec_level,
-		const ims_val* d,
-		pool_ptr& v);
-
-
 	const ims_val* create_def(const ims_val* d);
+	bool init(const ims_val* d);
 
-	//return true on error
+	//return true if value was changed in-place (in-place or as a new)
+	using Handler = bool (
+		const param_walker& t,
+		const ims_val* d,
+		ims_val* v,
+		param_action& res);
+
 	bool process(
 		const ims_val* d,
 		pool_ptr& v,
-		size_t rec_level,
-		const std::function<Func>& f);
+		const std::function<Handler>& f);
 };

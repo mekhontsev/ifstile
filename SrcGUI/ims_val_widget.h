@@ -18,6 +18,8 @@
 #include "pool_ptr.h"
 
 struct ims_val;
+struct param_walker;
+struct param_action;
 
 struct ims_val_widget
 {
@@ -25,8 +27,15 @@ struct ims_val_widget
 	void show(const ims_val* d, int& next_id);
 	void reset();
 	const ims_val* get_val() { return m_value.get(); }
-
+	pool_ptr m_value;
 private:
 
-	pool_ptr m_value;
+	bool handler(
+		const param_walker& t,
+		const ims_val * d,
+		ims_val* v,
+		param_action& res);
+
+	int m_next_id;
+
 };

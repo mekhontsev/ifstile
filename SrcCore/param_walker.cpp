@@ -78,7 +78,7 @@ param_walker::node_type param_walker::classify(const ims_val* d)
 	return node_type::f64;
 }
 
-bool param_walker::check_type(const ims_val* d)
+bool param_walker::init(const ims_val* d)
 {
 	let sz = checked_size(d);
 	if (sz == 0) {
@@ -247,64 +247,72 @@ const ims_val* param_walker::create_def(const ims_val* d)
 	switch (m_t) {
 	case node_type::drop_down:
 		return eval_pool::ep.get_scalar_int(m_i[0]);
-	case node_type::array:
-	case node_type::struct_type:
-	{
-		let def_size = (size_t)m_i[0];
-		switch (m_s)
-		{
-		case ims_val_b::EST::rational:
-			return eval_pool::ep.get_vector_int(def_size);
-		case ims_val_b::EST::real:
-			return eval_pool::ep.get_vector_real(def_size);
-		default:
-			return eval_pool::ep.get_vector(def_size);
-		}
-	}
-	case node_type::string:
-		return eval_pool::ep.get_string(d->p_v(0)->get_string());
 	case node_type::i64:
 		return eval_pool::ep.get_scalar_int(m_i[0]);
 	case node_type::f64:
 		return eval_pool::ep.get_scalar_real(m_r[0]);
+	case node_type::string:
+		return eval_pool::ep.get_string(d->p_v(0)->get_string());
+	case node_type::array:
+	case node_type::struct_type:
+	{
+		let sz = (size_t)m_i[0];
+		switch (m_s)
+		{
+		case ims_val_b::EST::rational:
+			return eval_pool::ep.get_vector_int(sz);
+		case ims_val_b::EST::real:
+			return eval_pool::ep.get_vector_real(sz);
+		default:
+			return eval_pool::ep.get_vector(sz);
+		}
+	}
 	default:
 		return nullptr;
 	}
 }
 
-bool param_walker::process(const ims_val* d, pool_ptr& v, size_t rec_level, const std::function<Func>& f)
+bool param_walker::process(
+	const ims_val* d,
+	pool_ptr& v,
+	const std::function<Handler>& f)
 {
 	bool reset_nested = !v;
 	if (reset_nested) {
 		v.reset(create_def(d));
 	}
 	let sz = d->get_size();
+
+
+	param_action pa;
+
 	switch (m_t)
 	{
 	case node_type::string:
 	{
-		//process
-		if (f) {
-			f(*this, rec_level, d, v);
+		if (f && f(*this, d, v.get_mut(), pa) && pa.v) {
+			v = std::move(pa.v);
 		}
 		return true;
 	}
 	case node_type::i64:
 	{
-		if (f) {
-			f(*this, rec_level, d, v);
+		if (f && f(*this, d, v.get_mut(), pa) && pa.v) {
+			v = std::move(pa.v);
 		}
 		return true;
 	}
 	case node_type::f64:
 	{
-		if (f) f(*this, rec_level, d, v);
+		if (f && f(*this, d, v.get_mut(), pa) && pa.v) {
+			v = std::move(pa.v);
+		}
 		return true;
 	}
 	case node_type::drop_down:
 	{
-		if (f) {
-			f(*this, rec_level, d, v);
+		if (f && f(*this, d, v.get_mut(), pa) && pa.v) {
+			v = std::move(pa.v);
 		}
 		return true;
 	}
@@ -312,21 +320,22 @@ bool param_walker::process(const ims_val* d, pool_ptr& v, size_t rec_level, cons
 	{
 		param_walker trec;
 		let* di = d->p_v(1);
-		if (!trec.check_type(di)) {
+		if (!trec.init(di)) {
 			return false;
 		}
 
 		//process array size
-
 		size_t reset_from = v->get_size();
 		if (f) {
 			ims_val_b::Rational arr_sz{ v->get_size() };
 			pool_ptr psz(
 				eval_pool::ep.get_pointer(&arr_sz, ims_val_b::EST::rational));
-			if (f(*this, rec_level, d, psz)) {
+
+			if (f(*this, d, psz.get_mut(), pa)) {
 				let nsz = numerator(arr_sz);
 				v.reset(eval_pool::ep.update_vec_size(v.get_mut(), size_t(nsz)));
-			}
+			};
+			pa.v.reset();
 		}
 
 		for (size_t i = 0; i < v->get_size(); ++i) {
@@ -354,7 +363,7 @@ bool param_walker::process(const ims_val* d, pool_ptr& v, size_t rec_level, cons
 			}
 
 			//recursive calls
-			if (!trec.process(di, pvi, rec_level + 1, f)) {
+			if (!trec.process(di, pvi, f)) {
 				return false;
 			};
 
@@ -368,19 +377,19 @@ bool param_walker::process(const ims_val* d, pool_ptr& v, size_t rec_level, cons
 	}
 	case node_type::struct_type:
 	{
-		
 		for (size_t i = 0; i < sz; ++i) {
 			let* entry = d->p_v(i);
 
 			param_walker trec;
 			let* di = entry->p_v(1);
-			if (!trec.check_type(di)) {
+			if (!trec.init(di)) {
 				return false;
 			}
 
 			pool_ptr pvi(eval_pool::ep.get_pointer(v.get_mut(), i));
 			if (f) {
-				f(*this, rec_level, entry, pvi);
+				f(*this, entry, pvi.get_mut(), pa);
+				pa.v.reset();
 			}
 
 			if (reset_nested) {
@@ -404,7 +413,7 @@ bool param_walker::process(const ims_val* d, pool_ptr& v, size_t rec_level, cons
 			}
 
 			//recursive call
-			if (!trec.process(di, pvi, rec_level + 1, f)) {
+			if (!trec.process(di, pvi, f)) {
 				return false;
 			};
 
@@ -413,7 +422,6 @@ bool param_walker::process(const ims_val* d, pool_ptr& v, size_t rec_level, cons
 				v->p_v()[i] = pvi.release();
 				if (old)eval_pool::ep.release(old);
 			}
-
 		}
 		return true;
 	}
@@ -424,3 +432,4 @@ bool param_walker::process(const ims_val* d, pool_ptr& v, size_t rec_level, cons
 	}
 	}
 }
+
