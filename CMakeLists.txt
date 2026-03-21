@@ -11,6 +11,7 @@ project(IFStile LANGUAGES CXX C VERSION ${PROJECT_VERSION})
 if (MSVC)
 	set(win_directx "#define IMS_USE_DX11 1\n")
 endif()
+#set(dev_version "#define DEVELOPER_VERSION 1\n")
 
 set(arch32 ${CMAKE_SIZEOF_VOID_P} EQUAL 4)
 set(arch64 ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
@@ -134,7 +135,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE   ${bin})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${bin})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${bin})
 
-
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(cxx_clang_gcc "-fno-math-errno -fno-char8_t") #-fno-rtti 
@@ -222,9 +222,6 @@ endif()
 set(CMAKE_C_FLAGS			"${CMAKE_CXX_FLAGS}")
 set(CMAKE_C_FLAGS_DEBUG		"${CMAKE_CXX_FLAGS_DEBUG}")
 set(CMAKE_C_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE}")
-	
-#-------------------------------------------------------------------------------
-set (verhdr ${CMAKE_CURRENT_BINARY_DIR}/version_gen.h)
 
 if (MSVC)
     add_compile_options(/W4)
@@ -232,6 +229,9 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+#-------------------------------------------------------------------------------
+
+set (verhdr ${CMAKE_CURRENT_BINARY_DIR}/version_gen.h)
 
 file(WRITE ${verhdr}
 "#pragma once\n"
@@ -281,43 +281,37 @@ ims_streambuf.h render_params.h ims_pool.h variable.h
 print_ims_val.cpp graph_divider.h graph_divider.cpp
 eval_helpers.h eval_helpers.cpp report_params.h derived_ifs.cpp derived_ifs.h
 eval_pool.h eval_pool.cpp ims_view.h ast_maps.h ast_maps.cpp
-test_alloc_hook.h test_alloc_hook.cpp edge_ball.h edge_ball.cpp 
+test_alloc_hook.h test_alloc_hook.cpp edge_ball.h edge_ball.cpp
 edge_map.h dyn_mat_vec.h ims_number.h cardinality.h
 pool_ptr.h pool_ptr.cpp graph_builder.h graph_builder.cpp string_view_hash.h
 block_graph.h block_vars.cpp indexed_maps.h indexed_maps.cpp
 param_walker.h param_walker.cpp
-
 mat_operations.h matrix_helper.h matrix_helper.cpp
 box.h ball3d.h ifs_metrics.h 
 affine_dim_calc.h affine_dim_calc.cpp 
 affine_bound_calc.h affine_bound_calc.cpp 
 affine_point_calc.h affine_point_calc.cpp
-affine_subspace.h affine_subspace.cpp samples.h samples.cpp 
+affine_subspace.h affine_subspace.cpp samples.h samples.cpp
 aifs_load.h aifs_load.cpp
-
-
-exr.h exr.cpp  base64.h base64.cpp 
-ims_bitmap.h ims_bitmap.cpp ims_image.h 
+exr.h exr.cpp  base64.h base64.cpp
+ims_bitmap.h ims_bitmap.cpp ims_image.h
 mesh_primitives.h mesh3d.cpp mesh3d.h point.h voxel_volume.cpp voxel_volume.h voxel.h
 octree.cpp octree.h 
-
-
-lqsort.h builder.h builder.cpp builder3d.h 
-gbuffer3d.h gbuffer3d.cpp builder3d.cpp builder2d.h builder2d.cpp builder_ext.h builder_ext.cpp 
+lqsort.h builder.h builder.cpp builder3d.h
+gbuffer3d.h gbuffer3d.cpp builder3d.cpp builder2d.h builder2d.cpp builder_ext.h builder_ext.cpp
 build_data.h build_data.cpp builder_mesh.h builder_mesh.cpp 
-standard_vars.h standard_vars.cpp ifs_renderer.h ifs_renderer.cpp 
-
-png_support.h png_support.cpp  mpeg_support.h mpeg_support.cpp  
-animator.h animator.cpp create_block.cpp create_ifs.cpp 
+standard_vars.h standard_vars.cpp ifs_renderer.h ifs_renderer.cpp
+png_support.h png_support.cpp  mpeg_support.h mpeg_support.cpp
+animator.h animator.cpp create_block.cpp create_ifs.cpp
 creator_state.h creator_state.cpp
-ims_to_string_ex.h ims_to_string_ex.cpp 
-flame_calc.h flame_calc.cpp 
-info_printer.h info_printer.cpp   save_type.h 
-
+ims_to_string_ex.h ims_to_string_ex.cpp
+flame_calc.h flame_calc.cpp
+info_printer.h info_printer.cpp save_type.h  draw_task.h
+program_state.h program_state.cpp ims_help.h ims_help.cpp
+visible_blocks.h visible_blocks.cpp  block_sets.h block_sets.cpp
 )
 
 prepend(SRC_Core SrcCore)
-
 #-------------------------------------------------------------------------------
 set (SRC_QuickJS 
 	cutils.c cutils.h libregexp.c libregexp.h  libregexp-opcode.h
@@ -327,26 +321,17 @@ set (SRC_QuickJS
 prepend(SRC_QuickJS quickjs)
 #-------------------------------------------------------------------------------
 set (SRC_GENERAL
-ims_settings.h ims_settings.cpp draw_task.h 
+ims_settings.h ims_settings.cpp
 pch.h main.cpp main_utf8.cpp
-gl_helper.h gl_helper.cpp gl_helper_math.cpp  dx_helper.h 
-program_state.h program_state.cpp ims_help.h ims_help.cpp 
-visible_blocks.h visible_blocks.cpp 
-js_ifs.cpp
-ims_rw.h ims_rw.cpp
+gl_helper.h gl_helper.cpp dx_helper.h
+js_ifs.cpp ims_rw.h ims_rw.cpp
 file_dialog_state.h file_dialog_state.cpp 
 thread_priority.cpp platform.h platform.cpp 
 platform_windows.cpp platform_macos.cpp platform_android.cpp platform_wasm.cpp
-platform_linux.cpp  block_sets.h block_sets.cpp 
-)
-
-prepend(SRC_GENERAL Src)
-
-#-------------------------------------------------------------------------------
-set (SRC_GUI
+platform_linux.cpp
 ui_window.h ui_window.cpp gui.h gui.cpp ims_window_drag.h ims_window_drag.cpp
 ui_creator.h ui_creator.cpp ui_animation.h ui_animation.cpp
-ui_examples.h ui_examples.cpp ui_colum_info.cpp ui_finder.h ui_finder.cpp 
+ui_examples.h ui_examples.cpp ui_colum_info.cpp ui_finder.h ui_finder.cpp
 ui_search_session.h ui_search_session.cpp ui_clipboard.h ui_clipboard.cpp
 ui_file_dialog.h ui_file_dialog.cpp ui_about.h ui_about.cpp
 ui_palette.h ui_palette.cpp ui_location.h ui_location.cpp ui_components.h
@@ -359,16 +344,18 @@ ui_utils.h ui_utils.cpp ims_markdown.h ims_markdown.cpp icons.cpp
 font_icons.cpp font_regular.cpp font_bold.cpp font_italic.cpp
 ims_val_widget.h ims_val_widget.cpp edit_helper.h edit_helper.cpp
 )
-prepend(SRC_GUI SrcGUI)
-source_group(SrcGUI FILES ${SRC_GUI})
+prepend(SRC_GENERAL Src)
+if(MSVC)
+	list(APPEND SRC_GENERAL PlatDep/resource.rc PlatDep/cpp.hint)
+endif()
 #-------------------------------------------------------------------------------
 set (SRC_IMGUI 
-imgui.h imgui.cpp imconfig.h imgui_internal.h imgui_demo.cpp imgui_draw.cpp 
- imgui_widgets.cpp imgui_tables.cpp imstb_truetype.h imstb_rectpack.h  imstb_textedit.h 
- backends/imgui_impl_sdl3.h backends/imgui_impl_sdl3.cpp 
+imgui.h imgui.cpp imconfig.h imgui_internal.h imgui_demo.cpp imgui_draw.cpp
+ imgui_widgets.cpp imgui_tables.cpp imstb_truetype.h imstb_rectpack.h  imstb_textedit.h
+ backends/imgui_impl_sdl3.h backends/imgui_impl_sdl3.cpp
  misc/cpp/imgui_stdlib.h misc/cpp/imgui_stdlib.cpp
  misc/debuggers/imgui.natvis
- )
+)
 
 
 if(MSVC AND win_directx)
@@ -387,7 +374,6 @@ source_group(ImGui FILES ${SRC_IMGUI})
 
 #-------------------------------------------------------------------------------
 
-
 set (SRC_Tiny
 	cute_png.h tinyexr.h jo_mpeg.h utf8_decoder.h 
 	md4c.h md4c.c imgui_md.h imgui_md.cpp
@@ -401,22 +387,6 @@ endif()
 prepend(SRC_Tiny Tiny)
 source_group(Tiny FILES ${SRC_Tiny})
 
-#-------------------------------------------------------------------------------
-
-if(MSVC)
-	set (SRC_PLAT resource.rc cpp.hint)
-elseif(APPLE)
-	set (SRC_PLAT )
-elseif(ANDROID)
-	set (SRC_PLAT )
-elseif(EMSCRIPTEN)
-	set (SRC_PLAT )
-elseif(LINUX)
-	set (SRC_PLAT )
-endif()
-
-prepend(SRC_PLAT PlatDep)
-source_group(PlatDep FILES ${SRC_PLAT})
 #-------------------------------------------------------------------------------
 if(MSVC_IDE)
 	set (NATVIS_FILES
@@ -432,9 +402,8 @@ endif()
 
 #-------------------------------------------------------------------------------
 set(ALL_SRC 
-	${SRC_GENERAL} ${SRC_IMGUI}  ${SRC_GUI} ${SRC_Gen} ${SRC_IMGUI_FILE_DIALOG} 
-	${SRC_Tiny}  ${SRC_PLAT} ${NATVIS_FILES} 
-	${verhdr} ifstile.natvis cpp.hint manual.md)
+	${SRC_GENERAL} ${SRC_IMGUI} ${SRC_Tiny} ${NATVIS_FILES}
+	${verhdr} ifstile.natvis manual.md)
 #-------------------------------------------------------------------------------
 
 add_library(IFScore STATIC ${SRC_Core})
@@ -548,12 +517,9 @@ target_embed_files(${EMBED_HEADERS_LOCATION} icon256.png.h FILES "${CMAKE_CURREN
 
 target_include_directories(${PROJECT_NAME} BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} AFTER PUBLIC SrcCore)#AFTER - because pch.h
-target_include_directories(${PROJECT_NAME} PUBLIC 
-	PlatDep 
+target_include_directories(${PROJECT_NAME} PUBLIC
 	Tiny 
 	Src 
-	SrcGUI 
-	SrcGen  
 	imgui 
 	imgui/misc/cpp 
 	imgui/backends
