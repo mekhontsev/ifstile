@@ -110,12 +110,12 @@ void mesh::post_process()
 #if 0
 			if (i + 1 < m_edges.size()) {
 				mesh_edge& enx = m_edges[i + 1];
-				ASSUME(e.v1 != enx.v1 || e.v2 != enx.v2);
+				assert(e.v1 != enx.v1 || e.v2 != enx.v2);
 			}
 #endif
 
 #endif
-			ASSUME(euniq->t2 != e.t1);
+			assert(euniq->t2 != e.t1);
 			euniq->t2 = e.t1;
 
 		} else {
@@ -526,7 +526,7 @@ void mesh::restore_info(mesh_idx_t i)
 	bool t1d = t1->is_deg();
 	bool t2d = t2->is_deg();
 
-	if (t1d && t2d || !t1d && !t2d)return;
+	if ((t1d && t2d) || (!t1d && !t2d))return;
 
 	//we rarely go below...
 
@@ -561,7 +561,7 @@ void mesh::restore_info(mesh_idx_t i)
 
 		//find the edge
 		if (e12 && e12 != e && !e12->is_deg()) { e = e12; ei = ti.e12; } else if (e13 && e13 != e && !e13->is_deg()) { e = e13; ei = ti.e13; } else if (e23 && e23 != e && !e23->is_deg()) { e = e23; ei = ti.e23; } else {
-			//ASSUME(0);
+			//assert(false);
 			break;//strange...
 		}
 
@@ -669,7 +669,7 @@ bool mesh::simplify(bool buse)
 		if (!ei || *ei == max_mesh_idx_t)ei = nfo1.get(nfo2.e13);
 		if (!ei || *ei == max_mesh_idx_t)ei = nfo1.get(nfo2.e23);
 		if (!ei || *ei == max_mesh_idx_t) {
-			//ASSUME(0);
+			//assert(false);
 			continue;
 		}
 
@@ -776,7 +776,7 @@ bool mesh::simplify(bool buse)
 			}
 
 
-			ASSUME(e13 != e23 && e24 != e14);
+			assert(e13 != e23 && e24 != e14);
 
 			mesh_idx_t t13, t23, t24, t14;
 
@@ -785,10 +785,10 @@ bool mesh::simplify(bool buse)
 			t24 = m_edges[e24].t1; if (t24 == e.t2)t24 = m_edges[e24].t2;
 			t14 = m_edges[e14].t1; if (t14 == e.t2)t14 = m_edges[e14].t2;
 
-			ASSUME(m_edges[e13].t1 == e.t1 || m_edges[e13].t2 == e.t1);
-			ASSUME(m_edges[e23].t1 == e.t1 || m_edges[e23].t2 == e.t1);
-			ASSUME(m_edges[e24].t1 == e.t2 || m_edges[e24].t2 == e.t2);
-			ASSUME(m_edges[e14].t1 == e.t2 || m_edges[e14].t2 == e.t2);
+			assert(m_edges[e13].t1 == e.t1 || m_edges[e13].t2 == e.t1);
+			assert(m_edges[e23].t1 == e.t1 || m_edges[e23].t2 == e.t1);
+			assert(m_edges[e24].t1 == e.t2 || m_edges[e24].t2 == e.t2);
+			assert(m_edges[e14].t1 == e.t2 || m_edges[e14].t2 == e.t2);
 
 
 			mesh_idx_t v5, v6, v7, v8;

@@ -601,7 +601,7 @@ void imgui_md::html_div(const std::string& dclass, bool e)
 		}
 	}
 #endif
-	dclass; e;
+	(void)dclass; (void)e;
 }
 
 

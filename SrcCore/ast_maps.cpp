@@ -116,12 +116,11 @@ void ast_maps::put_value(const ims_val* v, std::span<const variable> ec)
 	put_atom(idx, ec);
 };
 
-bool ast_maps::has_tempaltes() const
+bool ast_maps::has_templates() const
 {
 	for (size_t i = 0; i < m_atoms.size(); ++i) {
-		let& ast = *m_atoms[i]->gp<ast_context>();
 		if (!atom_is_used(i)) continue;
-
+		let& ast = *m_atoms[i]->gp<ast_context>();
 		if (ast.h.is_template()) {//a new variation has appeared
 			return true;
 		}

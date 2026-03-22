@@ -655,7 +655,7 @@ const data_column::arr data_column::g_cols =
 		ims_chrono::fmt_time_t_to_hmsdmY t(static_cast<time_t>(b.m_timestamp / 1000));
 
 		if (t.buf[0]) {
-			fmt::format_to(str, "{}", t.buf);//(b.m_timestamp % 1000);			
+			fmt::format_to(str, "{}", t.buf.data());//(b.m_timestamp % 1000);
 		}else {//strange number
 			fmt::format_to(str, "{}", b.m_timestamp);
 		}

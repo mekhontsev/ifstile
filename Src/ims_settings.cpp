@@ -65,7 +65,10 @@ bool load_settings(const std::string& ini_filename)
 
 	inifile.get("MaxViewPort", st.m_max_viewport);
 	inifile.get("SelectCorner", st.m_select_fom_corner);
-	inifile.get("PaneMode", (int&)st.m_window_mode);
+
+	int pane_mode = 0;
+	inifile.get("PaneMode", pane_mode);
+	st.m_window_mode = (window_mode_type)pane_mode;
 	inifile.get("DockedSize", st.m_docked_size);
 
 	////////////////////////////////////////////////////////////////////////////

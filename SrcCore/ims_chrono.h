@@ -51,7 +51,6 @@ struct ims_chrono
 			std::chrono::system_clock::now().time_since_epoch()).count();
 	}
 
-	
 	struct fmt_ms_to_hour_minutes_seconds
 	{
 		fmt_ms_to_hour_minutes_seconds(uint64_t ms)
@@ -67,9 +66,9 @@ struct ims_chrono
 			fmt::format_to_n(buf.data(), buf.size(), 
 				"{}:{:02}:{:02}\0", hour, minutes, seconds);
 		};
-		std::array<char, 32> buf = {0};
-	
+		std::array<char, 32> buf = {};
 	};
+
 
 	struct fmt_time_t_to_hmsdmY
 	{
@@ -77,14 +76,19 @@ struct ims_chrono
 
 		fmt_time_t_to_hmsdmY(time_t tm)
 		{
-			let res = std::strftime(buf, sizeof(buf), "%H:%M:%S %d-%m-%Y", localtime(&tm));
+			struct tm t;
+#if defined(_WIN32) || defined(_WIN64)
+			localtime_s(&t, &tm);
+#else
+			localtime_r(&tm, &t);
+#endif
+			let res = std::strftime(buf.data(), buf.size(),
+				"%H:%M:%S %d-%m-%Y", &t);
 			if(!res) buf[0] = 0;
 		}
-
-		char buf[32] = {0};
+		std::array<char, 32> buf = {};
 	};
 
-	
 	[[nodiscard]]
 	ims_chrono add_ms(int64_t ms) const
 	{

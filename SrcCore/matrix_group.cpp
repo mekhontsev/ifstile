@@ -267,7 +267,7 @@ bool matrix_group::extend()
 		let weight_chnaged = H.weight < ow;
 
 		if (weight_chnaged ||
-			H.weight == ow && H.factors.size() < v.factors.size())
+			(H.weight == ow && H.factors.size() < v.factors.size()))
 		{
 			assert(H.weight > 0);
 

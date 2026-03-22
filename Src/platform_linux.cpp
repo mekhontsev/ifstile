@@ -39,7 +39,7 @@ void set_thread_name(const char*)
 
 ////////////////////////////////////////////////////////////////////////////////
 //prevents the computer from going to sleep completely
-void ext_prevent_sleep_mode(bool prevent)
+void ext_prevent_sleep_mode(bool /*prevent*/)
 {
 
 }

@@ -27,39 +27,26 @@
 ////////////////////////////////////////////////////////////////////////////////
 //settings for all files
 #ifdef _MSC_VER
+#define _SILENCE_NONFLOATING_COMPLEX_DEPRECATION_WARNING
 //#pragma warning(disable : 4505)//unreferenced local function has been removed
-#pragma warning(disable : 4996)//This function or variable may be unsafe. Consider using (_CRT_SECURE_NO_WARNINGS) ...
+//#pragma warning(disable : 4996)//This function or variable may be unsafe. Consider using (_CRT_SECURE_NO_WARNINGS) ...
 //#pragma warning(disable : 4714)//function 'function' marked as __forceinline not inlined
 //#pragma warning(disable : 4503)//decorated name length exceeded, name was truncated
 //#pragma warning(disable : 4592)//symbol will be dynamically initialized (implementation limitation)
 //#pragma warning(disable : 4201)//nonstandard extension used : nameless struct/union
 //#pragma warning(disable : 4239)//nonstandard extension used : 'token' : conversion from 'type' to 'type'
 #elif defined(__clang__)
-#pragma clang diagnostic ignored "-Wlogical-op-parentheses"
+//#pragma clang diagnostic ignored "-Wlogical-op-parentheses"
 #endif// _MSC_VER
 
 ////////////////////////////////////////////////////////////////////////////////
 //settings for this file only
 #ifdef _MSC_VER
-//#define _CRT_SECURE_NO_WARNINGS
 #pragma warning(push)
-//#pragma warning(disable : 4267)//conversion from 'size_t' to 'unsigned int', possible loss of data (boost::multiprecision::debug_adaptor::right_shift)
-//#pragma warning(disable : 4172)//returning address of local variable or temporary (boost::graph)
-//#pragma warning(disable : 4244)//conversion from 'double' to 'int', possible loss of data
-//#pragma warning(disable : 4702)//unreachable code
-//#pragma warning(disable : 4127)//conditional expression is constant
-//#pragma warning(disable : 4706)//assignment within conditional expression
-#pragma warning(disable : 4172)//returning address of local variable or temporary (boost::graph)
-#pragma warning(disable : 4127)//conditional expression is constant
 #pragma warning(disable : 5054)//[Eigen] operator '&': deprecated between enumerations of different types
-#elif defined(__GNUC__)
+#else
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#define BOOST_CORE_DETAIL_DISABLED_DEPRECATED_WARNINGS
-#elif defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wimplicit-const-int-float-conversion"
-#pragma clang diagnostic ignored "-Wimplicit-int-float-conversion"
+//#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif//_MSC_VER
 
 
@@ -166,9 +153,7 @@
 //return the warning level to the standard one
 #ifdef _MSC_VER
 #pragma warning(pop)
-#elif defined(__GNUC__)
-#pragma GCC diagnostic pop
-#elif defined(__clang__)
+#else
 #pragma clang diagnostic pop
 #endif//_MSC_VER
 ////////////////////////////////////////////////////////////////////////////////
@@ -181,29 +166,24 @@
 ////////////////////////////////////////////////////////////////////////////////
 //assume
 #ifdef NDEBUG
-#ifdef _MSC_VER
-#define ASSUME(X) __assume(X)
-#elif defined(__GNUC__)
-#define ASSUME(X) do { if (!(X)) __builtin_unreachable(); } while (0)
-#endif//_MSC_VER
+#if defined(__clang__)
+#define ASSUME(expr) __builtin_assume(expr)
+#elif defined(__GNUC__) && !defined(__clang__)
+#if __GNUC__ >= 13
+#define ASSUME(expr) [[assume(expr)]]
+#else
+#define ASSUME(expr) do { if (!(expr)) __builtin_unreachable(); } while (0)
+#endif
+#elif defined(_MSC_VER)
+#define ASSUME(expr) __assume(expr)
+#else
+#define ASSUME(expr) ((void)0)
+#endif
 #else
 #define ASSUME(X) assert(X)
 #endif//NDEBUG
 ////////////////////////////////////////////////////////////////////////////////
-
-#if INTPTR_MAX == INT64_MAX //c99 standard
-#define _IMS_64_
-#else
-#undef _IMS_64_
-#endif
-
-//check
-#ifdef _IMS_64_
-static_assert(sizeof(void*) == 8, "Error64");
-#else
-static_assert(sizeof(void*) == 4, "Error32");
-#endif//_IMS_64_
-
+#define UNUSED(x) (void)(x)
 ////////////////////////////////////////////////////////////////////////////////
 #define let const auto
 #define ims_global //globals
@@ -212,28 +192,7 @@ static_assert(sizeof(void*) == 4, "Error32");
 ////////////////////////////////////////////////////////////////////////////////
 #define CATMACRO_(a, b) a ## b
 #define CATMACRO(a, b) CATMACRO_(a, b)
-#define VARNAME(Var) CATMACRO(Var, __LINE__)
-
-template<typename F>
-struct ims_scope_dont_use
-{
-	F func;
-	ims_scope_dont_use(F&& f) : func(std::forward<F>(f)) {}
-	~ims_scope_dont_use() { func(); }
-};
-
-template<typename F> ims_scope_dont_use(F&&)-> ims_scope_dont_use<F>;
-
-#define IMS_SCOPE(lambda) ims_scope_dont_use VARNAME(_scope_)(lambda)
-
-////////////////////////////////////////////////////////////////////////////////
-#include "ims_print.h"
-////////////////////////////////////////////////////////////////////////////////
-
-#include "test_alloc_hook.h"
-#include "ims_number.h"
-
-////////////////////////////////////////////////////////////////////////////////
+#define VARLINE(Var) CATMACRO(Var, __LINE__)
 
 #ifdef NDEBUG
 #define UNAMESPACE boost
@@ -242,11 +201,12 @@ template<typename F> ims_scope_dont_use(F&&)-> ims_scope_dont_use<F>;
 #define UNAMESPACE boost
 #endif
 
-template<typename T, typename V> [[nodiscard]] 
-T ims_clamp(T x, V Min, V Max) 
-{
-	return (x < (T)Min) ? (T)Min : (x > (T)Max) ? (T)Max : x; 
-}
+////////////////////////////////////////////////////////////////////////////////
+#include "ims_print.h"
+#include "test_alloc_hook.h"
+#include "ims_number.h"
+
+////////////////////////////////////////////////////////////////////////////////
 
 static constexpr size_t ims_max = std::numeric_limits<size_t>::max();
 
@@ -261,39 +221,44 @@ static constexpr block_id_t block_id_max = std::numeric_limits<block_id_t>::max(
 bool ims_need_stop();
 
 ////////////////////////////////////////////////////////////////////////////////
-
 template<typename T>
 struct ims_opaque_deleter {
-	void operator()(T *it)
+	void operator()(T* it)
 	{
-		void ims_opaque_deleter_hook(T *);
+		void ims_opaque_deleter_hook(T*);
 		ims_opaque_deleter_hook(it);
 	}
 };
-
 template<typename T>
 using ims_unique_ptr = std::unique_ptr<T, ims_opaque_deleter<T>>;
-
-
-
-
 #define IMS_DEFINE_OPAQUE_DELETER(T)  void ims_opaque_deleter_hook(T *it) { delete it; }
-
-
+////////////////////////////////////////////////////////////////////////////////
+template<typename F>
+struct ims_scope_dont_use
+{
+	F func;
+	ims_scope_dont_use(F&& f) : func(std::forward<F>(f)) {}
+	~ims_scope_dont_use() { func(); }
+};
+template<typename F> ims_scope_dont_use(F&&) -> ims_scope_dont_use<F>;
+#define IMS_SCOPE(lambda) ims_scope_dont_use VARLINE(_scope_)(lambda)
+////////////////////////////////////////////////////////////////////////////////
+template<typename T, typename V> [[nodiscard]]
+T ims_clamp(T x, V Min, V Max)
+{
+	return (x < (T)Min) ? (T)Min : (x > (T)Max) ? (T)Max : x;
+}
 template<typename Container, typename Pred>
 void ims_erase(Container& t, Pred pred)
 {
 	t.erase(std::remove_if(t.begin(), t.end(), pred), t.end());
 };
-
 template <typename Container>
 void ims_resize(Container& t, size_t sz)
 {
 	t.clear();
 	t.resize(sz);
 }
-
-
 //reserve space for additional num elements
 template<typename Vector>
 void ims_geometric_reserve(Vector& v, size_t num)
@@ -303,7 +268,6 @@ void ims_geometric_reserve(Vector& v, size_t num)
 		v.reserve(std::max(new_cap, v.capacity() * 3 / 2));
 	}
 }
-
 ////////////////////////////////////////////////////////////////////////////////
 #else
 #include <stddef.h>

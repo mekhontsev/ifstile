@@ -386,7 +386,7 @@ const ims_val* mul_ball(const ims_val* map, const ims_val* b, bool point_mode)
 			int64_t pw;
 			m->p_v()[2]->to_int(pw);
 
-			if (pw > 0 && d - r > 1 || pw < 0 && d + r < 1) {
+			if ((pw > 0 && d - r > 1) || (pw < 0 && d + r < 1)) {
 				return nullptr;//cut off
 			}
 			//ok

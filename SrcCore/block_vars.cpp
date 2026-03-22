@@ -412,7 +412,7 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 
 		am.inherit(b->m_graph->m_am, ec.m_refs5);
 
-		if (am.has_tempaltes()) {
+		if (am.has_templates()) {
 			auto nctx = std::make_shared<eval_context>();
 			nctx->set_own_block(*b, &es);
 			b->m_ctx = nctx;

@@ -259,7 +259,7 @@ bool adjust_signs(ims_polynomial<Integer>& poly, bool plus)
 
 		if (q == 0)continue;//skip zeros
 
-		if ( plus && q > 0 || !plus && q < 0)break;//OK
+		if ((plus && q > 0) || (!plus && q < 0))break;//OK
 
 		//change the sign of the powers to the opposite
 		for (size_t j = 0; j < n; ++j) {
@@ -267,7 +267,7 @@ bool adjust_signs(ims_polynomial<Integer>& poly, bool plus)
 			poly[j] *= -1;
 		}
 
-		return true;		
+		return true;
 	}
 
 	return false;

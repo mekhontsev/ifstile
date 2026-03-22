@@ -20,11 +20,10 @@
 struct ws_console : public window_state
 {
 	const char* get_title() override;
-
+	void on_load() override;
 	void show() override;
 
 	std::string m_buf;
 	std::string m_input_buf;
-
 	bool m_wrap = false;
 };

@@ -74,7 +74,7 @@ static void get_source(const oper_block& b, std::string& dst)
 #if 0
 static void send_ctrl_a()
 {
-	SDL_Event e = { 0 };
+	SDL_Event e = {};
 	e.type = SDL_EVENT_KEY_DOWN;
 	e.key.type = SDL_EVENT_KEY_DOWN;
 	e.key.timestamp = 0;

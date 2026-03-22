@@ -230,6 +230,7 @@ ims_static bool g_file_open_in_progress = false;
 
 SDL_Window* MainWindow_get();
 void ext_console_clear();
+bool is_embedded_mode();
 
 static bool use_zoom_box();
 
@@ -1515,13 +1516,8 @@ void console_print(e_what_print what)
 		});
 		break;
 	}
-	
-
-#if 0		
-	case 7:
-		print_ifs_value(user_input_value.data());
-		break;
-#endif
+	default:
+		ASSUME(false);
 	}
 }
 
@@ -2129,7 +2125,7 @@ static void do_save_as()
 		}
 
 		//////////////////////////////////
-		std::cout << "[" << ims_chrono::fmt_time_t_to_hmsdmY().buf << "] Saved " << num_saved
+		std::cout << "[" << ims_chrono::fmt_time_t_to_hmsdmY().buf.data() << "] Saved " << num_saved
 			<< " elements to " << fn << std::endl;
 		
 	});
@@ -3250,7 +3246,7 @@ static bool upload_img()
 
 static bool is_thumb_sel(int but)
 {
-	return g_right_select && but == 0 || !g_right_select && but == 1;
+	return (g_right_select && but == 0) || (!g_right_select && but == 1);
 }
 
 
@@ -3418,7 +3414,7 @@ void do_batch_rendering()
 
 	for (size_t i = 0; i < nt; ++i) {
 		auto& rth = ims_worker::get_thread(i + thread_start_idx);
-		rth.start([&rc]() {
+		rth.start([&]() {
 			++rc.active_threads;
 			rc.render();
 			--rc.active_threads;
@@ -3539,10 +3535,10 @@ static void show_aux_dialog()
 
 	let* tt = ct.m_stage_name.empty() ? "Computing" : ct.m_stage_name.c_str();
 
-	std::array<char, 32> buf = { 0 };
+	std::array<char, 32> buf = {};
 	fmt::format_to_n(buf.data(), buf.size(), "{}###Compute\0", tt);
 
-	std::array<char, 32> text = { 0 };
+	std::array<char, 32> text = {};
 	let w = ct.work_done();
 	if (w <= 1) {
 		fmt::format_to_n(text.data(), text.size(), "{:5.2f}% Completed\0", w * 100);
@@ -4010,7 +4006,6 @@ void on_start()
 
 
 	////////////////////////////////////////////////////////////////////////////
-	bool is_embedded_mode();
 	if (is_embedded_mode()) {
 		get_settings().m_max_viewport = true;
 		get_rpars().m_palette.reset();
@@ -4786,7 +4781,7 @@ static float show_pane(window_state* pWnd, const frect& rc, bool use_base)
 	let bg_alpha = use_base || st.is_docked() ? 1.0f : st.m_backgr_alpha;
 	ImGui::SetNextWindowBgAlpha(bg_alpha);
 
-	static std::array<char, 256> wnd_id = { 0 };
+	static std::array<char, 256> wnd_id = {};
 	fmt::format_to_n(
 		wnd_id.data(), wnd_id.size(), "{}{}\0", pWnd->get_title(), s_pane_id);
 

@@ -111,7 +111,7 @@ bool ifs_renderer::init(const std::string& aifs)
 	return true;
 }
 
-bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
+bool ifs_renderer::render(ims_bitmap& dst, float, float)
 {
 	clear_color(dst);
 

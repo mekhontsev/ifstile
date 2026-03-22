@@ -1313,7 +1313,7 @@ bool js_aifs_block::create_vars(
 		//last iteration over named
 		if (j + 1 == len) {//let's count how many regular variables were added
 			size_t num = 0;
-			for (let&x : b) { ++num; x; };
+			for (let&x : b) { ++num; UNUSED(x); };
 			b.m_named_vars = num;
 		}
 	}
@@ -1326,7 +1326,10 @@ static JSValue create_js_value(JSContext* ctx, const ims_val* v);
 
 static JSValue create_js_value_ex(JSContext* ctx, const ims_val* v, size_t i)
 {
-	assert(v->is(ims_val_b::ETP::number) || v->is(ims_val_b::ETP::vector));
+	assert(
+		v->is(ims_val_b::ETP::number) ||
+		v->is(ims_val_b::ETP::vector) ||
+		v->is(ims_val_b::ETP::ptr));
 
 	JSValue vi = JS_UNDEFINED;
 	switch (v->gs()) {
@@ -1337,7 +1340,7 @@ static JSValue create_js_value_ex(JSContext* ctx, const ims_val* v, size_t i)
 	}
 	case ims_val_b::EST::rational:
 	{
-		let& q = v->p_i(i);
+		let& q = v->ps_i()[i];
 		if (denominator(q) == 1) {
 			vi = JS_NewInt64(ctx, numerator(q));
 		} else {
@@ -1347,7 +1350,7 @@ static JSValue create_js_value_ex(JSContext* ctx, const ims_val* v, size_t i)
 	}
 	case ims_val_b::EST::big_rational:
 	{
-		let& q = v->p_b(i);
+		let& q = v->ps_b()[i];
 		if (denominator(q) == 1) {
 			auto str = numerator(q).str();
 			str += "n";
@@ -1359,9 +1362,11 @@ static JSValue create_js_value_ex(JSContext* ctx, const ims_val* v, size_t i)
 	}
 	case ims_val_b::EST::real:
 	{
-		vi = JS_NewFloat64(ctx, v->p_r(i));
+		vi = JS_NewFloat64(ctx, v->ps_r()[i]);
 		break;
 	}
+	default:
+		assert(false);
 	}
 	return vi;
 }
@@ -1374,7 +1379,7 @@ static JSValue create_js_value(JSContext* ctx, const ims_val* v)
 		return JS_NewStringLen(ctx, str.data(), str.size());
 	}
 
-	if (v->is(ims_val_b::ETP::number)) {
+	if (v->is(ims_val_b::ETP::number) || v->is(ims_val_b::ETP::ptr)) {
 		return create_js_value_ex(ctx, v, 0);
 	}
 
@@ -1557,10 +1562,8 @@ bool js_aifs_block::add_block3(
 		if (last_parent->m_block_id == block_id_max) {
 			last_par_id = lst.m_idf.gen_unique_block_id("UN");
 			last_parent->m_block_id = lst.insert_by_str_id(last_par_id);
-			auto* q = lst.get_block(last_parent->m_block_id);
-
-			//TODO: maybe everything is okay now?
-			assert(false);
+			assert(false);//TODO: maybe everything is okay now?
+			//auto* q = lst.get_block(last_parent->m_block_id);
 			//q->b = last_parent;
 		}
 		parent_idx = last_parent->m_block_id;

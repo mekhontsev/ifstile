@@ -177,7 +177,7 @@ private:
 	struct index_data
 	{
 		//one of the values below is valid
-		int64_t i{ 0 };//for ordinary indexing
+		int64_t i{};//for ordinary indexing
 		pool_ptr ai;//for fancy indexing
 	};
 	bool eval_index_ex(ast_context p, index_data& d);

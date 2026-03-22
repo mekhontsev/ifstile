@@ -68,7 +68,7 @@ struct uvw_sum
 	}
 };
 
-static_assert(sizeof(uvw_sum)==16,"uvw_sum: invalid size");
+static_assert(sizeof(uvw_sum)==16, "uvw_sum: invalid size");
 
 struct mesh_vertex_ex
 {	
@@ -83,19 +83,25 @@ struct mesh_vertex_ex
 
 	//get the unique index
 	//returns true if the element is unique
-	bool	get_uniq(mesh_idx_t* t=nullptr) const
+	bool get_uniq(mesh_idx_t* t = nullptr) const
 	{
 		if (p.x<-1){
-			if(t){*t=*reinterpret_cast<const mesh_idx_t*>(&p.y);};
+			if(t){
+				static_assert(sizeof(p.y) == sizeof(mesh_idx_t));
+				memcpy(t, &p.y, sizeof(mesh_idx_t));
+			};
 			return false;
-		}else	{if(t)*t=index;return true;}
+		}
+
+		if (t)*t = index;
+		return true;
 	};
 
 	//turn into a duplicate and set who it refers to
-	void	set_dup(const mesh_idx_t ui)
+	void set_dup(const mesh_idx_t ui)
 	{
-		p.x=-2;
-		*reinterpret_cast<mesh_idx_t*>(&p.y)=ui;
+		p.x = -2;
+		memcpy(&p.y, &ui, sizeof(mesh_idx_t));
 	};
 
 
@@ -145,8 +151,8 @@ struct mesh_triangle
 	{
 		if(is_deg())return false;//degenerated
 
-		if	(vv1==v1 && vv2==v2 || vv1==v2 && vv2==v1){*ret=v3;return true;};
-		if	(vv1==v1 && vv2==v3 || vv1==v3 && vv2==v1){*ret=v2;return true;};
+		if	((vv1==v1 && vv2==v2) || (vv1==v2 && vv2==v1)){*ret=v3;return true;};
+		if	((vv1==v1 && vv2==v3) || (vv1==v3 && vv2==v1)){*ret=v2;return true;};
 
 		assert(vv1 == v2 && vv2 == v3 || vv1 == v3 && vv2 == v2);
 
@@ -156,9 +162,9 @@ struct mesh_triangle
 
 	mesh_idx_t* get_edge(tr_info& nfo, mesh_idx_t vv1, mesh_idx_t vv2)
 	{
-		if	(vv1==v1 && vv2==v2 || vv1==v2 && vv2==v1)return &nfo.e12;
-		if	(vv1==v1 && vv2==v3 || vv1==v3 && vv2==v1)return &nfo.e13;
-		if	(vv1==v2 && vv2==v3 || vv1==v3 && vv2==v2)return &nfo.e23;
+		if ((vv1 == v1 && vv2 == v2) || (vv1 == v2 && vv2 == v1))return &nfo.e12;
+		if ((vv1 == v1 && vv2 == v3) || (vv1 == v3 && vv2 == v1))return &nfo.e13;
+		if ((vv1 == v2 && vv2 == v3) || (vv1 == v3 && vv2 == v2))return &nfo.e23;
 		return nullptr;
 	}
 
@@ -196,7 +202,7 @@ struct mesh_edge
 
 	bool is(mesh_idx_t vv1,mesh_idx_t vv2) const
 	{
-		return vv1==v1 && vv2==v2 || vv1==v2 && vv2==v1;
+		return (vv1==v1 && vv2==v2) || (vv1==v2 && vv2==v1);
 	}
 	
 

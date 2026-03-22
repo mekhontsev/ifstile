@@ -155,13 +155,7 @@ void ims_write_block(
 	dst << nlc;
 
 	if (b->m_src2 && !b->m_src2->lines.empty()) {
-#ifndef NDEBUG
-		write_block_t(dst, *b, b->m_flags);
-#else
 		write_block_src(dst, *b, b->m_flags);
-#endif // !NDEBUG
-
-		
 	} else {
 		write_block_t(dst, *b, b->m_flags);
 	}

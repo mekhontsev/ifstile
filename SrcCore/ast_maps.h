@@ -42,7 +42,7 @@ struct ast_maps
 
 	void inherit(const ast_maps& other, std::span<const variable> ec);
 
-	bool has_tempaltes() const;
+	bool has_templates() const;
 
 	const indexed_maps::compos& get_map(size_t idx) const
 	{

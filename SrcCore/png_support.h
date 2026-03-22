@@ -28,10 +28,12 @@ void rgba_free(void* pix);
 
 bool save(
 	const std::function<void(const void*, size_t)>& of,
-	std::string_view aifs,
+	std::string_view text,
 	const ims_bitmap& bmp,
 	bool crop, 
 	const uint8_t* background);
+
+constexpr std::string_view png_chunk_aifs = "ifstile.aifs";
 
 bool find_aifs(std::istreambuf_iterator<char>& iter);
 

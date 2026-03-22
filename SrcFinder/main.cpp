@@ -122,7 +122,7 @@ int main_utf8(int argc, char** argv)
 			++num_found;
 
 			std::cout << '\r' 
-				<< "[" << ims_chrono::fmt_time_t_to_hmsdmY().buf << "] " 
+				<< "[" << ims_chrono::fmt_time_t_to_hmsdmY().buf.data() << "] "
 				<< num_found;
 			std::cout.flush();
 		}

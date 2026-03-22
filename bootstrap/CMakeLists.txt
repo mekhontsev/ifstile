@@ -1,22 +1,18 @@
 cmake_minimum_required(VERSION 3.27)
 
+cmake_policy(SET CMP0117 NEW)
+
 project(external C CXX)
 
 set(arch32 ${CMAKE_SIZEOF_VOID_P} EQUAL 4)
 set(arch64 ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-if(WINDOWS_STORE)
-	set(platform "uwp")
-	set(libxt lib)
-	set(libprefix "")
-elseif(MSVC AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
+
+if(MSVC AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
 	set(platform "msvc_arm")
 	set(libxt lib)
 	set(libprefix "")
 elseif(MSVC)
 	set(platform "msvc")
-	if(${arch64})
-		#add_definitions(/arch:AVX2)
-	endif()
 	set(libxt lib)
 	set(libprefix "")
 elseif(APPLE)
@@ -48,7 +44,6 @@ endif()
 
 message(STATUS "platform=${platform}")
 
-
 #-------------------------------------------------------------------------------
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release)
@@ -64,43 +59,7 @@ set(con $<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${out_dir}/${con})
 
 #-------------------------------------------------------------------------------
-
-set(c_clang_gcc "-fno-math-errno -Wall -Wextra -pedantic -fvisibility=hidden")
-set(c_clang_gcc_opt "-ffunction-sections -fdata-sections -flto -fno-stack-protector -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0")
-
-if(MSVC OR WINDOWS_STORE)
-	set(GENERAL_C_FLAGS "/MP  /fp:except-")
-	set(OPT_C_FLAGS  "/O2 /Oi /Ot /Oy /GT /GL /GF /GS-")
-	set(OPT_LNK_FLAGS  "/LTCG")
-elseif(APPLE)
-	set(GENERAL_C_FLAGS "${c_clang_gcc}")
-	set(OPT_C_FLAGS "${c_clang_gcc_opt}")
-	set(OPT_LNK_FLAGS  "")
-	
-	set(VIDEO_METAL OFF CACHE BOOL "")
-	set(RENDER_METAL OFF CACHE BOOL "")
-elseif(ANDROID)
-#	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-	set(GENERAL_C_FLAGS "${c_clang_gcc}")
-	set(OPT_C_FLAGS "${c_clang_gcc_opt}")
-	set(OPT_LNK_FLAGS  "")
-elseif(EMSCRIPTEN)
-	set(GENERAL_C_FLAGS "${c_clang_gcc} -fwasm-exceptions -pthread")
-	set(OPT_C_FLAGS "${c_clang_gcc_opt}")
-	set(OPT_LNK_FLAGS  "")
-	#set(CMAKE_STATIC_LINKER_FLAGS_DEBUG "${CMAKE_STATIC_LINKER_FLAGS_DEBUG} -s GL_DEBUG=1 -s ASSERTIONS=1")
-elseif(LINUX)
-	set(GENERAL_C_FLAGS "${c_clang_gcc}")
-	set(OPT_C_FLAGS "${c_clang_gcc_opt} -ffat-lto-objects")
-	set(OPT_LNK_FLAGS  "")
-endif()
-
-set(CMAKE_C_FLAGS	"${CMAKE_C_FLAGS}   ${GENERAL_C_FLAGS}")
-set(CMAKE_C_FLAGS_RELEASE	"${CMAKE_C_FLAGS_RELEASE}   ${OPT_C_FLAGS}")
-
-set(CMAKE_STATIC_LINKER_FLAGS_RELEASE 
-	"${CMAKE_STATIC_LINKER_FLAGS_RELEASE} ${OPT_LNK_FLAGS}")
-
+include(../compiler_flags.cmake)
 #-------------------------------------------------------------------------------
 set (custom "custom")
 add_custom_target(${custom} ALL)
@@ -114,7 +73,7 @@ add_subdirectory(
 	EXCLUDE_FROM_ALL
 )
 
-if(MSVC AND NOT WINDOWS_STORE)
+if(MSVC)
 set(RUNTIME_LIB "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 

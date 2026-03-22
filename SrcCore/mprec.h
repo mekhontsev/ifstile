@@ -16,7 +16,6 @@
 
 #pragma once
 
-
 ////////////////////////////////////////////////////////////////////////////////
 using mprec_backend_boost= boost::multiprecision::backends::cpp_bin_float<50>;
 using raw_number_boost = boost::multiprecision::number<mprec_backend_boost> ;

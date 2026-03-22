@@ -31,6 +31,6 @@ struct test_alloc_hook
 
 #else
 
-#define TEST_ALLOC_HOOK
+#define TEST_ALLOC_HOOK(v)
 
 #endif

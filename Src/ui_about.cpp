@@ -20,13 +20,13 @@
 #include "gui.h"
 #include "version.h"
 #include "quickjs.h"
-#include "miniz.h"
 
 const char* ws_about::get_title()
 {
 	return "About";
 }
 
+extern "C" const char* mz_version();
 
 void ws_about::show_markdown(std::string_view msg) 
 {
@@ -43,7 +43,6 @@ void ws_about::show_markdown(std::string_view msg)
 
 	ImGui::EndChild();
 }
-
 
 static std::string libs;
 
@@ -63,10 +62,6 @@ void ws_about::show()
 	}
 	IMS_SCOPE([] {ImGui::EndPopup(); });
 
-	
-
-
-
 	{
 		
 		if (!ImGui::BeginTabBar("About"))return;
@@ -84,7 +79,7 @@ void ws_about::show()
 				"\n"
 				COPYRIGHT
 				"\n"
-				APPLICATION_COMPANY "\n"
+				APPLICATION_AUTHOR "\n"
 				"[" APPLICATION_SITE "](" APPLICATION_SITE ")\n"
 				"[" SUPPORT_EMAIL "](mailto:" SUPPORT_EMAIL ")\n"
 				//__DATE__ "\n"
@@ -127,7 +122,10 @@ void ws_about::show()
 					BOOST_PP_STRINGIZE(__EMSCRIPTEN_minor__) "."\
 					BOOST_PP_STRINGIZE(__EMSCRIPTEN_tiny__) "\n";
 #endif	
-				libs += "Miniz " MZ_VERSION "\n";
+				libs += "Miniz ";
+				libs += mz_version();
+				libs += "\n";
+
 				libs += "MD4C 0.5.2\n";
 				libs += "cute_png 1.05\n";
 				libs += "imgui_md 1.00\n";
@@ -137,8 +135,6 @@ void ws_about::show()
 				libs += "Dirent for MSVC 1.0.26\n";
 				
 #endif
-				
-				
 				libs += "unordered_dense "\
 					BOOST_PP_STRINGIZE(ANKERL_UNORDERED_DENSE_VERSION_MAJOR) "."\
 					BOOST_PP_STRINGIZE(ANKERL_UNORDERED_DENSE_VERSION_MINOR) "."\
@@ -147,11 +143,12 @@ void ws_about::show()
 	
 				libs += "\n";
 				libs += BOOST_COMPILER;
-#ifndef _IMS_64_
-				libs += " (32 bit)";
-#endif
+
+				if constexpr (sizeof(void*) == 4) {
+					libs += " (32 bit)";
+				}
+
 				libs += "\n";
-				
 			}
 
 			show_markdown(libs);

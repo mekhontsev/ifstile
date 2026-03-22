@@ -17,23 +17,24 @@
 #include "pch.h"
 #include "png_support.h"
 #include "ims_bitmap.h"
-#include "ims_keywords.h"
 
+extern "C" {
 
-#ifdef _MSC_VER
-FILE* fopen_utf8(const char* filename, const char* mode);
-#define CUTE_PNG_FOPEN fopen_utf8
-#endif//_MSC_VER
-
-#define CUTE_PNG_IMPLEMENTATION
 #include "cute_png.h"
+
+void ims_png_free(void* pix);
+cp_saved_png_t ims_save_png_to_memory(
+	const cp_image_t* img,
+	const char* text_chank,
+	size_t text_chank_size);
+}
 
 //to check the PNG write: http://entropymine.com/jason/tweakpng/
 
 namespace ims_png
 {
 
-static constexpr std::string_view png_chunk_aifs{ "ifstile.aifs" };
+
 
 uint8_t* rgba_from_mem(const void* mem, size_t len, size_t& w, size_t &h) 
 {
@@ -45,7 +46,7 @@ uint8_t* rgba_from_mem(const void* mem, size_t len, size_t& w, size_t &h)
 
 void rgba_free(void* pix)
 {
-	CUTE_PNG_FREE(pix);
+	ims_png_free(pix);
 };
 
 #if 0
@@ -76,18 +77,16 @@ static bool read_mem(const void* mem, size_t len, ims_bitmap& bitmap)
 };
 #endif
 
-using key_vals_type = std::vector<std::pair<std::string_view, std::string_view>>;
 
-//the result must be removed using CUTE_PNG_FREE
+//the result must be removed using ims_png_free
 static uint8_t* write_mem(
 	size_t& fileSize,
 	const ims_bitmap& v,
 	const uint8_t* background,
 	size_t cx, size_t cy,
 	size_t sx, size_t sy,
-	const key_vals_type& keyvals)
+	std::string_view text)
 {
-
 	std::vector<cp_pixel_t> pixels;
 	pixels.resize(sx*sy);
 
@@ -120,55 +119,10 @@ static uint8_t* write_mem(
 
 	////////////////////////////////////////////////////////////////////////////
 	let* img = &timg;
-
-	//modified body of the cp_save_png_to_memory function
-	cp_save_png_data_t s = { 0 };
-	long dataPos, dataSize;
-
-	// Allocate LZ77 state (~72KB)
-	auto* lz = (cp_lz77_state_t*)CUTE_PNG_ALLOC(sizeof(cp_lz77_state_t));
+	let res = ims_save_png_to_memory(img, text.data(), text.size());
 	
-	s.adler = 1;
-	s.bits = 0x80;
-	s.bufcap = 1024;
-	s.buffer = (char*)CUTE_PNG_ALLOC(1024);
-	s.lz = lz;
-
-	cp_save_header(&s, (cp_image_t*)img);
-
-	////////////////////////////////////////////
-
-	for (let& q : keyvals) {
-		let& key = q.first;
-		let& val = q.second;
-
-		let n = key.length() + val.length() + 2;
-
-		cp_begin_chunk(&s, "tEXt", (uint32_t)n);
-
-		for (let& c : key)cp_put8(&s, (uint8_t)c);
-		cp_put8(&s, 0);
-		for (let& c : val)cp_put8(&s, (uint8_t)c);
-		cp_put8(&s, 0);
-
-		cp_put32(&s, ~s.crc);
-	}
-
-	dataPos = s.buflen;
-	cp_save_data(&s, (cp_image_t*)img, dataPos, &dataSize);
-
-	// End chunk.
-	cp_begin_chunk(&s, "IEND", 0);
-	cp_put32(&s, ~s.crc);
-
-	// Write back payload size.
-	fileSize = s.buflen;
-	s.buflen = dataPos;
-	cp_put32(&s, dataSize);
-
-	CUTE_PNG_FREE(lz);
-
-	return  (uint8_t*)s.buffer;
+	fileSize = (size_t)res.size;
+	return (uint8_t*)res.data;
 }
 
 
@@ -184,7 +138,7 @@ static std::string get_text_chunk_name(std::string_view key)
 
 bool save(
 	const std::function<void(const void*, size_t)>& of,
-	std::string_view aifs, 
+	std::string_view text,
 	const ims_bitmap& bmp, 
 	bool crop,
 	const uint8_t* background)
@@ -195,19 +149,12 @@ bool save(
 		return false;//empty image
 	}
 
-	key_vals_type keyvals;
-
-	if (!aifs.empty()) {
-		keyvals.emplace_back(png_chunk_aifs, aifs);
-	}
-
 	size_t buf_size = 0;
-	auto* buf = write_mem(buf_size, bmp, background, cx, cy, sx, sy, keyvals);
-
+	auto* buf = write_mem(buf_size, bmp, background, cx, cy, sx, sy, text);
 	if (!buf)return false;
 
 	IMS_SCOPE([buf] {
-		CUTE_PNG_FREE(buf);
+		ims_png_free(buf);
 	});
 
 	of(buf, buf_size);
@@ -218,7 +165,7 @@ bool find_aifs(std::istreambuf_iterator<char>& iter)
 {
 	constexpr auto end = std::istreambuf_iterator<char>();
 
-	constexpr auto sz = png_chunk_aifs.length();
+	constexpr auto sz = png_chunk_aifs.size();
 	std::string buf;
 	buf.reserve(sz + 1);
 

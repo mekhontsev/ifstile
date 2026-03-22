@@ -23,7 +23,7 @@ ims_static thread_local ims_worker* s_nfo = nullptr;
 ims_static ims_random g_rng;//for the main thread
 
 //number of running threads
-ims_static std::atomic<int> g_num_workers{ 0 };
+ims_static std::atomic<int> g_num_workers{};
 
 ims_static bool s_do_exit_program = false;
 
@@ -198,8 +198,7 @@ bool ims_worker::is_need_stop2()
 	}
 	
 	return s_do_exit_program ||
-		m_req_status == status::stop &&
-		ims_chrono::now().m_t >= m_time_stop.m_t;
+		(m_req_status == status::stop && ims_chrono::now().m_t >= m_time_stop.m_t);
 }
 
 

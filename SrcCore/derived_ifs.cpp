@@ -287,7 +287,7 @@ bool create_neghbours(
 				ns.clear();
 				for (size_t j = 0; j < fgc_G.num_ver(); ++j) {
 					let ho = fgc_G.m_comp[fgc_G.m_ver2com[j]].has_other();
-					if (i == 0 && ho || i == 1 && !ho) {
+					if ((i == 0 && ho) || (i == 1 && !ho)) {
 						continue;
 					}
 

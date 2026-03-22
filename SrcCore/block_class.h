@@ -24,6 +24,7 @@ struct block_class
 	block_class(const ims_info* nfo) : m_nfo(nfo) {};
 
 	block_class& operator=(const block_class&) = delete;
+	block_class(const block_class&) = default;
 
 	struct opinfo 
 	{	

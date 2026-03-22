@@ -439,8 +439,8 @@ private:
 		m_t{ t },
 		m_s{ s },
 		m_bucket{ bucket },
-		m_flags3{ 0 },
-		m_reserved{ 0 },
+		m_flags3{},
+		m_reserved{},
 		m_size{ size }
 	{};
 
@@ -448,9 +448,4 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-static_assert(sizeof(ims_val) % 8 == 0);//required for data alignment
-#ifdef _IMS_64_
-static_assert(sizeof(ims_val) <= (2* sizeof(void*)));
-#else 
-static_assert(sizeof(ims_val) <= (4 * sizeof(void*)));
-#endif
+static_assert(sizeof(ims_val) == 16);

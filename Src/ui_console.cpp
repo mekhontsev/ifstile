@@ -26,6 +26,11 @@ const char* ws_console::get_title()
 	return "Console";
 }
 
+void ws_console::on_load()
+{
+	m_buf.clear();
+}
+
 void ext_console_sync(std::string& str);
 void ext_console_clear();
 

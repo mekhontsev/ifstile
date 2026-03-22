@@ -144,6 +144,8 @@ bool program_state::save_png(
 	////////////////////////////////////////////////////////////////////////////
 	std::ostringstream ss;
 
+	ss << ims_png::png_chunk_aifs << '\0';
+
 	ss << "\r\n";
 
 	nfo.print_js(ss);

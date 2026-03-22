@@ -17,17 +17,26 @@
 #include "pch.h"
 #include "exr.h"
 
-//https://github.com/syoyo/tinyexr
-
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable : 4706)//assignment within conditional expression
 #pragma warning(disable : 4127)//conditional expression is constant
 #pragma warning(disable : 4245)//conversion from 'int' to 'size_t', signed/unsigned mismatch
 #pragma warning(disable : 4702)//unreachable code
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 
+//https://github.com/syoyo/tinyexr
 #define TINYEXR_IMPLEMENTATION
 #include "tinyexr.h"
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#else
+#pragma GCC diagnostic pop
+#endif
 
 void exr_data::init(size_t width, size_t height, size_t num_chan)
 {
@@ -117,7 +126,7 @@ bool exr_data::save(std::ostream& fs)
 		auto& c = m_img[i];
 		assert(c.name.length() < 255);
 		memset(&hdr.channels[i], 0, sizeof(EXRChannelInfo));
-		strcpy(hdr.channels[i].name, c.name.c_str());
+		memcpy(hdr.channels[i].name, c.name.c_str(), c.name.size() + 1);
 
 		int px_type = c.is_float ? 
 			TINYEXR_PIXELTYPE_FLOAT : TINYEXR_PIXELTYPE_UINT;

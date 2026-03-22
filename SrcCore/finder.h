@@ -172,7 +172,7 @@ struct finder
 	////////////////////////////////////////////////////////////////////////////
 
 	//number of checked since the last output to the screen
-	std::atomic<uint32_t> m_last_attempts{ 0 };
+	std::atomic<uint32_t> m_last_attempts{};
 
 	e_list_status m_list_status = e_list_status::just_loaded;
 

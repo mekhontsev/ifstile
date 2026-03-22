@@ -102,7 +102,7 @@ bool drag_exp(const char* label, float& v, bool positive)
 
 bool input_double(double& v, const char* label, bool positive)
 {
-	static std::array<char, 32> buf = { 0 };
+	static std::array<char, 32> buf = {};
 
 	fmt::format_to_n(buf.data(), buf.size(), "{:.16}\0", v);
 

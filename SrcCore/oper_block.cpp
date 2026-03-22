@@ -339,7 +339,7 @@ bool oper_block::apply_templates(
 			continue;
 		}
 
-		distrib_info di;
+		distrib_info di{};
 		get_distrib(di, src);
 
 		//convert the default distribution

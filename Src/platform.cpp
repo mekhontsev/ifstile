@@ -26,8 +26,6 @@
 #include <sys/stat.h>
 
 
-
-
 #if defined(__EMSCRIPTEN__)
 void Emscripten_window_open(std::string_view url);
 void Emscripten_set_clipboard(std::string_view str);
@@ -45,12 +43,10 @@ std::string_view getPathPref()
 {
 	static std::string ret;
 	if (!ret.empty())return ret;
-
 #if defined(__EMSCRIPTEN__)
-	ret = "/IFStile/"; //don't use what SDL provides('/libsdl/IFStile/')
+	ret = "/IFStile/"; //don't use what SDL provides('/libsdl/...')
 #else
-	//SDL will create a directory
-	auto* path = SDL_GetPrefPath(nullptr, APPLICATION_TITLE);
+	auto* path = SDL_GetPrefPath(APPLICATION_COMPANY, APPLICATION_TITLE);
 	if (path) {
 		ret = path;
 		SDL_free(path);
@@ -68,21 +64,17 @@ std::string_view getPathHome()
 	if (!ret.empty()) return ret;
 
 #if defined(__EMSCRIPTEN__)
-	//getPrefPath();
-#elif defined(_MSC_VER)
-	let* homeDir = getenv("USERPROFILE");
-	if (homeDir)ret = homeDir;
-#elif defined(__ANDROID__)
-	//getPrefPath();
-#else //Mac and Linux
-	let* homeDir = getenv("HOME");
-	if (homeDir)ret = homeDir;
-#endif
-	if (ret.empty()) {
-		ret = getPathPref();
+	ret = getPathPref();
+#else
+	const char* path = SDL_GetUserFolder(SDL_FOLDER_HOME);
+	if (path) {
+		ret = path;
+		//unlike SDL_GetPrefPath, the caller must NOT free the memory
 	} else {
-		if (ret.back()!='/')ret.push_back('/');
+		ret = getPathPref();
 	}
+#endif
+
 	return ret;
 };
 

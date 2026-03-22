@@ -22,11 +22,13 @@
 
 #define APPLICATION_SITE "https://ifstile.com"
 
-#define APPLICATION_COMPANY "Dmitry Mekhontsev"
+#define APPLICATION_COMPANY "Mekhontsev"
+
+#define APPLICATION_AUTHOR "Dmitry Mekhontsev"
 
 #define COPYRIGHT "Copyright © 2016-2026"
 
-#define APPLICATION_COPYRIGHT COPYRIGHT " " APPLICATION_COMPANY 
+#define APPLICATION_COPYRIGHT COPYRIGHT " " APPLICATION_AUTHOR 
 
 #define SUPPORT_EMAIL "mekhontsev@gmail.com"
 

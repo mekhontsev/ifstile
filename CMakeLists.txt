@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 
+cmake_policy(SET CMP0117 NEW)
+
 if(APPLE)
 	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version" FORCE)
  	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
@@ -39,7 +41,6 @@ elseif(MSVC AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
 elseif(MSVC)
 	if(${arch64})
 		set(platform "msvc")
-		#add_definitions(/arch:AVX2)
 	else()
 		set(platform "msvc_32")
 		set(exe_suffix "32")
@@ -130,105 +131,18 @@ elseif(EMSCRIPTEN)
 	set(bin ${bin}/wasm)
 endif()
 
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE   ${bin})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${bin})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${bin})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${bin})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${bin})
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-set(cxx_clang_gcc "-fno-math-errno -fno-char8_t") #-fno-rtti 
-set(cxx_clang_gcc_opt "-ffunction-sections -fdata-sections -fno-stack-protector  -fvisibility=hidden -fvisibility-inlines-hidden -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0")
-
-
-if(MSVC)
-
-	set(CompilerFlags
-			CMAKE_CXX_FLAGS
-			CMAKE_CXX_FLAGS_DEBUG
-			CMAKE_CXX_FLAGS_RELEASE
-		)
-
-	#remove RTTI
-	foreach(CompilerFlag ${CompilerFlags})
-		string(REPLACE "/GR" "" ${CompilerFlag} "${${CompilerFlag}}")
-	endforeach()
-	add_definitions(/D_HAS_STATIC_RTTI=0)
-
-	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} /O2 /Oi /Ot /Oy /GT /GL /Gy /GF /GS-")
-	#set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG} /fsanitize=address")
-
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} 
-		/STACK:10000000 
-		/LARGEADDRESSAWARE 
-		/MANIFEST:NO
-		/VERSION:\"${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}\"
-	")
-
-	set(CMAKE_EXE_LINKER_FLAGS_RELEASE 
-		"${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /OPT:REF /OPT:ICF")	
-
-	add_definitions(-D_WIN32_WINNT=0x0601 -DWINVER=0x0601 -DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN)
-
-	add_compile_options(/utf-8 /Zc:char8_t- /MP /GR- /bigobj /fp:except- /Zm256  /permissive-)
-	add_compile_options(/experimental:c11atomics)# TODO: remove when will be supported
-elseif(APPLE)
-	set(CMAKE_CXX_FLAGS	"${CMAKE_CXX_FLAGS} ${cxx_clang_gcc} -stdlib=libc++ -Wno-logical-op-parentheses")
-	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto")
-	set(CMAKE_EXE_LINKER_FLAGS_RELEASE  "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -flto")	
-	set(LLVM_ENABLE_LIBCXX	ON)
-elseif(ANDROID)
-#	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-	set(CMAKE_CXX_FLAGS	"${CMAKE_CXX_FLAGS} ${cxx_clang_gcc} -Wno-logical-op-parentheses")
-	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto")
-	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -flto -Wl,--exclude-libs,ALL -Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/android.map")	
-elseif(EMSCRIPTEN)	
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${cxx_clang_gcc} -fwasm-exceptions -pthread -mnontrapping-fptoint -Wno-logical-op-parentheses -Wno-pthreads-mem-growth")
-
-	set(CMAKE_CXX_FLAGS_DEBUG	"${CMAKE_CXX_FLAGS_DEBUG}  -g -gseparate-dwarf")
-	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto")
-	#set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -flto")
-
-	#set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto -fexceptions -UNDEBUG -s -gseparate-dwarf -g") #-fno-inline
-	#set(CMAKE_EXE_LINKER_FLAGS_RELEASE	" -s GL_DEBUG=1 -s ASSERTIONS=1 -s NO_DISABLE_EXCEPTION_CATCHING")
-	
-	#set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -s GL_DEBUG=1 -s ASSERTIONS=1 -s NO_DISABLE_EXCEPTION_CATCHING")
-	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -s GL_DEBUG=1 -s ASSERTIONS=1")
-
-	# -s STRICT=1 #still not possible
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
-	-lidbfs.js \
-	-s STACK_SIZE=10Mb \
-	-s MIN_WEBGL_VERSION=2 \
-	-s MAX_WEBGL_VERSION=2 \
-	-s INITIAL_MEMORY=64MB \
-	-s MAXIMUM_MEMORY=2gb \
-	-s ALLOW_MEMORY_GROWTH=1 \
-	-s PTHREAD_POOL_SIZE=4 \
-	-s EXPORTED_RUNTIME_METHODS=ccall,cwrap")
-
-	#workarounds
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-u,scalbnl")
-	#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--trace-symbol=scalbnl")
-
-elseif(LINUX)
-	set(CMAKE_CXX_FLAGS	"${CMAKE_CXX_FLAGS} ${cxx_clang_gcc}")
-	set(CMAKE_CXX_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE} ${cxx_clang_gcc_opt} -flto -s -Wl,--gc-sections")
-	set(CMAKE_EXE_LINKER_FLAGS_RELEASE  "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -flto")		
-endif()
-
-
-
-set(CMAKE_C_FLAGS			"${CMAKE_CXX_FLAGS}")
-set(CMAKE_C_FLAGS_DEBUG		"${CMAKE_CXX_FLAGS_DEBUG}")
-set(CMAKE_C_FLAGS_RELEASE	"${CMAKE_CXX_FLAGS_RELEASE}")
 
 if (MSVC)
-    add_compile_options(/W4)
-else()
-    add_compile_options(-Wall -Wextra -Wpedantic)
+	add_link_options(/VERSION:${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 endif()
 
+include(compiler_flags.cmake)
 #-------------------------------------------------------------------------------
 
 set (verhdr ${CMAKE_CURRENT_BINARY_DIR}/version_gen.h)
@@ -301,7 +215,7 @@ lqsort.h builder.h builder.cpp builder3d.h
 gbuffer3d.h gbuffer3d.cpp builder3d.cpp builder2d.h builder2d.cpp builder_ext.h builder_ext.cpp
 build_data.h build_data.cpp builder_mesh.h builder_mesh.cpp 
 standard_vars.h standard_vars.cpp ifs_renderer.h ifs_renderer.cpp
-png_support.h png_support.cpp  mpeg_support.h mpeg_support.cpp
+png_support.h png_support.cpp png_impl.c
 animator.h animator.cpp create_block.cpp create_ifs.cpp
 creator_state.h creator_state.cpp
 ims_to_string_ex.h ims_to_string_ex.cpp
@@ -319,6 +233,16 @@ set (SRC_QuickJS
 	dtoa.h dtoa.c
 )
 prepend(SRC_QuickJS quickjs)
+#-------------------------------------------------------------------------------
+set (SRC_Tiny
+	cute_png.h tinyexr.h utf8_decoder.h 
+	md4c.h md4c.c
+	miniz.h miniz.c IconsForkAwesome.h
+)
+if(MSVC)
+	list (APPEND SRC_Tiny dirent/dirent.h)
+endif()
+prepend(SRC_Tiny Tiny)
 #-------------------------------------------------------------------------------
 set (SRC_GENERAL
 ims_settings.h ims_settings.cpp
@@ -348,6 +272,11 @@ prepend(SRC_GENERAL Src)
 if(MSVC)
 	list(APPEND SRC_GENERAL PlatDep/resource.rc PlatDep/cpp.hint)
 endif()
+
+list(APPEND SRC_GENERAL 
+${CMAKE_CURRENT_SOURCE_DIR}/Tiny/imgui_md.h 
+${CMAKE_CURRENT_SOURCE_DIR}/Tiny/imgui_md.cpp)
+
 #-------------------------------------------------------------------------------
 set (SRC_IMGUI 
 imgui.h imgui.cpp imconfig.h imgui_internal.h imgui_demo.cpp imgui_draw.cpp
@@ -371,22 +300,6 @@ endif()
 
 prepend(SRC_IMGUI imgui)
 source_group(ImGui FILES ${SRC_IMGUI})
-
-#-------------------------------------------------------------------------------
-
-set (SRC_Tiny
-	cute_png.h tinyexr.h jo_mpeg.h utf8_decoder.h 
-	md4c.h md4c.c imgui_md.h imgui_md.cpp
-	miniz.h miniz.c IconsForkAwesome.h
-)
-
-if(MSVC)
-	list (APPEND SRC_Tiny dirent/dirent.h)
-endif()
-
-prepend(SRC_Tiny Tiny)
-source_group(Tiny FILES ${SRC_Tiny})
-
 #-------------------------------------------------------------------------------
 if(MSVC_IDE)
 	set (NATVIS_FILES
@@ -402,7 +315,7 @@ endif()
 
 #-------------------------------------------------------------------------------
 set(ALL_SRC 
-	${SRC_GENERAL} ${SRC_IMGUI} ${SRC_Tiny} ${NATVIS_FILES}
+	${SRC_GENERAL} ${SRC_IMGUI} ${NATVIS_FILES}
 	${verhdr} ifstile.natvis manual.md)
 #-------------------------------------------------------------------------------
 
@@ -418,12 +331,23 @@ target_include_directories(IFScore PUBLIC
 	${ext}/fmt/include
 	Tiny
 )
-
-
-#-------------------------------------------------------------------------------
-
+#------------------------------------------------------------------------------
 add_library(QuickJS STATIC ${SRC_QuickJS})
 target_include_directories(QuickJS PUBLIC quickjs)
+
+add_library(TinyLib STATIC ${SRC_Tiny})
+target_include_directories(TinyLib PUBLIC Tiny)
+#------------------------------------------------------------------------------
+#disable warnings for 3rd party code
+if(MSVC)
+    target_compile_options(QuickJS PRIVATE /W0)
+	target_compile_options(TinyLib PRIVATE /W0)
+	
+else()
+    target_compile_options(QuickJS PRIVATE -w)
+	target_compile_options(TinyLib PRIVATE "-w;-Wno-#pragma-messages")
+endif()
+#------------------------------------------------------------------------------
 
 
 if(MSVC)
@@ -472,7 +396,7 @@ elseif(APPLE)
 	#get_dotapp_dir(${APPLICATION_BIN} APPLICATION_APP_LOCATION) 
 
 elseif(ANDROID)
-	#add_definitions(-DSDL_DYNAMIC_API=0)
+
 	add_library(${PROJECT_NAME} SHARED ${ALL_SRC})
 		
 elseif(EMSCRIPTEN)
@@ -496,9 +420,7 @@ set(EMBED_HEADERS_LOCATION "${GENERATE_HEADER_LOCATION}/embed")
 target_embed_files(${EMBED_HEADERS_LOCATION} manual.h 
 	FILES ${CMAKE_CURRENT_SOURCE_DIR}/manual.md)
 
-	
-include_directories(tests "${GENERATE_HEADER_LOCATION}")
-
+include_directories(${GENERATE_HEADER_LOCATION})
 #-------------------------------------------------------------------------------
 include(examples.cmake)
 prepend(Examples ${CMAKE_CURRENT_SOURCE_DIR}/Examples)
@@ -556,14 +478,12 @@ set_target_properties (${PROJECT_NAME} PROPERTIES
 
 #-------------------------------------------------------------------------------
 #strip
-
-if (CMAKE_BUILD_TYPE STREQUAL Release)	
-	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND $<$<CONFIG:Release>:${CMAKE_STRIP}> $<TARGET_FILE:${PROJECT_NAME}>
-		COMMENT "Stripping ${PROJECT_NAME} for Release..."
-	)
-endif ()
-
+if(NOT EMSCRIPTEN)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+	COMMAND $<$<CONFIG:Release>:${CMAKE_STRIP}> $<TARGET_FILE:${PROJECT_NAME}>
+	COMMENT "Stripping ${PROJECT_NAME} for Release..."
+)
+endif()
 #-------------------------------------------------------------------------------
 #link other
 set (linkto SDL3)
@@ -592,7 +512,7 @@ if(MSVC)
 	endif()
 elseif(ANDROID)
 	list (APPEND LINK_LIST 
-		-static-libstdc++ EGL GLESv3 GLESv1_CM dl android log OpenSLES)
+		EGL GLESv3 GLESv1_CM dl android log OpenSLES)
 elseif(EMSCRIPTEN)
 	list (APPEND LINK_LIST 
 		EGL)
@@ -609,10 +529,10 @@ elseif(APPLE)
 	)
 elseif(LINUX)
 	list (APPEND LINK_LIST 
-		-static-libstdc++ -static-libgcc GL dl pthread rt)
+		GL dl pthread rt)
 endif()	
 
-target_link_libraries(${PROJECT_NAME} PUBLIC IFScore QuickJS ${LINK_LIST})
+target_link_libraries(${PROJECT_NAME} PUBLIC IFScore QuickJS TinyLib ${LINK_LIST})
 
 
 #-----------------------------------Finder--------------------------------------
@@ -635,7 +555,7 @@ target_precompile_headers(IFSfinder PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/SrcFinder/pch.h
 )
 
-target_link_libraries(IFSfinder PUBLIC IFScore QuickJS)
+target_link_libraries(IFSfinder PUBLIC IFScore QuickJS TinyLib)
 
 if(LINUX)
 	target_link_libraries(IFSfinder PUBLIC pthread)
@@ -650,7 +570,7 @@ endif()
 #------------------------------------Tests--------------------------------------
 if(MSVC)
 
-add_executable(tests 
+add_executable(Tests 
 	SrcTests/main.cpp SrcTests/main_utf8.cpp SrcTests/pch.h
 	SrcTests/test.cpp SrcTests/spline.cpp
 	SrcTests/aifs_simple.cpp SrcTests/aifs_examples.cpp
@@ -661,9 +581,9 @@ add_executable(tests
 	${verhdr})
 
 # Setup include
-target_include_directories(tests BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(tests AFTER PUBLIC SrcCore)#AFTER - because pch.h
-target_include_directories(tests PUBLIC 
+target_include_directories(Tests BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(Tests AFTER PUBLIC SrcCore)#AFTER - because pch.h
+target_include_directories(Tests PUBLIC 
 	Tiny 
 	SrcTests 
 	${ext} 
@@ -674,14 +594,14 @@ target_include_directories(tests PUBLIC
 	${ext}/googletest/googlemock/include
 )
 
-target_precompile_headers(tests PRIVATE
+target_precompile_headers(Tests PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/SrcTests/pch.h
 )
 
-target_link_libraries(tests PUBLIC IFScore QuickJS)
+target_link_libraries(Tests PUBLIC IFScore QuickJS TinyLib)
 
-set_target_properties(tests PROPERTIES
+set_target_properties(Tests PROPERTIES
 	DEBUG_POSTFIX d
-	OUTPUT_NAME tests${exe_suffix}
+	OUTPUT_NAME Tests${exe_suffix}
 )
 endif()

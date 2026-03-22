@@ -63,7 +63,6 @@ bool gbuffer3d::get_pixel(pixel_RGBA& rgba, const size_t ix, const size_t iy) co
 	auto L = proj.back_proj_dir(m_cam, ix, iy);
 	L.normalize();
 
-	let pt = m_cam.m_loc + L * pxl.z;
 
 	let NdotL = -N.dot(L);
 

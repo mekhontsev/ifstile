@@ -22,14 +22,16 @@
 
 #include <cstdio>//_wfopen_s
 
+extern "C" {
 FILE* fopen_utf8(const char* filename, const char* mode)
 {
 	FILE* ret = nullptr;
 	let err = _wfopen_s(&ret,
 		utf8_to_native(filename).c_str(),
 		utf8_to_native(mode).c_str());
- 	return err ? nullptr : ret;
+	return err ? nullptr : ret;
 };
+}
 
 #endif
 

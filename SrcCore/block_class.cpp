@@ -43,7 +43,7 @@ size_t block_class::find_var_by_name(std::string_view name) const
 
 size_t block_class::find_var(size_t unk_id) const
 {
-	assert(unk_id != ims_max);
+	ASSUME(unk_id != ims_max);
 	auto it = m_unk2var.find(unk_id);
 	return it == m_unk2var.end() ? ims_max : it->second;
 }
@@ -58,7 +58,7 @@ size_t block_class::add_var(size_t unk_id)
 
 	if (unk_id != ims_max) {
 		let res = m_unk2var.emplace(unk_id, ret);
-		assert(res.second);
+		ASSUME(res.second);
 #ifndef NDEBUG
 		oi.name2 = get_var_name(ret);
 #endif	

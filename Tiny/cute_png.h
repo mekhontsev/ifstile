@@ -135,6 +135,41 @@ typedef struct cp_image_t cp_image_t;
 typedef struct cp_indexed_image_t cp_indexed_image_t;
 typedef struct cp_atlas_image_t cp_atlas_image_t;
 
+
+struct cp_pixel_t
+{
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+	uint8_t a;
+};
+
+struct cp_image_t
+{
+	int w;
+	int h;
+	cp_pixel_t* pix;
+};
+
+struct cp_indexed_image_t
+{
+	int w;
+	int h;
+	uint8_t* pix;
+	uint8_t palette_len;
+	cp_pixel_t palette[256];
+};
+
+struct cp_atlas_image_t
+{
+	int img_index;    // index into the `imgs` array
+	int w, h;         // pixel w/h of original image
+	float minx, miny; // u coordinate
+	float maxx, maxy; // v coordinate
+	int fit;          // non-zero if image fit and was placed into the atlas
+};
+
+
 // Read this in the event of errors from any function
 extern const char* cp_error_reason;
 
@@ -189,39 +224,6 @@ cp_image_t cp_depallete_indexed_image(cp_indexed_image_t* img);
 // Pre-process the pixels to transform the image data to a premultiplied alpha format.
 // Resource: http://www.essentialmath.com/GDC2015/VanVerth_Jim_DoingMathwRGB.pdf
 void cp_premultiply(cp_image_t* img);
-
-struct cp_pixel_t
-{
-	uint8_t r;
-	uint8_t g;
-	uint8_t b;
-	uint8_t a;
-};
-
-struct cp_image_t
-{
-	int w;
-	int h;
-	cp_pixel_t* pix;
-};
-
-struct cp_indexed_image_t
-{
-	int w;
-	int h;
-	uint8_t* pix;
-	uint8_t palette_len;
-	cp_pixel_t palette[256];
-};
-
-struct cp_atlas_image_t
-{
-	int img_index;    // index into the `imgs` array
-	int w, h;         // pixel w/h of original image
-	float minx, miny; // u coordinate
-	float maxx, maxy; // v coordinate
-	int fit;          // non-zero if image fit and was placed into the atlas
-};
 
 #define CUTE_PNG_H
 #endif
