@@ -17,7 +17,7 @@ set (Examples
 	basic.js.aifs
 	Cube.aifs
 	trees.js.aifs
-	disk_like.js.aifs
+	Comb.aifs
 	IR3.aifs
 	IR3-211111-90.aifs
 	IR4-31111111-90.aifs

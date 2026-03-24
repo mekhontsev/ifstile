@@ -42,6 +42,7 @@ samples::samples()
 		ME("x^2-4x+5_Pinwheel", x_2_4x_5_pinwheel),
 		ME("x^2-5x+7_Gosper_Island", x_2_5x_7_gosper_island),
 		ME("x^2-x+2_Tame_Twin_Dragon", x_2_x_2_tame_twin_dragon),
+		ME("Comb", comb),
 		ME("x^3+2x-1", x_3_2x_1),
 		ME("x^3+3x-1", x_3_3x_1),
 		ME("x^3+x^2-1", x_3_x_2_1),
@@ -92,7 +93,6 @@ samples::samples()
 
 		{ "JavaScript", {
 		ME("basic.js",basic_js),
-		ME("disk_like.js", disk_like_js),
 		ME("julia.js",julia_js),
 		ME("trees.js",trees_js),
 		}},

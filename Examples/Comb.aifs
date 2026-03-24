@@ -1,0 +1,12 @@
+#Disk-Like tiles with n pieces and a very high boundary dimension (and simple neighbour graph)
+#dim boundary = 2*log(x)/log(n) where x^4-(n-1)*x^3-2*x^2-(n-1)*(n-4)*x+n*(n-2)=0
+
+@comb
+$dim=2
+n=$number($integer(2,20))
+v=[-n,0]
+g=$companion(v)
+x=1/(n-1)
+u=[$,n-1-$(),[$(1)(), 0], [n-x,2-x]*-1]
+$subspace=[g,0,1]
+A=$union([[g^-1,u,A]])

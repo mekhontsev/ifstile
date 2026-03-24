@@ -281,9 +281,6 @@ void ws_editor::show()
 		return;
 	}
 
-	ImGui::BeginChild("Controls");
-	ims_window_drag w_ch(false);
-
 	//this is a copy of the object from the list
 	auto& sr = xd->get_block();
 
@@ -291,6 +288,13 @@ void ws_editor::show()
 		return;
 	}
 	let* e = sr.get_parent()->ctx();
+	if (!e) {
+		return;//TODO: race condition
+	}
+
+	ImGui::BeginChild("Controls");
+	ims_window_drag w_ch(false);
+
 	auto* g = sr.get_class();
 
 	m_mut.clear();
