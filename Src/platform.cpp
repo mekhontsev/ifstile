@@ -46,7 +46,7 @@ std::string_view getPathPref()
 #if defined(__EMSCRIPTEN__)
 	ret = "/IFStile/"; //don't use what SDL provides('/libsdl/...')
 #else
-	auto* path = SDL_GetPrefPath(APPLICATION_COMPANY, APPLICATION_TITLE);
+	auto* path = SDL_GetPrefPath(nullptr, APPLICATION_TITLE);
 	if (path) {
 		ret = path;
 		SDL_free(path);

@@ -1,3 +1,7 @@
+v4.1.3
+- AIFS: Fix serialization
+- UI: keep the same root set when changing the active block
+---
 v4.1.2
 - AIFS: extend the conditional operator to compare arrays.
 - AIFS: lazy indexing

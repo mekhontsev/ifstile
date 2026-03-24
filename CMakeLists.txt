@@ -13,7 +13,6 @@ project(IFStile LANGUAGES CXX C VERSION ${PROJECT_VERSION})
 if (MSVC)
 	set(win_directx "#define IMS_USE_DX11 1\n")
 endif()
-#set(dev_version "#define DEVELOPER_VERSION 1\n")
 
 set(arch32 ${CMAKE_SIZEOF_VOID_P} EQUAL 4)
 set(arch64 ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
