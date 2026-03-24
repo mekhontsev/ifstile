@@ -624,31 +624,6 @@ h =7%0
 };
 
 
-TEST(testEval, powers)
-{
-	aifs_tester t(R"(
-@
-k=-1^2
-a=2^-1^2
-b=(2^-1)^2
-c=(2+2)^2
-d=(-1)^2
-e=(2^2)^3
-f=(-e)^2
-g=-a^-a^2
-)");
-
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("k", -1));// [google]
-	EXPECT_TRUE(t.equal("a", { 1,2 }));// [google]
-	EXPECT_TRUE(t.equal("b", { 1, 4 }));
-	EXPECT_TRUE(t.equal("c", 16));
-	EXPECT_TRUE(t.equal("d", 1));
-	EXPECT_TRUE(t.equal("f", 4096));
-	EXPECT_TRUE(t.approx("g", -1.189207115002721));
-};
-
 TEST(testEval, neg_ipow_int)
 {
 	aifs_tester t(R"(
@@ -752,11 +727,28 @@ b=s[n-1][n-1][n-1]
 	EXPECT_TRUE(t.equal("b", 7));
 };
 
+
+TEST(testPrintOp, Test1)
+{
+	aifs_tester t(R"(
+@
+a=2
+b=(a^-1)^2
+c=9%8%7
+d=1/(2-1)
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+
+	EXPECT_EQ(t.get_def("b"), "(a^-1)^2");
+	EXPECT_TRUE(t.equal("b", { 1, 4 }));
+	EXPECT_EQ(t.get_def("d"), "1/(2-1)");
+};
+
 TEST(testEval, parser)
 {
 	aifs_tester t(R"(
 @
-$dim=2
 a=2
 b=-a^0.5
 c=-2^0.5
@@ -768,8 +760,16 @@ h=-2-3
 i=(-2)^4
 j=(-2)^3
 k=(-2)^0.5
-v=[-1,0]
-r=$companion(v)
+k1=-1^2
+a1=2^-1^2
+b1=(2^-1)^2
+c1=(2+2)^2
+d1=(-1)^2
+e1=(2^2)^3
+f1=(-e1)^2
+g1=-a1^-a1^2
+h1=2^(2+2)
+i1=2^-2+1
 )");
 
 	if (!t.init())FAIL() << t.err_msg;
@@ -784,7 +784,76 @@ r=$companion(v)
 	EXPECT_TRUE(t.equal("h", -5));
 	EXPECT_TRUE(t.equal("i", 16));
 	EXPECT_TRUE(t.not_finite("k"));
-	EXPECT_TRUE(t.equal_vec("v", {-1,0}));
+	EXPECT_TRUE(t.equal("k1", -1));// [google]
+	EXPECT_TRUE(t.equal("a1", { 1,2 }));// [google]
+	EXPECT_TRUE(t.equal("b1", { 1, 4 }));
+	EXPECT_TRUE(t.equal("c1", 16));
+	EXPECT_TRUE(t.equal("d1", 1));
+	EXPECT_TRUE(t.equal("e1", 64));
+	EXPECT_TRUE(t.equal("f1", 4096));
+	EXPECT_TRUE(t.equal("h1", 16));
+	EXPECT_TRUE(t.equal("i1", { 5, 4 }));
+	EXPECT_TRUE(t.approx("g1", -1.189207115002721));
+
+
+	std::string s = "@\n";
+	s += "a=" + t.get_def("a") + "\n";
+	s += "b=" + t.get_def("b") + "\n";
+	s += "c=" + t.get_def("c") + "\n";
+	s += "d=" + t.get_def("d") + "\n";
+	s += "e=" + t.get_def("e") + "\n";
+	s += "f=" + t.get_def("f") + "\n";
+	s += "g=" + t.get_def("g") + "\n";
+	s += "h=" + t.get_def("h") + "\n";
+	s += "i=" + t.get_def("i") + "\n";
+	s += "k=" + t.get_def("k") + "\n";
+	s += "k1=" + t.get_def("k1") + "\n";
+	s += "a1=" + t.get_def("a1") + "\n";
+	s += "b1=" + t.get_def("b1") + "\n";
+	s += "c1=" + t.get_def("c1") + "\n";
+	s += "d1=" + t.get_def("d1") + "\n";
+	s += "e1=" + t.get_def("e1") + "\n";
+	s += "f1=" + t.get_def("f1") + "\n";
+	s += "g1=" + t.get_def("g1") + "\n";
+	s += "h1=" + t.get_def("h1") + "\n";
+	s += "i1=" + t.get_def("i1") + "\n";
+
+	aifs_tester t2(s);
+	if (!t2.init())FAIL() << t2.err_msg;
+
+	EXPECT_TRUE(t2.equal("a", 2));
+	EXPECT_TRUE(t2.approx("b", -1.414213562373095));
+	EXPECT_TRUE(t2.approx("c", -1.414213562373095));
+	EXPECT_TRUE(t2.approx("d", -2.82842712474619));
+	EXPECT_TRUE(t2.approx("e", 0));
+	EXPECT_TRUE(t2.approx("f", 2.82842712474619));
+	EXPECT_TRUE(t2.equal("g", 4));
+	EXPECT_TRUE(t2.equal("h", -5));
+	EXPECT_TRUE(t2.equal("i", 16));
+	EXPECT_TRUE(t2.not_finite("k"));
+	EXPECT_TRUE(t2.equal("k1", -1));// [google]
+	EXPECT_TRUE(t2.equal("a1", { 1,2 }));// [google]
+	EXPECT_TRUE(t2.equal("b1", { 1, 4 }));
+	EXPECT_TRUE(t2.equal("c1", 16));
+	EXPECT_TRUE(t2.equal("d1", 1));
+	EXPECT_TRUE(t2.equal("e1", 64));
+	EXPECT_TRUE(t2.equal("f1", 4096));
+	EXPECT_TRUE(t2.equal("h1", 16));
+	EXPECT_TRUE(t2.equal("i1", { 5, 4 }));
+	EXPECT_TRUE(t2.approx("g1", -1.189207115002721));
+};
+
+TEST(testEval, parser2)
+{
+	aifs_tester t(R"(
+@
+$dim=2
+v=[-1,0]
+r=$companion(v)
+)");
+
+	if (!t.init())FAIL() << t.err_msg;
+	EXPECT_TRUE(t.equal_vec("v", { -1,0 }));
 	EXPECT_TRUE(t.equal_affine("r", { 0, 1, 1, 0,0,0 }));
 };
 
@@ -983,21 +1052,6 @@ n=7
 ////////////////////////////////////////////////////////////////////////////////
 
 
-TEST(testPrintOp, Test1)
-{	
-	aifs_tester t(R"(
-@
-a=2
-b=(a^-1)^2
-c=9%8%7
-)");
-	
-	if (!t.init())FAIL() << t.err_msg;
-	
-	EXPECT_EQ(t.get_def("b"), "(a^-1)^2");
-	EXPECT_TRUE(t.equal("b", { 1, 4 }));
-	EXPECT_EQ(t.get_def("c"), "9%8%7");
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 TEST(testArrFuncs, NegativeIndex)

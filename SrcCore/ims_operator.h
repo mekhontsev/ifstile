@@ -25,6 +25,12 @@ enum class ETYPE : uint8_t
 
 	///////////////////////////////////////////////////////////////////////////
 
+	//inverse: 1/arg
+	inv,
+
+	//-arg
+	neg,
+
 	//degree (first argument is the base, exponent is in the header)
 	power_imm,
 
@@ -69,11 +75,6 @@ enum class ETYPE : uint8_t
 	//string
 	string,
 
-	//inverse: 1/arg
-	inv,
-
-	//-arg
-	neg,
 
 	//vector of numbers
 	vector_imm,

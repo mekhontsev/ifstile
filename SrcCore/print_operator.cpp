@@ -205,9 +205,7 @@ void print_operator(
 		if (t == ETYPE::power_imm) {
 			str << op.get_pow_exponent_imm();
 		}else{
-			str << "(";
-			print_operator(lst, str, b.get_ptr(ofs + 1), ETYPE::min_priority, fmt);
-			str << ")";
+			print_operator(lst, str, b.get_ptr(ofs + 1), t, fmt);
 		}
 		if (pr_bra)str << ")";
 		break;
