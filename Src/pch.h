@@ -19,21 +19,11 @@
 
 #include "pch_core.h"
 
-
 #ifdef __cplusplus
 
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef __ANDROID__
 #include <jni.h>
-#endif//__ANDROID__
-
-////////////////////////////////////////////////////////////////////////////////
-//Standard library
-#if 0 && defined(__ANDROID__)//bad export still appears on Android
-//so that libIFStile.so does not export functions like _ZTSNSt6__ndk117bad_function_callE
-#define _LIBCPP_NO_EXCEPTIONS
-#include <functional>
-#undef _LIBCPP_NO_EXCEPTIONS
 #endif//__ANDROID__
 
 #if defined(__EMSCRIPTEN__)
@@ -46,7 +36,6 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #endif // __EMSCRIPTEN__
-
 
 #if defined(__EMSCRIPTEN__) || defined(__ANDROID__)
 #define IMS_USE_GL3
@@ -65,8 +54,7 @@
 #undef min
 #endif //_MSC_VER
 
-
-#if defined(NDEBUG) && !defined(DEVELOPER_VERSION)		
+#if defined(NDEBUG) && !defined(DEVELOPER_VERSION)
 #define IMGUI_DISABLE_DEMO_WINDOWS 1
 #define IMGUI_DISABLE_DEBUG_TOOLS 1
 #endif
@@ -81,6 +69,3 @@
 #endif //__cplusplus
 
 #endif// __STDAFX_H__
-
-
-

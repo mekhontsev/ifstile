@@ -172,10 +172,9 @@ ims_info.h ims_info.cpp call_thread.h aifs_printer.h aifs_printer.cpp
 search_info.h print_operator.cpp oper_block.h oper_block.cpp
 ovr_data.h ovr_data.cpp eval_context.h eval_context.cpp
 geom_solver.h dist_solver.h dist_solver.cpp diam_solver.h diam_solver.cpp 
-clock_print.h block_info.h block_info.cpp  block_category.h
+clock_print.h block_info.h block_info.cpp
 dfs.h dfs.cpp ims_graph_base.h ims_graph_base.cpp ims_graph.cpp ims_graph.h
-conbuf.h conbuf.cpp version.h ims_num_traits.cpp
-geometry.h var_subs_info.h ims_info_counted_map.h
+conbuf.h conbuf.cpp version.h ims_num_traits.cpp geometry.h
  ifs_data_text.h  ifs_data_text.cpp  variator.h variator.cpp
 integer_ims.h integer_ims.cpp error_helper.h error_helper.cpp
 ims_num_traits.h ims_val_b.h ims_val.h ims_val.cpp throw_exception.cpp
