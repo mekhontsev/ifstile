@@ -1,6 +1,6 @@
 # Building IFStile
 
-IFStile uses the [CMake](http://cmake.org/) build system (v>=3.27) and [Git](https://git-scm.com/) for bootstrapping.
+IFStile uses the [CMake](http://cmake.org/) build system (v>=4.2) and [Git](https://git-scm.com/) for bootstrapping.
 
 `git clone https://github.com/mekhontsev/ifstile.git`
 

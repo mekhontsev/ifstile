@@ -1,97 +1,40 @@
-cmake_minimum_required(VERSION 3.27)
-
-cmake_policy(SET CMP0117 NEW)
+cmake_minimum_required(VERSION 4.2)
 
 if(APPLE)
 	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version" FORCE)
- 	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
-endif()	
-	
+	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+endif()
+
+#------------------------------------------------------------------------------
 include(version.cmake)
 project(IFStile LANGUAGES CXX C VERSION ${PROJECT_VERSION})
+include(CTest)
 
-if (MSVC)
-	set(win_directx "#define IMS_USE_DX11 1\n")
-endif()
-
-set(arch32 ${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-set(arch64 ${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-
-#set(CMAKE_VERBOSE_MAKEFILE ON)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-#set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
-
-set(exe_suffix)
-
-if(EMSCRIPTEN)
-	if(${arch64})
-		set(platform "wasm")
-	else()
-		set(platform "wasm_32")
-	endif()
-	set(exe_suffix "_${PROJECT_VERSION}")
-elseif(MSVC AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-	set(platform "msvc_arm")
-	set(exe_suffix "ARM")
-elseif(MSVC)
-	if(${arch64})
-		set(platform "msvc")
-	else()
-		set(platform "msvc_32")
-		set(exe_suffix "32")
-	endif()
-elseif(APPLE)
-	set(platform "macos")
-elseif(ANDROID)
-	set(platform "android")
-elseif(LINUX)
-	set(platform "linux")
-else()
-	message(FATAL_ERROR "not supported")
-endif()
-
-set(exe_name ${PROJECT_NAME}${exe_suffix})
-
-macro(prepend var path)
+#------------------------------------------------------------------------------
+function(prepend var path)
 	set(listVar "")
 	foreach(f ${${var}})
 		list(APPEND listVar ${path}/${f})
-	endforeach(f)
-	set(${var} ${listVar})
-endmacro()
-
-macro(decorate var prefix suffix)
-	set(listVar "")
-	foreach(f ${${var}})
-		list(APPEND listVar ${prefix}${f}${suffix})
-	endforeach(f)
-	set(${var} ${listVar})
-endmacro()
+	endforeach()
+	set(${var} ${listVar} PARENT_SCOPE)
+endfunction()
 
 #https://thatonegamedev.com/cpp/cmake/how-to-embed-files-in-your-c-project/
-function(target_embed_files EMBED_HEADERS_LOCATION DST_FILE)
-    set(OPTIONS)
-    set(SINGLE_VALUE)
-    set(MULTIPLE_VALUE FILES)
+function(generate_embed_header EMBED_HEADERS_LOCATION DST_FILE)
 
-    cmake_parse_arguments(
-        EF
-        "${OPTIONS}"
-        "${SINGLE_VALUE}"
-        "${MULTIPLE_VALUE}"
-        ${ARGN}
-    )
+	cmake_parse_arguments(EF "" "" "FILES" ${ARGN})
 
-    set(ARRAY_DECLARATIONS)
+	set(ARRAY_DECLARATIONS)
 
-    foreach(INPUT_FILE IN LISTS EF_FILES)
-        get_filename_component(FILENAME "${INPUT_FILE}" NAME_WLE)
+	foreach(INPUT_FILE IN LISTS EF_FILES)
+		if(NOT EXISTS "${INPUT_FILE}")
+			message(FATAL_ERROR "generate_embed_header: file not found: ${INPUT_FILE}")
+		endif()
+		set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${INPUT_FILE}")
 
-		string(CONFIGURE "//${FILENAME}" CURRENT_COMMENT)
+		cmake_path(GET INPUT_FILE STEM LAST_ONLY FILENAME)
+
+		set(CURRENT_COMMENT "//${FILENAME}")
 		list(APPEND ARRAY_DECLARATIONS "${CURRENT_COMMENT}")
 		
         string(TOLOWER "${FILENAME}" ARR_NAME)
@@ -100,7 +43,7 @@ function(target_embed_files EMBED_HEADERS_LOCATION DST_FILE)
         file(READ "${INPUT_FILE}" BYTES HEX)
         string(REGEX REPLACE "(..)" "0x\\1, " BYTES "${BYTES}")
 
-        string(CONFIGURE "constexpr uint8_t ${ARR_NAME}[] = { ${BYTES} }\;" CURRENT_DECLARATION)
+        set(CURRENT_DECLARATION "constexpr uint8_t ${ARR_NAME}[] = { ${BYTES} }\;")
 		list(APPEND ARRAY_DECLARATIONS "${CURRENT_DECLARATION}")
     endforeach()
 
@@ -112,53 +55,104 @@ namespace embed{
 ${ARRAY_DECLARATIONS}
 }")
 
-    string(CONFIGURE "${BASIC_HEADER}" BASIC_HEADER)
-
-    file(WRITE "${EMBED_HEADERS_LOCATION}/${DST_FILE}" "${BASIC_HEADER}")
+    file(CONFIGURE OUTPUT "${EMBED_HEADERS_LOCATION}/${DST_FILE}"
+    CONTENT "${BASIC_HEADER}")
 endfunction()
 
+#------------------------------------------------------------------------------
+#set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CONFIGURATION_TYPES Debug Release)
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+include(compiler_flags.cmake)
+
+#------------------------------------------------------------------------------
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set(arch32 TRUE)
+else()
+    set(arch32 FALSE)
+endif()
+
+set(exe_suffix)
+
+if(MSVC AND (CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64"
+		OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|aarch64)$"))
+	set(platform "msvc_arm")
+	set(exe_suffix "ARM")
+elseif(MSVC)
+	set(platform "msvc")
+	if(arch32)
+		set(exe_suffix "32")
+	endif()
+elseif(APPLE)
+	set(platform "macos")
+elseif(ANDROID)
+	set(platform "android")
+elseif(EMSCRIPTEN)
+	set(platform "wasm")
+	set(exe_suffix "_${PROJECT_VERSION}")
+elseif(LINUX)
+	set(platform "linux")
+else()
+	message(FATAL_ERROR "not supported")
+endif()
+
+if(arch32)
+	set(platform ${platform}_32)
+endif()
+
+set(exe_name ${PROJECT_NAME}${exe_suffix})
+
+if (MSVC)
+	set(win_directx "#define IMS_USE_DX11 1")
+endif()
 
 #-------------------------------------------------------------------------------
-set(CMAKE_CONFIGURATION_TYPES Debug Release)
-#set(CMAKE_USE_RELATIVE_PATHS ON)
-#set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
+cmake_path(SET ext NORMALIZE "${CMAKE_CURRENT_SOURCE_DIR}/external")
 set(bin ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-if (ANDROID)
-	set(bin ${bin}/arm64-v8a)
-elseif(EMSCRIPTEN)	
+
+if(EMSCRIPTEN)	
 	set(bin ${bin}/wasm)
+elseif (ANDROID)
+    set(bin ${bin}/arm64-v8a)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${bin})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${bin})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${bin})
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(GENERATE_HEADER_LOCATION "${CMAKE_BINARY_DIR}/embed/include")
+set(EMBED_HEADERS_LOCATION "${GENERATE_HEADER_LOCATION}/embed")
 
-
-if (MSVC)
-	add_link_options(/VERSION:${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
-endif()
-
-include(compiler_flags.cmake)
 #-------------------------------------------------------------------------------
-
 set (verhdr ${CMAKE_CURRENT_BINARY_DIR}/version_gen.h)
 
-file(WRITE ${verhdr}
-"#pragma once\n"
-"${dev_version}"
-"${win_directx}"
-"#define PROJECT_VERSION_MAJOR ${PROJECT_VERSION_MAJOR}\n"
-"#define PROJECT_VERSION_MINOR ${PROJECT_VERSION_MINOR}\n"
-"#define PROJECT_VERSION \"${PROJECT_VERSION}\"\n"
-)
+file(CONFIGURE OUTPUT ${verhdr} CONTENT
+"#pragma once
+#define PROJECT_VERSION_MAJOR ${PROJECT_VERSION_MAJOR}
+#define PROJECT_VERSION_MINOR ${PROJECT_VERSION_MINOR}
+#define PROJECT_VERSION \"${PROJECT_VERSION}\"
+${win_directx}
+${dev_version}
+")
 
+include(examples.cmake)
+prepend(Examples ${CMAKE_CURRENT_SOURCE_DIR}/Examples)
+generate_embed_header(${EMBED_HEADERS_LOCATION} examples.h FILES "${Examples}")
 
-#-------------------------------------------------------------------------------
-get_filename_component(ext ${CMAKE_CURRENT_SOURCE_DIR}/external ABSOLUTE)
-
+generate_embed_header(${EMBED_HEADERS_LOCATION} manual.h FILES ${CMAKE_CURRENT_SOURCE_DIR}/manual.md)
+generate_embed_header(${EMBED_HEADERS_LOCATION} font_awesome.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/forkawesome-webfont.ttf")
+generate_embed_header(${EMBED_HEADERS_LOCATION} RobotoMono_Regular.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/RobotoMono-Regular.ttf")
+generate_embed_header(${EMBED_HEADERS_LOCATION} RobotoMono_Bold.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/RobotoMono-Bold.ttf")
+generate_embed_header(${EMBED_HEADERS_LOCATION} RobotoMono_Italic.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/RobotoMono-Italic.ttf")
+generate_embed_header(${EMBED_HEADERS_LOCATION} icon256.png.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/ifstile256.png")
 #-------------------------------------------------------------------------------
 set (SRC_Core
 full_search.h full_search.cpp ims_print.h
@@ -224,14 +218,15 @@ visible_blocks.h visible_blocks.cpp  block_sets.h block_sets.cpp
 )
 
 prepend(SRC_Core SrcCore)
-#-------------------------------------------------------------------------------
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/SrcCore PREFIX "SrcCore" FILES ${SRC_Core})
+#------------------------------------------------------------------------------
 set (SRC_QuickJS 
 	cutils.c cutils.h libregexp.c libregexp.h  libregexp-opcode.h
 	libunicode.c  libunicode.h libunicode-table.h quickjs.c quickjs.h list.h
 	dtoa.h dtoa.c
 )
 prepend(SRC_QuickJS quickjs)
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 set (SRC_Tiny
 	cute_png.h tinyexr.h utf8_decoder.h 
 	md4c.h md4c.c
@@ -241,7 +236,7 @@ if(MSVC)
 	list (APPEND SRC_Tiny dirent/dirent.h)
 endif()
 prepend(SRC_Tiny Tiny)
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 set (SRC_GENERAL
 ims_settings.h ims_settings.cpp
 pch.h main.cpp main_utf8.cpp
@@ -267,6 +262,7 @@ font_icons.cpp font_regular.cpp font_bold.cpp font_italic.cpp
 ims_val_widget.h ims_val_widget.cpp edit_helper.h edit_helper.cpp
 )
 prepend(SRC_GENERAL Src)
+
 if(MSVC)
 	list(APPEND SRC_GENERAL PlatDep/resource.rc PlatDep/cpp.hint)
 endif()
@@ -275,7 +271,8 @@ list(APPEND SRC_GENERAL
 ${CMAKE_CURRENT_SOURCE_DIR}/Tiny/imgui_md.h 
 ${CMAKE_CURRENT_SOURCE_DIR}/Tiny/imgui_md.cpp)
 
-#-------------------------------------------------------------------------------
+#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Src PREFIX "Src" FILES ${SRC_GENERAL})
+#------------------------------------------------------------------------------
 set (SRC_IMGUI 
 imgui.h imgui.cpp imconfig.h imgui_internal.h imgui_demo.cpp imgui_draw.cpp
  imgui_widgets.cpp imgui_tables.cpp imstb_truetype.h imstb_rectpack.h  imstb_textedit.h
@@ -284,8 +281,7 @@ imgui.h imgui.cpp imconfig.h imgui_internal.h imgui_demo.cpp imgui_draw.cpp
  misc/debuggers/imgui.natvis
 )
 
-
-if(MSVC AND win_directx)
+if(win_directx)
 	set (SRC_IMGUI  ${SRC_IMGUI} 
 		backends/imgui_impl_dx11.h backends/imgui_impl_dx11.cpp)
 elseif(EMSCRIPTEN OR ANDROID) 
@@ -313,8 +309,11 @@ endif()
 
 #-------------------------------------------------------------------------------
 set(ALL_SRC 
-	${SRC_GENERAL} ${SRC_IMGUI} ${NATVIS_FILES}
-	${verhdr} ifstile.natvis manual.md)
+	${SRC_GENERAL} ${SRC_IMGUI} ${NATVIS_FILES}	${verhdr} manual.md)
+
+if(MSVC_IDE)
+    list(APPEND ALL_SRC ifstile.natvis)
+endif()
 #-------------------------------------------------------------------------------
 
 add_library(IFScore STATIC ${SRC_Core})
@@ -329,6 +328,7 @@ target_include_directories(IFScore PUBLIC
 	${ext}/fmt/include
 	Tiny
 )
+target_include_directories(IFScore PUBLIC ${GENERATE_HEADER_LOCATION})
 #------------------------------------------------------------------------------
 add_library(QuickJS STATIC ${SRC_QuickJS})
 target_include_directories(QuickJS PUBLIC quickjs)
@@ -338,18 +338,19 @@ target_include_directories(TinyLib PUBLIC Tiny)
 #------------------------------------------------------------------------------
 #disable warnings for 3rd party code
 if(MSVC)
-    target_compile_options(QuickJS PRIVATE /W0)
+	target_compile_options(QuickJS PRIVATE /W0)
 	target_compile_options(TinyLib PRIVATE /W0)
-	
 else()
-    target_compile_options(QuickJS PRIVATE -w)
+	target_compile_options(QuickJS PRIVATE -w)
 	target_compile_options(TinyLib PRIVATE "-w;-Wno-#pragma-messages")
 endif()
 #------------------------------------------------------------------------------
 
-
 if(MSVC)
 	add_executable(${PROJECT_NAME} WIN32 ${ALL_SRC})
+
+	target_link_options(${PROJECT_NAME} PRIVATE
+		/VERSION:${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 	
 	add_custom_command(
 		TARGET ${PROJECT_NAME}
@@ -368,13 +369,12 @@ elseif(APPLE)
 	# the property added to Info.plist
 	set(MACOSX_BUNDLE_ICON_FILE Application.icns)
 
-
 	set( MACOSX_BUNDLE_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 	set( MACOSX_BUNDLE_SHORT_VERSION_STRING ${MACOSX_BUNDLE_VERSION})
 	set( MACOSX_BUNDLE_BUNDLE_VERSION ${MACOSX_BUNDLE_VERSION})
 	set( MACOSX_BUNDLE_LONG_VERSION_STRING "Version ${MACOSX_BUNDLE_VERSION}" )
-	SET( MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2016-2026, Dmitry Mekhontsev. All Rights Reserved.")
-	SET( MACOSX_BUNDLE_GUI_IDENTIFIER "com.ifstile")
+	set( MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2016-2026, Dmitry Mekhontsev. All Rights Reserved.")
+	set( MACOSX_BUNDLE_GUI_IDENTIFIER "com.ifstile")
 #	set( MACOSX_BUNDLE_ADDITIONAL "<key>NSPrincipalClass</key>\n<string>NSApplication</string>") 
 
 	set(resFiles
@@ -387,10 +387,6 @@ elseif(APPLE)
 
 	add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${ALL_SRC} ${resFiles})
 	
-	set_target_properties( ${PROJECT_NAME}  PROPERTIES
-		XCODE_ATTRIBUTE_ENABLE_BITCODE "NO"	
-	) 
-
 	#get_dotapp_dir(${APPLICATION_BIN} APPLICATION_APP_LOCATION) 
 
 elseif(ANDROID)
@@ -409,29 +405,6 @@ elseif(LINUX)
 	)
 endif()
 
-
-#-------------------------------------------------------------------------------
-
-set(GENERATE_HEADER_LOCATION "${CMAKE_BINARY_DIR}/embed/include")
-set(EMBED_HEADERS_LOCATION "${GENERATE_HEADER_LOCATION}/embed")
-
-target_embed_files(${EMBED_HEADERS_LOCATION} manual.h 
-	FILES ${CMAKE_CURRENT_SOURCE_DIR}/manual.md)
-
-include_directories(${GENERATE_HEADER_LOCATION})
-#-------------------------------------------------------------------------------
-include(examples.cmake)
-prepend(Examples ${CMAKE_CURRENT_SOURCE_DIR}/Examples)
-target_embed_files(${EMBED_HEADERS_LOCATION} examples.h FILES "${Examples}")
-
-#-------------------------------------------------------------------------------
-
-target_embed_files(${EMBED_HEADERS_LOCATION} font_awesome.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/forkawesome-webfont.ttf")
-target_embed_files(${EMBED_HEADERS_LOCATION} RobotoMono_Regular.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/RobotoMono-Regular.ttf")
-target_embed_files(${EMBED_HEADERS_LOCATION} RobotoMono_Bold.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/RobotoMono-Bold.ttf")
-target_embed_files(${EMBED_HEADERS_LOCATION} RobotoMono_Italic.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/RobotoMono-Italic.ttf")
-target_embed_files(${EMBED_HEADERS_LOCATION} icon256.png.h FILES "${CMAKE_CURRENT_SOURCE_DIR}/Res/ifstile256.png")
-
 #-------------------------------------------------------------------------------
 # Setup include
 
@@ -447,6 +420,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	${ext}/fmt/include 
 	${ext}/SDL/include
 )
+target_include_directories(${PROJECT_NAME} PUBLIC ${GENERATE_HEADER_LOCATION})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/pch.h
@@ -476,26 +450,27 @@ set_target_properties (${PROJECT_NAME} PROPERTIES
 
 #-------------------------------------------------------------------------------
 #strip
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND NOT MSVC)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-	COMMAND $<$<CONFIG:Release>:${CMAKE_STRIP}> $<TARGET_FILE:${PROJECT_NAME}>
+	COMMAND $<$<CONFIG:Release>:${CMAKE_STRIP}$<SEMICOLON>$<TARGET_FILE:${PROJECT_NAME}>>
+	COMMAND_EXPAND_LISTS
 	COMMENT "Stripping ${PROJECT_NAME} for Release..."
 )
 endif()
 #-------------------------------------------------------------------------------
 #link other
-set (linkto SDL3)
-
 if(MSVC)
-	decorate(linkto "" ".lib")
+	set (linkto SDL3.lib)
 else()
-	decorate(linkto "lib" ".a")
+	set (linkto libSDL3.a)
 endif()
 
 set (lib ${ext}/lib/${platform})
-set (LINK_LIST "")
+set (LINK_LIST)
 foreach(x ${linkto})
-	list (APPEND LINK_LIST debug ${lib}/Debug/${x} optimized ${lib}/Release/${x})
+	list(APPEND LINK_LIST
+		"$<$<CONFIG:Debug>:${lib}/Debug/${x}>"
+		"$<$<CONFIG:Release>:${lib}/Release/${x}>")
 endforeach()
 
 #-------------------------------------------------------------------------------
@@ -530,7 +505,7 @@ elseif(LINUX)
 		GL dl pthread rt)
 endif()	
 
-target_link_libraries(${PROJECT_NAME} PUBLIC IFScore QuickJS TinyLib ${LINK_LIST})
+target_link_libraries(${PROJECT_NAME} PRIVATE IFScore QuickJS TinyLib ${LINK_LIST})
 
 
 #-----------------------------------Finder--------------------------------------
@@ -553,10 +528,14 @@ target_precompile_headers(IFSfinder PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/SrcFinder/pch.h
 )
 
-target_link_libraries(IFSfinder PUBLIC IFScore QuickJS TinyLib)
+target_link_libraries(IFSfinder PRIVATE IFScore QuickJS TinyLib)
 
 if(LINUX)
-	target_link_libraries(IFSfinder PUBLIC pthread)
+	target_link_libraries(IFSfinder PRIVATE pthread)
+	set_target_properties(IFSfinder PROPERTIES
+		LINK_SEARCH_START_STATIC 1
+		LINK_SEARCH_END_STATIC 1
+	)
 endif()	
 
 set_target_properties(IFSfinder PROPERTIES
@@ -566,8 +545,7 @@ set_target_properties(IFSfinder PROPERTIES
 endif()
 
 #------------------------------------Tests--------------------------------------
-if(MSVC)
-
+if(NOT EMSCRIPTEN AND NOT ANDROID)
 add_executable(Tests 
 	SrcTests/main.cpp SrcTests/main_utf8.cpp SrcTests/pch.h
 	SrcTests/test.cpp SrcTests/spline.cpp
@@ -592,11 +570,23 @@ target_include_directories(Tests PUBLIC
 	${ext}/googletest/googlemock/include
 )
 
+
 target_precompile_headers(Tests PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/SrcTests/pch.h
 )
 
-target_link_libraries(Tests PUBLIC IFScore QuickJS TinyLib)
+target_link_libraries(Tests PRIVATE IFScore QuickJS TinyLib)
+
+if(LINUX)
+	target_link_libraries(Tests PRIVATE pthread)
+	set_target_properties(Tests PROPERTIES
+		LINK_SEARCH_START_STATIC 1
+		LINK_SEARCH_END_STATIC 1
+	)
+endif()
+
+include(GoogleTest)
+gtest_discover_tests(Tests)
 
 set_target_properties(Tests PROPERTIES
 	DEBUG_POSTFIX d
