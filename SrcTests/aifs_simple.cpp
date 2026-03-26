@@ -76,7 +76,9 @@ TEST(testLoad, empty_file)
 {
 	aifs_tester t("");
 
-	if (!t.init())FAIL() << t.err_msg;
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+	}
 };
 
 
@@ -85,8 +87,9 @@ TEST(testLoad, empty_block)
 	aifs_tester t(R"(
 @empty
 )");
-
-	if (!t.init())FAIL() << t.err_msg;
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+	}
 };
 
 
@@ -98,8 +101,9 @@ TEST(testLoad, AeqA)
 $dim=1
 A=A
 )");
-
-	if (!t.init())FAIL() << t.err_msg;
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+	}
 };
 
 TEST(testLoad, AeqA1)
@@ -109,8 +113,9 @@ TEST(testLoad, AeqA1)
 $dim=1
 A=A*1
 )");
-
-	if (!t.init())FAIL() << t.err_msg;
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+	}
 };
 
 TEST(testLoad, AeqA1ex2)
@@ -121,8 +126,9 @@ $dim=1
 B=1
 A=A*B^-1
 )");
-
-	if (!t.init())FAIL() << t.err_msg;
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -136,9 +142,11 @@ a = 1
 b = 1.0
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 1));
-	EXPECT_TRUE(t.approx("b", 1));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 1));
+		EXPECT_TRUE(t.approx("b", 1));
+	}
 };
 
 
@@ -149,9 +157,10 @@ TEST(testEval, pi)
 a=$pi
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.approx("a", boost::math::constants::pi<ims_val_b::Real>()));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.approx("a", boost::math::constants::pi<ims_val_b::Real>()));
+	}
 };
 
 TEST(testEval, BabylonianMethod)
@@ -162,9 +171,10 @@ n=2
 r=[1.0, $, abs($[-1]*$[-1]-n)-1e-15, ($[-1]+n/$[-1])/2][-1]
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.approx("r", sqrt(2)));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.approx("r", sqrt(2)));
+	}
 };
 
 TEST(testEval, simple_call)
@@ -178,9 +188,10 @@ ret=n
 f=func(5) 
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("f", 5));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("f", 5));
+	}
 };
 
 TEST(testEval, recursive_vectors)
@@ -191,8 +202,10 @@ t=[0, $[0]+10, $[1]+15, $[1]+$[2]]
 t3=t[3]
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("t3", 35));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("t3", 35));
+	}
 };
 
 TEST(testEval, condition_vec)
@@ -205,12 +218,13 @@ c=if([7,[11,13]])
 d=if([7,[0,13]])
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("a", 1));
-	EXPECT_TRUE(t.equal("b", 0));
-	EXPECT_TRUE(t.equal("c", 1));
-	EXPECT_TRUE(t.equal("d", 0));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 1));
+		EXPECT_TRUE(t.equal("b", 0));
+		EXPECT_TRUE(t.equal("c", 1));
+		EXPECT_TRUE(t.equal("d", 0));
+	}
 };
 
 TEST(testEval, condition_2arg)
@@ -231,20 +245,21 @@ b0=if([1,[3,5]],[1,[3,5]])
 b1=if([1,[4,5]],[1,[3,5]])
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("a0", 1));
-	EXPECT_TRUE(t.equal("a1", 0));
-	EXPECT_TRUE(t.equal("a2", -1));
-	EXPECT_TRUE(t.equal("a3", -1));
-	EXPECT_TRUE(t.equal("a4", 1));
-	EXPECT_TRUE(t.equal("a5", 0));
-	EXPECT_TRUE(t.equal("a6", 1));
-	EXPECT_TRUE(t.equal("a7", -1));
-	EXPECT_TRUE(t.equal("a8", 1));
-	EXPECT_TRUE(t.equal("a9", -1));
-	EXPECT_TRUE(t.equal("b0", 0));
-	EXPECT_TRUE(t.equal("b1", 1));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a0", 1));
+		EXPECT_TRUE(t.equal("a1", 0));
+		EXPECT_TRUE(t.equal("a2", -1));
+		EXPECT_TRUE(t.equal("a3", -1));
+		EXPECT_TRUE(t.equal("a4", 1));
+		EXPECT_TRUE(t.equal("a5", 0));
+		EXPECT_TRUE(t.equal("a6", 1));
+		EXPECT_TRUE(t.equal("a7", -1));
+		EXPECT_TRUE(t.equal("a8", 1));
+		EXPECT_TRUE(t.equal("a9", -1));
+		EXPECT_TRUE(t.equal("b0", 0));
+		EXPECT_TRUE(t.equal("b1", 1));
+	}
 };
 
 
@@ -252,16 +267,17 @@ TEST(testEval, recursive_fib)
 {
 	aifs_tester t(R"(
 @fib
-n = 0                                
+n = 0
 ret = if(n-1, fib(n-1) + fib(n-2), 1)
 
 @
 v0 = fib(8) 
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("v0", 34));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("v0", 34));
+	}
 };
 
 TEST(testEval, recursive_factorial)
@@ -278,12 +294,13 @@ v2=fact(2)
 v5=fact(5) 
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("v1", 1));
-	EXPECT_TRUE(t.equal("v0", 1));
-	EXPECT_TRUE(t.equal("v2", 2));
-	EXPECT_TRUE(t.equal("v5", 120));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("v1", 1));
+		EXPECT_TRUE(t.equal("v0", 1));
+		EXPECT_TRUE(t.equal("v2", 2));
+		EXPECT_TRUE(t.equal("v5", 120));
+	}
 };
 
 TEST(testEval, fields)
@@ -300,9 +317,10 @@ z=0
 b=t1.y.n
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("b", 701));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("b", 701));
+	}
 };
 
 TEST(testEval, fields_cache)
@@ -322,14 +340,14 @@ x3=f2.a
 x4=f2.b
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_EQ(t.bi.m_ctx.m_refs5.size(), 7);//no duplicates
-
-	EXPECT_TRUE(t.equal("x1", 5));
-	EXPECT_TRUE(t.equal("x2", 5));
-	EXPECT_TRUE(t.equal("x3", 11));
-	EXPECT_TRUE(t.equal("x4", 17));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_EQ(t.bi.m_ctx.m_refs5.size(), 7);//no duplicates
+		EXPECT_TRUE(t.equal("x1", 5));
+		EXPECT_TRUE(t.equal("x2", 5));
+		EXPECT_TRUE(t.equal("x3", 11));
+		EXPECT_TRUE(t.equal("x4", 17));
+	}
 };
 
 
@@ -340,9 +358,10 @@ TEST(testEval, simple)
 x=0
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("x", 0));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("x", 0));
+	}
 };
 
 
@@ -361,15 +380,17 @@ d=if(0, 10, 1, 100, 200)
 e=if(1, 10, 0, 100, 200)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("x", 0));
-	EXPECT_TRUE(t.equal("y", 1));
-	EXPECT_TRUE(t.equal("z", 0));
-	EXPECT_TRUE(t.equal("a", 20));
-	EXPECT_TRUE(t.equal("b", 10));
-	EXPECT_TRUE(t.equal("c", 200));
-	EXPECT_TRUE(t.equal("d", 100));
-	EXPECT_TRUE(t.equal("e", 10));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("x", 0));
+		EXPECT_TRUE(t.equal("y", 1));
+		EXPECT_TRUE(t.equal("z", 0));
+		EXPECT_TRUE(t.equal("a", 20));
+		EXPECT_TRUE(t.equal("b", 10));
+		EXPECT_TRUE(t.equal("c", 200));
+		EXPECT_TRUE(t.equal("d", 100));
+		EXPECT_TRUE(t.equal("e", 10));
+	}
 };
 
 TEST(testEval, clamp)
@@ -387,10 +408,12 @@ a1=clamp(6, 5, 7)
 a2=clamp(8, 5, 7)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a0", 5));
-	EXPECT_TRUE(t.equal("a1", 6));
-	EXPECT_TRUE(t.equal("a2", 7));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a0", 5));
+		EXPECT_TRUE(t.equal("a1", 6));
+		EXPECT_TRUE(t.equal("a2", 7));
+	}
 };
 
 
@@ -404,9 +427,11 @@ b=if(a0, 2, 3)
 c=if(a1, 4, 5)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("b", 3));
-	EXPECT_TRUE(t.equal("c", 4));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("b", 3));
+		EXPECT_TRUE(t.equal("c", 4));
+	}
 };
 
 TEST(testEval, simpe_index)
@@ -415,8 +440,10 @@ TEST(testEval, simpe_index)
 @
 a=[10, 11, 12, 13][1]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 11));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 11));
+	}
 };
 
 TEST(testEval, parent_call)
@@ -443,15 +470,16 @@ g=func2()[1]
 #h=(func2())[1]
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	
-	EXPECT_TRUE(t.equal("x", 8));
-	EXPECT_TRUE(t.equal("w", 7));
-	EXPECT_TRUE(t.equal_vec("z", { 7,8 }));
-	EXPECT_TRUE(t.equal("y", 7));
-	EXPECT_EQ(t.eval_as_str("func"), "@func2");
-	EXPECT_TRUE(t.equal_vec("t", { 7,8 }));
-	EXPECT_TRUE(t.equal("g", 8));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("x", 8));
+		EXPECT_TRUE(t.equal("w", 7));
+		EXPECT_TRUE(t.equal_vec("z", { 7,8 }));
+		EXPECT_TRUE(t.equal("y", 7));
+		EXPECT_EQ(t.eval_as_str("func"), "@func2");
+		EXPECT_TRUE(t.equal_vec("t", { 7,8 }));
+		EXPECT_TRUE(t.equal("g", 8));
+	}
 };
 
 TEST(testEval, call_in_parent)
@@ -469,8 +497,10 @@ a=f(r)
 r=5
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 5));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 5));
+	}
 };
 
 
@@ -498,16 +528,17 @@ z4=b4.z
 t4=b4.t
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("z1", 15));
-	EXPECT_TRUE(t.equal("t1", 2));
-	EXPECT_TRUE(t.equal("z2", 8));
-	EXPECT_TRUE(t.equal("t2", 2));
-	EXPECT_TRUE(t.equal("z3", 72));
-	EXPECT_TRUE(t.equal("t3", -1));
-	EXPECT_TRUE(t.equal("z4", 45));
-	EXPECT_TRUE(t.equal("t4", -4));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("z1", 15));
+		EXPECT_TRUE(t.equal("t1", 2));
+		EXPECT_TRUE(t.equal("z2", 8));
+		EXPECT_TRUE(t.equal("t2", 2));
+		EXPECT_TRUE(t.equal("z3", 72));
+		EXPECT_TRUE(t.equal("t3", -1));
+		EXPECT_TRUE(t.equal("z4", 45));
+		EXPECT_TRUE(t.equal("t4", -4));
+	}
 };
 
 
@@ -535,10 +566,11 @@ x4x = recx(18)
 y4y = recy(18)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	
-	EXPECT_TRUE(t.approx("x4x", 0.4482937410865474));
-	EXPECT_TRUE(t.approx("y4y", 0.5784481899229401));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.approx("x4x", 0.4482937410865474));
+		EXPECT_TRUE(t.approx("y4y", 0.5784481899229401));
+	}
 };
 
 
@@ -558,9 +590,10 @@ C=[D, X, Y]
 x = fb(C)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("x", 3));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("x", 3));
+	}
 };
 
 TEST(testEval, charpoly_)
@@ -575,11 +608,12 @@ cv2=$charpoly(v2);
 c=$charpoly([5,6.2,1,7,8,3,9,2,3]);
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.approx_vec("cv1", { 2.3,4.7,0.501 }));
-	EXPECT_TRUE(t.equal_vec("cv2", { {1,2},{3,2},{7,3} }));
-	EXPECT_TRUE(t.approx_vec("c", { -69.2,20.6,-16 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.approx_vec("cv1", { 2.3,4.7,0.501 }));
+		EXPECT_TRUE(t.equal_vec("cv2", { {1,2},{3,2},{7,3} }));
+		EXPECT_TRUE(t.approx_vec("c", { -69.2,20.6,-16 }));
+	}
 };
 
 TEST(testEval, numden)
@@ -591,11 +625,12 @@ b=$numden(3.1, 1e-10)
 c=$numden(3.1, 1e-30)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal_vec("a", { 3, 7 }));
-	EXPECT_TRUE(t.equal_vec("b", { 31, 10 }));
-	EXPECT_TRUE(t.equal_vec("c", { 0, 0 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("a", { 3, 7 }));
+		EXPECT_TRUE(t.equal_vec("b", { 31, 10 }));
+		EXPECT_TRUE(t.equal_vec("c", { 0, 0 }));
+	}
 };
 
 TEST(testEval, modules)
@@ -612,15 +647,17 @@ g =(5/3)%(4/7)
 h =7%0
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 4));
-	EXPECT_TRUE(t.equal("b", -4));
-	EXPECT_TRUE(t.equal("c", 2));
-	EXPECT_TRUE(t.approx("d", 2.3));
-	EXPECT_TRUE(t.approx("e", 4));
-	EXPECT_TRUE(t.approx("f", -4));
-	EXPECT_TRUE(t.equal("g", {11,21}));
-	EXPECT_TRUE(t.equal("h", 7));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 4));
+		EXPECT_TRUE(t.equal("b", -4));
+		EXPECT_TRUE(t.equal("c", 2));
+		EXPECT_TRUE(t.approx("d", 2.3));
+		EXPECT_TRUE(t.approx("e", 4));
+		EXPECT_TRUE(t.approx("f", -4));
+		EXPECT_TRUE(t.equal("g", { 11,21 }));
+		EXPECT_TRUE(t.equal("h", 7));
+	}
 };
 
 
@@ -632,10 +669,11 @@ a8=(1/2)^-2
 a9=(1/2)^-1
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("a8", 4));
-	EXPECT_TRUE(t.equal("a9", 2));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a8", 4));
+		EXPECT_TRUE(t.equal("a9", 2));
+	}
 };
 
 
@@ -647,10 +685,11 @@ a=(2.5)^-2
 b=(2.5)^-1
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.approx("a", 0.16));
-	EXPECT_TRUE(t.approx("b", 0.4));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.approx("a", 0.16));
+		EXPECT_TRUE(t.approx("b", 0.4));
+	}
 };
 
 
@@ -662,8 +701,10 @@ $dim=3
 a=[0,0,0.5]^-1
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.approx_vec("a", { 0, 0, -0.5 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.approx_vec("a", { 0, 0, -0.5 }));
+	}
 	
 };
 
@@ -679,15 +720,14 @@ c=[1,2,3,4]^(3/2)
 d=[1,2,3,4,5]^(3/2)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-
-	EXPECT_TRUE(t.approx_vec("a", { 1.5, 3 }));
-	EXPECT_TRUE(t.approx_vec("b", { 1.5, 3, 4.5 }));
-	EXPECT_EQ(t.eval_as_str("c"), "invalid");
-	EXPECT_TRUE(t.approx_vec("d", { 1.5, 3, 4.5, 6, 7.5 }));
-	
-	//EXPECT_EQ(t.ehb.get_buf(), "affine real pow: not implemented");
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.approx_vec("a", { 1.5, 3 }));
+		EXPECT_TRUE(t.approx_vec("b", { 1.5, 3, 4.5 }));
+		EXPECT_EQ(t.eval_as_str("c"), "invalid");
+		EXPECT_TRUE(t.approx_vec("d", { 1.5, 3, 4.5, 6, 7.5 }));
+		//EXPECT_EQ(t.ehb.get_buf(), "affine real pow: not implemented");
+	}
 };
 
 
@@ -703,12 +743,13 @@ c=[1,2,3,4]^2
 d=[1,2,3,4,5]^2
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal_vec("a", { 2, 4 }));
-	EXPECT_TRUE(t.equal_vec("b", { 2, 4, 6 }));
-	EXPECT_TRUE(t.equal_affine("c", { 7, 15, 10, 22, 0, 0 }));
-	EXPECT_TRUE(t.equal_vec("d", { 2, 4, 6, 8, 10 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("a", { 2, 4 }));
+		EXPECT_TRUE(t.equal_vec("b", { 2, 4, 6 }));
+		EXPECT_TRUE(t.equal_affine("c", { 7, 15, 10, 22, 0, 0 }));
+		EXPECT_TRUE(t.equal_vec("d", { 2, 4, 6, 8, 10 }));
+	}
 };
 
 TEST(testEval, index)
@@ -721,10 +762,11 @@ n=1
 b=s[n-1][n-1][n-1]
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("a", 7));
-	EXPECT_TRUE(t.equal("b", 7));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 7));
+		EXPECT_TRUE(t.equal("b", 7));
+	}
 };
 
 
@@ -738,11 +780,12 @@ c=9%8%7
 d=1/(2-1)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_EQ(t.get_def("b"), "(a^-1)^2");
-	EXPECT_TRUE(t.equal("b", { 1, 4 }));
-	EXPECT_EQ(t.get_def("d"), "1/(2-1)");
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_EQ(t.get_def("b"), "(a^-1)^2");
+		EXPECT_TRUE(t.equal("b", { 1, 4 }));
+		EXPECT_EQ(t.get_def("d"), "1/(2-1)");
+	}
 };
 
 TEST(testEval, parser)
@@ -772,75 +815,29 @@ h1=2^(2+2)
 i1=2^-2+1
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal("a", 2));
-	EXPECT_TRUE(t.approx("b", -1.414213562373095));
-	EXPECT_TRUE(t.approx("c", -1.414213562373095));
-	EXPECT_TRUE(t.approx("d", -2.82842712474619));
-	EXPECT_TRUE(t.approx("e", 0));
-	EXPECT_TRUE(t.approx("f", 2.82842712474619));
-	EXPECT_TRUE(t.equal("g", 4));
-	EXPECT_TRUE(t.equal("h", -5));
-	EXPECT_TRUE(t.equal("i", 16));
-	EXPECT_TRUE(t.not_finite("k"));
-	EXPECT_TRUE(t.equal("k1", -1));// [google]
-	EXPECT_TRUE(t.equal("a1", { 1,2 }));// [google]
-	EXPECT_TRUE(t.equal("b1", { 1, 4 }));
-	EXPECT_TRUE(t.equal("c1", 16));
-	EXPECT_TRUE(t.equal("d1", 1));
-	EXPECT_TRUE(t.equal("e1", 64));
-	EXPECT_TRUE(t.equal("f1", 4096));
-	EXPECT_TRUE(t.equal("h1", 16));
-	EXPECT_TRUE(t.equal("i1", { 5, 4 }));
-	EXPECT_TRUE(t.approx("g1", -1.189207115002721));
-
-
-	std::string s = "@\n";
-	s += "a=" + t.get_def("a") + "\n";
-	s += "b=" + t.get_def("b") + "\n";
-	s += "c=" + t.get_def("c") + "\n";
-	s += "d=" + t.get_def("d") + "\n";
-	s += "e=" + t.get_def("e") + "\n";
-	s += "f=" + t.get_def("f") + "\n";
-	s += "g=" + t.get_def("g") + "\n";
-	s += "h=" + t.get_def("h") + "\n";
-	s += "i=" + t.get_def("i") + "\n";
-	s += "k=" + t.get_def("k") + "\n";
-	s += "k1=" + t.get_def("k1") + "\n";
-	s += "a1=" + t.get_def("a1") + "\n";
-	s += "b1=" + t.get_def("b1") + "\n";
-	s += "c1=" + t.get_def("c1") + "\n";
-	s += "d1=" + t.get_def("d1") + "\n";
-	s += "e1=" + t.get_def("e1") + "\n";
-	s += "f1=" + t.get_def("f1") + "\n";
-	s += "g1=" + t.get_def("g1") + "\n";
-	s += "h1=" + t.get_def("h1") + "\n";
-	s += "i1=" + t.get_def("i1") + "\n";
-
-	aifs_tester t2(s);
-	if (!t2.init())FAIL() << t2.err_msg;
-
-	EXPECT_TRUE(t2.equal("a", 2));
-	EXPECT_TRUE(t2.approx("b", -1.414213562373095));
-	EXPECT_TRUE(t2.approx("c", -1.414213562373095));
-	EXPECT_TRUE(t2.approx("d", -2.82842712474619));
-	EXPECT_TRUE(t2.approx("e", 0));
-	EXPECT_TRUE(t2.approx("f", 2.82842712474619));
-	EXPECT_TRUE(t2.equal("g", 4));
-	EXPECT_TRUE(t2.equal("h", -5));
-	EXPECT_TRUE(t2.equal("i", 16));
-	EXPECT_TRUE(t2.not_finite("k"));
-	EXPECT_TRUE(t2.equal("k1", -1));// [google]
-	EXPECT_TRUE(t2.equal("a1", { 1,2 }));// [google]
-	EXPECT_TRUE(t2.equal("b1", { 1, 4 }));
-	EXPECT_TRUE(t2.equal("c1", 16));
-	EXPECT_TRUE(t2.equal("d1", 1));
-	EXPECT_TRUE(t2.equal("e1", 64));
-	EXPECT_TRUE(t2.equal("f1", 4096));
-	EXPECT_TRUE(t2.equal("h1", 16));
-	EXPECT_TRUE(t2.equal("i1", { 5, 4 }));
-	EXPECT_TRUE(t2.approx("g1", -1.189207115002721));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 2));
+		EXPECT_TRUE(t.approx("b", -1.414213562373095));
+		EXPECT_TRUE(t.approx("c", -1.414213562373095));
+		EXPECT_TRUE(t.approx("d", -2.82842712474619));
+		EXPECT_TRUE(t.approx("e", 0));
+		EXPECT_TRUE(t.approx("f", 2.82842712474619));
+		EXPECT_TRUE(t.equal("g", 4));
+		EXPECT_TRUE(t.equal("h", -5));
+		EXPECT_TRUE(t.equal("i", 16));
+		EXPECT_TRUE(t.not_finite("k"));
+		EXPECT_TRUE(t.equal("k1", -1));// [google]
+		EXPECT_TRUE(t.equal("a1", { 1,2 }));// [google]
+		EXPECT_TRUE(t.equal("b1", { 1, 4 }));
+		EXPECT_TRUE(t.equal("c1", 16));
+		EXPECT_TRUE(t.equal("d1", 1));
+		EXPECT_TRUE(t.equal("e1", 64));
+		EXPECT_TRUE(t.equal("f1", 4096));
+		EXPECT_TRUE(t.equal("h1", 16));
+		EXPECT_TRUE(t.equal("i1", { 5, 4 }));
+		EXPECT_TRUE(t.approx("g1", -1.189207115002721));
+	}
 };
 
 TEST(testEval, parser2)
@@ -852,9 +849,11 @@ v=[-1,0]
 r=$companion(v)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("v", { -1,0 }));
-	EXPECT_TRUE(t.equal_affine("r", { 0, 1, 1, 0,0,0 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("v", { -1,0 }));
+		EXPECT_TRUE(t.equal_affine("r", { 0, 1, 1, 0,0,0 }));
+	}
 };
 
 TEST(testEval, sum_mat)
@@ -867,11 +866,12 @@ a1=s+s
 a2=s*2
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-
-	EXPECT_TRUE(t.equal_affine("s", {-1, 0}));
-	EXPECT_TRUE(t.equal_affine("a1", { -2, 0 }));
-	EXPECT_TRUE(t.equal_affine("a2", { -2, 0 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_affine("s", { -1, 0 }));
+		EXPECT_TRUE(t.equal_affine("a1", { -2, 0 }));
+		EXPECT_TRUE(t.equal_affine("a2", { -2, 0 }));
+	}
 };
 
 
@@ -886,23 +886,24 @@ C=[A,B]
 D=C[0]
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	
-	let& D = t.get_var("D");
-	EXPECT_TRUE(D.ready[0]);
-	EXPECT_TRUE(D.ready[1]);
-	EXPECT_TRUE(D.dep_from_cycles);
-	EXPECT_TRUE(D.dep_from_unions);
-	EXPECT_TRUE(!D.is_subs);
-	EXPECT_TRUE(t.is_closed("D"));
-	
-	let& C = t.get_var("C");
-	EXPECT_TRUE(C.ready[0]);
-	EXPECT_TRUE(C.ready[1]);
-	EXPECT_FALSE(C.dep_from_cycles);//geometric!
-	EXPECT_FALSE(C.dep_from_unions);
-	EXPECT_TRUE(!C.is_subs);
-	EXPECT_TRUE(!t.is_closed("C"));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		let& D = t.get_var("D");
+		EXPECT_TRUE(D.ready[0]);
+		EXPECT_TRUE(D.ready[1]);
+		EXPECT_TRUE(D.dep_from_cycles);
+		EXPECT_TRUE(D.dep_from_unions);
+		EXPECT_TRUE(!D.is_subs);
+		EXPECT_TRUE(t.is_closed("D"));
+
+		let& C = t.get_var("C");
+		EXPECT_TRUE(C.ready[0]);
+		EXPECT_TRUE(C.ready[1]);
+		EXPECT_FALSE(C.dep_from_cycles);//geometric!
+		EXPECT_FALSE(C.dep_from_unions);
+		EXPECT_TRUE(!C.is_subs);
+		EXPECT_TRUE(!t.is_closed("C"));
+	}
 };
 
 
@@ -913,9 +914,11 @@ TEST(testEval, test_vars)
 a=$number($integer(0,1))
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	let& a = t.get_var("a");
-	EXPECT_TRUE(a.is_var());
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		let& a = t.get_var("a");
+		EXPECT_TRUE(a.is_var());
+	}
 };
 
 
@@ -928,17 +931,17 @@ a=b
 b=r
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	
-	let& r = t.get_var("r");
-	let& a = t.get_var("a");
-	let& b = t.get_var("b");
-	
-	EXPECT_TRUE(!r.is_var());
-	EXPECT_TRUE(r.is_var2);
-	EXPECT_TRUE(r.is_subs);
-	EXPECT_TRUE(!a.is_var());
-	EXPECT_TRUE(b.is_var());
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		let& r = t.get_var("r");
+		let& a = t.get_var("a");
+		let& b = t.get_var("b");
+		EXPECT_TRUE(!r.is_var());
+		EXPECT_TRUE(r.is_var2);
+		EXPECT_TRUE(r.is_subs);
+		EXPECT_TRUE(!a.is_var());
+		EXPECT_TRUE(b.is_var());
+	}
 };
 
 
@@ -951,8 +954,10 @@ A=A
 B=A[0]
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_EQ(t.eval_as_str("B", false), "@0{A[0]}");
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_EQ(t.eval_as_str("B", false), "@0{A[0]}");
+	}
 };
 
 
@@ -965,10 +970,12 @@ A=3^-1*([0] | [1])*A
 B=3^-1*([0] | [1] | [2])*B
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	let* g = t.get_last_block()->get_graph();
-	EXPECT_EQ(g->m_am.m_ixm.m_maps.size(), 3);
-	EXPECT_EQ(g->m_g1.num_ver(), 2);
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		let* g = t.get_last_block()->get_graph();
+		EXPECT_EQ(g->m_am.m_ixm.m_maps.size(), 3);
+		EXPECT_EQ(g->m_g1.num_ver(), 2);
+	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -994,17 +1001,18 @@ v0 = index_union(0)
 v1 = index_union(1)
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.bi.exists());
-
-	size_t num_balls = 0;
-	for (let& bx : t.bi.m_vb) {
-		if (!bx.defined2())continue;
-		EXPECT_EQ(bx.dim(), 1);
-		EXPECT_GE(bx.radius(), 0.25);
-		++num_balls;
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.bi.exists());
+		size_t num_balls = 0;
+		for (let& bx : t.bi.m_vb) {
+			if (!bx.defined2())continue;
+			EXPECT_EQ(bx.dim(), 1);
+			EXPECT_GE(bx.radius(), 0.25);
+			++num_balls;
+		}
+		EXPECT_GE(num_balls, 2);
 	}
-	EXPECT_GE(num_balls, 2);
 };
 
 TEST(testIFS, graph1)
@@ -1016,8 +1024,10 @@ A=3^-1*[0]*A | 3^-1*[1]*A | 3^-1*[2]
 B=A*B
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.bi.exists());
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.bi.exists());
+	}
 };
 
 TEST(testIFS, topo_override)
@@ -1042,11 +1052,13 @@ u=h|[0,0]|[1,0]|[2,0]|[3,0]|[4,0]|[5,0]
 n=7
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.bi.exists());
-	EXPECT_EQ(t.bi.get_fg().num_ver(), 1);
-	EXPECT_EQ(t.bi.get_fg().m_edges.size(), 7);
-	EXPECT_GT(t.bi.m_vb[0].radius(), 0);
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.bi.exists());
+		EXPECT_EQ(t.bi.get_fg().num_ver(), 1);
+		EXPECT_EQ(t.bi.get_fg().m_edges.size(), 7);
+		EXPECT_GT(t.bi.m_vb[0].radius(), 0);
+	}
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1061,8 +1073,10 @@ TEST(testArrFuncs, NegativeIndex)
 a=[1,2,3]
 b=a[-1]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("b", 3));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("b", 3));
+	}
 };
 
 TEST(testArrFuncs, ArrSize)
@@ -1077,10 +1091,12 @@ s1=a1()
 s2=a2()
 )");
 
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("s0", 0));
-	EXPECT_TRUE(t.equal("s1", 1));
-	EXPECT_TRUE(t.equal("s2", 2));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("s0", 0));
+		EXPECT_TRUE(t.equal("s1", 1));
+		EXPECT_TRUE(t.equal("s2", 2));
+	}
 };
 
 TEST(testArrFuncs, ArrGenWrong)
@@ -1090,9 +1106,11 @@ TEST(testArrFuncs, ArrGenWrong)
 a=[$]
 b=[$,0]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_FALSE(t.valid("a"));
-	EXPECT_FALSE(t.valid("b"));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_FALSE(t.valid("a"));
+		EXPECT_FALSE(t.valid("b"));
+	}
 };
 
 TEST(testArrFuncs, ArrGenSeq)
@@ -1101,8 +1119,10 @@ TEST(testArrFuncs, ArrGenSeq)
 @
 a=[$, 4-$(), $(), -1]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a", { 0,1,2,3,-1}));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("a", { 0,1,2,3,-1 }));
+	}
 };
 
 TEST(testArrFuncs, ArrGenSeq2)
@@ -1113,9 +1133,11 @@ a=[$, 4-$(), [$(1)(),$(1)()*$(1)()]]
 sa=a()
 a3=a[3]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a3", { 3,9 }));
-	EXPECT_TRUE(t.equal("sa", 4));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("a3", { 3,9 }));
+		EXPECT_TRUE(t.equal("sa", 4));
+	}
 };
 
 
@@ -1126,8 +1148,10 @@ TEST(testArrFuncs, ArrPar)
 a=[7,[11,[13,$(0)[0], $(1)[0], $(2)[0]]]]
 b=a[1][1]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("b", { 13,13,11,7 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("b", { 13,13,11,7 }));
+	}
 };
 
 
@@ -1137,8 +1161,10 @@ TEST(testArrFuncs, ArrGenFib)
 @
 a=[0, 1, $, 7-$(), $[-1]+$[-2]]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a", { 0,1,1,2,3,5,8 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("a", { 0,1,1,2,3,5,8 }));
+	}
 };
 
 TEST(testArrFuncs, ArrGenCopy)
@@ -1148,8 +1174,10 @@ TEST(testArrFuncs, ArrGenCopy)
 b=[2,3,5,7,11]
 a=[$, b()-$(), b[$()]]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a", { 2,3,5,7,11 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("a", { 2,3,5,7,11 }));
+	}
 };
 
 TEST(testArrFuncs, FancyIndexing)
@@ -1163,9 +1191,11 @@ i2 = [1,1,1]
 a2 = x[i2]
 
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a1", { 40,10,60 }));
-	EXPECT_TRUE(t.equal_vec("a2", { 20,20,20 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("a1", { 40,10,60 }));
+		EXPECT_TRUE(t.equal_vec("a2", { 20,20,20 }));
+	}
 };
 
 
@@ -1178,11 +1208,13 @@ b = [7,11,13]([0,0,2])
 c = [sin(1),cos(1)](0)
 d = [sin(1),cos(1)]([1,1])
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 11));
-	EXPECT_TRUE(t.equal_vec("b", { 7,7,13 }));
-	EXPECT_TRUE(t.approx("c", sin(1)));
-	EXPECT_TRUE(t.approx_vec("d", {cos(1), cos(1)}));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 11));
+		EXPECT_TRUE(t.equal_vec("b", { 7,7,13 }));
+		EXPECT_TRUE(t.approx("c", sin(1)));
+		EXPECT_TRUE(t.approx_vec("d", { cos(1), cos(1) }));
+	}
 };
 
 TEST(testArrFuncs, ArrFlat)
@@ -1201,15 +1233,17 @@ s3=a3()
 s4=a4()
 a12=a1[2]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("s0", 3));
-	EXPECT_TRUE(t.equal("s1", 4));
-	EXPECT_TRUE(t.equal("s2", 5));
-	EXPECT_TRUE(t.equal("s3", 6));
-	EXPECT_TRUE(t.equal("s4", 6));
-	EXPECT_TRUE(t.equal("a12", 2));
-	EXPECT_TRUE(t.equal_vec("a3", { 0, 1, 2, 3, 4, 5 }));
-	EXPECT_TRUE(t.equal_vec("a4", { 0, 1, 2, 3, 4, 5 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("s0", 3));
+		EXPECT_TRUE(t.equal("s1", 4));
+		EXPECT_TRUE(t.equal("s2", 5));
+		EXPECT_TRUE(t.equal("s3", 6));
+		EXPECT_TRUE(t.equal("s4", 6));
+		EXPECT_TRUE(t.equal("a12", 2));
+		EXPECT_TRUE(t.equal_vec("a3", { 0, 1, 2, 3, 4, 5 }));
+		EXPECT_TRUE(t.equal_vec("a4", { 0, 1, 2, 3, 4, 5 }));
+	}
 };
 
 TEST(testArrFuncs, MatrixFlat)
@@ -1221,10 +1255,12 @@ a0=a[0]
 a1=a[1]
 a2=a[2]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("a0", { 0,1,0 }));
-	EXPECT_TRUE(t.equal_vec("a1", { 0,0,1 }));
-	EXPECT_TRUE(t.equal_vec("a2", { -5,-6,-7 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("a0", { 0,1,0 }));
+		EXPECT_TRUE(t.equal_vec("a1", { 0,0,1 }));
+		EXPECT_TRUE(t.equal_vec("a2", { -5,-6,-7 }));
+	}
 };
 
 
@@ -1252,23 +1288,25 @@ b=[1,[2,3], 4]
 b0=b[1:b()]
 b1=b0[0]
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_vec("p1", { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
-	EXPECT_TRUE(t.equal_vec("p2", { 0, 1, 2, 3 }));
-	EXPECT_TRUE(t.equal_vec("p3", { 4, 5, 6, 7, 8, 9 }));
-	EXPECT_TRUE(t.equal_vec("p4", { 2, 3, 4, 5, 6 }));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_vec("p1", { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+		EXPECT_TRUE(t.equal_vec("p2", { 0, 1, 2, 3 }));
+		EXPECT_TRUE(t.equal_vec("p3", { 4, 5, 6, 7, 8, 9 }));
+		EXPECT_TRUE(t.equal_vec("p4", { 2, 3, 4, 5, 6 }));
 
-	EXPECT_TRUE(t.equal_vec("n1", { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }));
-	EXPECT_TRUE(t.equal_vec("n2", { 8, 7, 6, 5, 4, 3 }));
-	EXPECT_TRUE(t.equal_vec("n3", { 9, 8, 7, 6, 5 }));
-	EXPECT_TRUE(t.equal_vec("n4", { 7, 6, 5, 4, 3, 2, 1, 0 }));
-	EXPECT_TRUE(t.equal_vec("n5", { 8, 7, 6, 5 }));
-	EXPECT_TRUE(t.equal_vec("n6", { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }));
-	EXPECT_TRUE(t.equal_vec("n7", {}));
-	EXPECT_TRUE(t.equal_vec("n8", {}));
-	EXPECT_TRUE(t.equal_vec("n9", { 8, 6, 4 }));
+		EXPECT_TRUE(t.equal_vec("n1", { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }));
+		EXPECT_TRUE(t.equal_vec("n2", { 8, 7, 6, 5, 4, 3 }));
+		EXPECT_TRUE(t.equal_vec("n3", { 9, 8, 7, 6, 5 }));
+		EXPECT_TRUE(t.equal_vec("n4", { 7, 6, 5, 4, 3, 2, 1, 0 }));
+		EXPECT_TRUE(t.equal_vec("n5", { 8, 7, 6, 5 }));
+		EXPECT_TRUE(t.equal_vec("n6", { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 }));
+		EXPECT_TRUE(t.equal_vec("n7", {}));
+		EXPECT_TRUE(t.equal_vec("n8", {}));
+		EXPECT_TRUE(t.equal_vec("n9", { 8, 6, 4 }));
 
-	EXPECT_TRUE(t.equal_vec("b1", { 2, 3 }));
+		EXPECT_TRUE(t.equal_vec("b1", { 2, 3 }));
+	}
 };
 ////////////////////////////////////////////////////////////////////////////////
 TEST(testJS, ConsoleLog)
@@ -1276,11 +1314,13 @@ TEST(testJS, ConsoleLog)
 	aifs_tester t(R"(
 console.log('ConsoleLog')
 )");
-	ext_console_clear();
-	if (!t.init())FAIL() << t.err_msg;
-	std::string s;
-	ext_console_sync(s);
-	EXPECT_EQ(s, "ConsoleLog\n");
+	for (size_t i = 0; i < 2; ++i) {
+		ext_console_clear();
+		if (!t.init())FAIL() << t.err_msg;
+		std::string s;
+		ext_console_sync(s);
+		EXPECT_EQ(s, "ConsoleLog\n");
+	}
 }
 
 TEST(testJS, JsInitFunc)
@@ -1293,8 +1333,10 @@ export function js_init(){
 @
 $init = js_init
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 123));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 123));
+	}
 }
 
 TEST(testJS, JsInitFunc2)
@@ -1305,8 +1347,10 @@ export function js_init(){
 }
 export const $aifs={$init: 'js_init' };
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 125));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 125));
+	}
 }
 
 TEST(testJS, JsInitFunc3)
@@ -1372,13 +1416,15 @@ d=arr_length([4.5,5,7,9])
 e=create_arr(6)
 f = imm[1];
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 4));
-	EXPECT_TRUE(t.equal("b", 6));
-	EXPECT_TRUE(t.equal("c", 3));
-	EXPECT_TRUE(t.equal("d", 4));
-	EXPECT_TRUE(t.equal_vec("e", { 6,7 }));
-	EXPECT_TRUE(t.equal("f", 12));
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 4));
+		EXPECT_TRUE(t.equal("b", 6));
+		EXPECT_TRUE(t.equal("c", 3));
+		EXPECT_TRUE(t.equal("d", 4));
+		EXPECT_TRUE(t.equal_vec("e", { 6,7 }));
+		EXPECT_TRUE(t.equal("f", 12));
+	}
 }
 
 TEST(testArrFuncs, LazyIndexing2)
@@ -1393,13 +1439,14 @@ export function inc(arg){
 @
 a = [inc(1),11](1)
 )");
-	ext_console_clear();
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 11));
-
-	std::string s;
-	ext_console_sync(s);
-	EXPECT_TRUE(s.empty());
+	for (size_t i = 0; i < 2; ++i) {
+		ext_console_clear();
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 11));
+		std::string s;
+		ext_console_sync(s);
+		EXPECT_TRUE(s.empty());
+	}
 };
 TEST(testArrFuncs, LazyIndexing3)
 {
@@ -1413,13 +1460,14 @@ export function inc(arg){
 @
 a = [inc(1),11](0)
 )");
-	ext_console_clear();
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal("a", 2));
-
-	std::string s;
-	ext_console_sync(s);
-	EXPECT_FALSE(s.empty());
+	for (size_t i = 0; i < 2; ++i) {
+		ext_console_clear();
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal("a", 2));
+		std::string s;
+		ext_console_sync(s);
+		EXPECT_FALSE(s.empty());
+	}
 };
 
 TEST(testStrings, Str1)
@@ -1428,7 +1476,9 @@ TEST(testStrings, Str1)
 @
 a = "12 3"
 )");
-	if (!t.init())FAIL() << t.err_msg;
-	EXPECT_TRUE(t.equal_str("a", "12 3"));
-	EXPECT_EQ(t.get_def("a"), "\"12 3\"");
+	for (size_t i = 0; i < 2; ++i) {
+		if (!t.init())FAIL() << t.err_msg;
+		EXPECT_TRUE(t.equal_str("a", "12 3"));
+		EXPECT_EQ(t.get_def("a"), "\"12 3\"");
+	}
 };

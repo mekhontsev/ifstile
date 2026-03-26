@@ -309,7 +309,7 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 			b->m_flags.ready = true;
 		}
 
-		if (was_ready && !b->has_js_parent() && b->m_parent) {
+		if (was_ready && !b->has_js_parent()) {
 			assert(!b->is_invalid());
 			assert(!b->m_flags.priv);
 

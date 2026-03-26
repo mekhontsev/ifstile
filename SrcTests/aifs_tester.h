@@ -34,6 +34,8 @@ struct aifs_tester
 	std::string err_msg;
 
 	oper_block inh;
+
+	bool second_pass = false;
 	
 	static constexpr ims_val_b::Real eps = 1e-15;
 

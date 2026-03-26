@@ -24,20 +24,35 @@
 
 static void write_double(char* dst, size_t dst_size, double v, const char* fmt)
 {
-	assert(fmt);
-	auto res = fmt::format_to_n(dst, dst_size, fmt::runtime(fmt), v);
-	*res.out = 0;//terminate string
+	size_t sz = fmt?
+		fmt::format_to_n(dst, dst_size, fmt::runtime(fmt), v).size:
+		fmt::format_to_n(dst, dst_size, "{:#}", v).size;
 
-	//remove trailing zeros
-	for (;;) {
-		if (*dst == 0)return;
-		if (*dst++ == '.')break;
+	auto* e = dst + sz;
+	if (e[-1] == '.') {
+		*e++ = '0';
 	}
-	char* p = dst + strlen(dst) - 1;
-	while (*p == '0')*p-- = 0;
-	if (*p == '.')*p-- = 0;
+	*e = 0;
 };
 
+void get_num_from_imm(sval& dst, const ims_operator& v)
+{
+	switch (v.ts) {
+	case ESUBTYPE::integer:
+		dst.i64 = v.i32;
+		return;
+	case ESUBTYPE::rational:
+		dst.rt[0] = v.r16[0];
+		dst.rt[1] = v.r16[1];
+		return;
+	case ESUBTYPE::real:
+		dst.f64 = v.f32;
+		return;
+	default:
+		assert(false);//TODO
+		return;
+	}
+}
 
 static void write_num(
 	std::ostream& str,
@@ -46,100 +61,55 @@ static void write_num(
 	ETYPE par_type,
 	const char* fmt=nullptr)
 {
-	bool pb = par_type == ETYPE::power || par_type == ETYPE::power_imm;
+	ETYPE t = ETYPE::undef;
 	switch (st) {
-	case ESUBTYPE::integer: 
+	case ESUBTYPE::integer:
+		if (v.i64 < 0)t = ETYPE::sum;
+		break;
+	case ESUBTYPE::rational:
+		if (v.rt[1] != 1)t = ETYPE::mul;
+		else if (v.rt[0] < 0)t = ETYPE::sum;
+		break;
+	case ESUBTYPE::real:
+		if (v.f64 < 0)t = ETYPE::sum;
+		break;
+	default:
+		assert(false);//TODO
+	}
+
+	let pb = par_type < t;
+	if (pb)if (pb)str << "(";
+
+	switch (st) {
+	case ESUBTYPE::integer:
 	{
 		let& x = v.i64;
-		pb = pb && x < 0;
-		if (pb)str << "(";
 		str << x;
-		if (pb)str << ")";
 		break;
 	}
 	case ESUBTYPE::rational:
 	{
 		let& x = v.rt[0];
-		pb = pb && x < 0;
-		if (pb)str << "(";
 		str << x;
 		if (v.rt[1] != 1) {
 			str << "/" << v.rt[1];
 		}
-		if (pb)str << ")";
 		break;
 	}
 	case ESUBTYPE::real:
 	{
 		let& x = v.f64;
-		pb = pb && x < 0;
-		if (pb)str << "(";
-		if (fmt) {
-			char buf[32];
-			write_double(buf, std::size(buf), x, fmt);
-			str << buf;
-		} else {
-			str << x;
-		}
-		if (pb)str << ")";
-
+		char buf[32];
+		write_double(buf, std::size(buf), x, fmt);
+		str << buf;
 		break;
 	}
 	default:
 		assert(false);//TODO
 		break;
 	}
-
+	if (pb)str << ")";
 };
-
-static void write_num_imm(
-	std::ostream& str, 
-	const ims_operator& v, 
-	ETYPE par_type,
-	const char* fmt = nullptr)
-{
-	bool pb = par_type == ETYPE::power || par_type == ETYPE::power_imm;
-	switch (v.ts) {
-	case ESUBTYPE::integer:
-	case ESUBTYPE::rational:
-	{
-		int64_t a, b;
-		v.get_int_imm(a, b);
-
-		let& x = a;
-		pb = pb && x < 0;
-		if (pb)str << "(";
-		str << x;
-		if (b != 1) {
-			str << "/" << b;
-		}
-		if (pb)str << ")";
-		break;
-	}
-	case ESUBTYPE::real:
-	{
-		let& x = v.f32;
-		pb = pb && x < 0;
-		if (pb)str << "(";
-		if (fmt) {
-			char buf[32];
-			write_double(buf, std::size(buf), x, fmt);
-			str << buf;
-		} else {
-			str << x;
-		}
-		if (pb)str << ")";
-		break;
-	}
-	default:
-		assert(false);//TODO
-		break;
-	}
-
-};
-
-
-
 
 void print_operator(
 	const ifs_list& lst,
@@ -156,7 +126,6 @@ void print_operator(
 
 	let ofs = op.get_offset();
 	let t = op.tt;
-
 
 	switch (t) {
 	case ETYPE::reference:
@@ -248,8 +217,12 @@ void print_operator(
 		break;
 	}
 	case ETYPE::number_imm:
-		write_num_imm(str, op, par_type, fmt);
+	{
+		sval sv;
+		get_num_from_imm(sv, op);
+		write_num(str, sv, op.ts, par_type, fmt);
 		break;
+	}
 	case ETYPE::number:
 		write_num(str, b.m_ops[ofs], op.ts, par_type, fmt);
 		break;

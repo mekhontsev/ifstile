@@ -22,6 +22,7 @@
 #include "variable.h"
 #include "block_graph.h"
 #include "aifs_load.h"
+#include "aifs_printer.h"
 
 void print_operator(
 	const ifs_list& lst,
@@ -166,7 +167,7 @@ bool aifs_tester::init()
 	if (!init_ex()) {
 		return false;
 	}
-	
+
 	auto* b = const_cast<oper_block*>(get_last_block());
 	if (!b)return true;
 
@@ -182,6 +183,31 @@ bool aifs_tester::init()
 	if (inh.is_invalid()) {
 		return false;
 	}
+
+	if (second_pass)return true;
+
+	second_pass = true;
+
+	/////////////////////////////////////////////////////
+
+	for (auto& q : nfo->m_list.m_id2data) {
+		q.b->m_src2.reset();
+	}
+
+	std::stringstream of;
+	aifs_printer de;
+
+	nfo->print_js(of);
+	de.ims_to_text(
+		of,
+		nfo->m_list,
+		{},
+		false,
+		false,
+		true
+	);
+
+	aifs = of.str();
 
 	return true;
 }
