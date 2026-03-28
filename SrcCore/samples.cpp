@@ -147,7 +147,7 @@ void samples::add_recent(std::string_view filename, bool to_front)
 
 void samples::remove_recent(std::string_view filename)
 {
-	ims_erase(get_recent().smp, [filename](let& e) {
+	std::erase_if(get_recent().smp, [filename](let& e) {
 		return e.path == filename;
 	});
 }

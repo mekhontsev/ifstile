@@ -255,7 +255,7 @@ void neighbors_data::set_relator(
 			size_t j = (i + 1) % N;
 			if (dst[i] == -dst[j]) {
 				dst[i] = dst[j] = 0;
-				ims_erase(dst, [](let& e) {return e == 0; });
+				std::erase_if(dst, [](let& e) {return e == 0; });
 				cont = true;
 				break;
 			}
@@ -454,7 +454,7 @@ void neighbors_data::get_neighbor_maps(
 			}
 		}
 
-		ims_erase(rel->m_data, [](auto& r) {return r.prod.empty(); });
+		std::erase_if(rel->m_data, [](auto& r) {return r.prod.empty(); });
 
 		std::sort(rel->m_data.begin(), rel->m_data.end(), [](let& e1, let& e2) {
 			return e1.prod.size() < e2.prod.size();

@@ -137,7 +137,7 @@ void visible_blocks::remove_marked(ifs_list& lst)
 {
 
 	let num_block = lst.size();
-	ims_erase(lst.m_blocks, [&](let id) 
+	std::erase_if(lst.m_blocks, [&](let id) 
 	{
 		let* q = lst.get_block(id);
 		if (!q->m_flags.marked) return false;

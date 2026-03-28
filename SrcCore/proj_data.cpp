@@ -25,7 +25,7 @@
 
 void proj_data::recheck()
 {
-	ims_erase(m_projs, [](let& e) {return !e.ready; });
+	std::erase_if(m_projs, [](let& e) {return !e.ready; });
 
 	for (auto& q : m_projs) {
 		q.ready = false;

@@ -154,12 +154,12 @@
 #ifdef _MSC_VER
 #pragma warning(pop)
 #else
-#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 #endif//_MSC_VER
 ////////////////////////////////////////////////////////////////////////////////
 //restrict
 #ifdef _MSC_VER
-#define restrict_var __restrict;
+#define restrict_var __restrict
 #elif defined(__GNUC__) || defined(__clang__)
 #define restrict_var __restrict__
 #endif//_MSC_VER
@@ -252,7 +252,7 @@ template<typename Container, typename Pred>
 void ims_erase(Container& t, Pred pred)
 {
 	t.erase(std::remove_if(t.begin(), t.end(), pred), t.end());
-};
+}
 template <typename Container>
 void ims_resize(Container& t, size_t sz)
 {

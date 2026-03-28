@@ -289,7 +289,7 @@ bool graph_builder::create(
 	}
 
 	//take into account the removed edges
-	ims_erase(edges, [](let& e) {return e.first == ims_max; });
+	std::erase_if(edges, [](let& e) {return e.first == ims_max; });
 	
 	refresh_graph();
 
@@ -327,7 +327,7 @@ bool graph_builder::create(
 	}
 
 	if (changed) {//take into account the removed edges
-		ims_erase(edges, [](let& e) {return e.first == ims_max; });
+		std::erase_if(edges, [](let& e) {return e.first == ims_max; });
 		refresh_graph();
 	}
 
@@ -354,7 +354,7 @@ bool graph_builder::create(
 	}
 
 	//remove edges of unreachable vertices, edge sorting is preserved
-	ims_erase(edges, [&](let& e) {return m_imp[e.first] != 1; });
+	std::erase_if(edges, [&](let& e) {return m_imp[e.first] != 1; });
 
 	dg.m_vers.clear();//information has become outdated
 	////////////////////////////////////////////////////////////////////////////

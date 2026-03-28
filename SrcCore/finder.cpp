@@ -1400,7 +1400,7 @@ struct search_contex
 					cdim_cur = dim_uniq.m_arr[k];
 
 					//remove part for the next iteration
-					ims_erase(inter_graph.m_edges, [k](let& e)
+					std::erase_if(inter_graph.m_edges, [k](let& e)
 					{
 						return e.m == k;
 					});

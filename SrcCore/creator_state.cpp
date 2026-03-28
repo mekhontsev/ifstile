@@ -210,7 +210,7 @@ bool creator_state::graph::parse(std::string_view line)
 	//remove spaces
 	std::string lnsp(line);
 
-	ims_erase(lnsp, [](char c) {return c <= ' ';});
+	std::erase_if(lnsp, [](char c) {return c <= ' ';});
 	
 	std::vector<std::string> str_ver;
 

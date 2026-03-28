@@ -297,7 +297,7 @@ void ims_graph_base::color_refinement(color_refinement_data& crd)
 	};
 
 	//leave only the edges coming from the root vertices
-	ims_erase(m_edges, [num_maps](let& e) {	return e.m >= num_maps;});
+	std::erase_if(m_edges, [num_maps](let& e) {	return e.m >= num_maps;});
 
 }
 

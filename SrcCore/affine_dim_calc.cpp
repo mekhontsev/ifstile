@@ -162,7 +162,7 @@ affine_dim_calc::compute_dim(
 	}
 
 	//removing unnecessary
-	ims_erase(m_vers, [](let& v) {return v.edges.size() <= 1; });
+	std::erase_if(m_vers, [](let& v) {return v.edges.size() <= 1; });
 
 	if (m_vers.empty()) {
 		return 0;

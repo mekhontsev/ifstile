@@ -53,7 +53,7 @@ void ims_graph::remove_non_strong_edges()
 {
 	let nv = num_ver();
 
-	ims_erase(m_edges, [this](let& e) {
+	std::erase_if(m_edges, [this](let& e) {
 		return m_ver2com[e.first] != m_ver2com[e.second];
 	});
 
@@ -106,7 +106,7 @@ void ims_graph::init(size_t nv0, bool remove_edge_dups)
 		}
 
 		if (changed) {
-			ims_erase(m_edges, [&](let& e) {return m_vers[e.second].sz == 0; });
+			std::erase_if(m_edges, [&](let& e) {return m_vers[e.second].sz == 0; });
 			set_vertex_index(nv0);
 		}
 		
@@ -364,7 +364,7 @@ void ims_graph::remove_dim_zero()
 	}
 	
 	//remove edges
-	ims_erase(m_edges, [this](let& e) {
+	std::erase_if(m_edges, [this](let& e) {
 		return is_dim_zero(e.first) || is_dim_zero(e.second);
 	});
 

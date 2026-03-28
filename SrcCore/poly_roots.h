@@ -297,7 +297,7 @@ inline void adjust(RootList<Real>& roots)
 		if (z.real()*z.real() < e2)z.real(0);
 	};
 
-	ims_erase(roots, [](let& z) {return z.imag() < 0;});
+	std::erase_if(roots, [](let& z) {return z.imag() < 0;});
 	
 
 	std::sort(roots.begin(), roots.end(), [](let& z1, let& z2) {

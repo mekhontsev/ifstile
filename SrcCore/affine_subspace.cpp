@@ -464,7 +464,7 @@ bool affine_builder::append_subspace(
 		//but we'll check further
 	}
 
-	//ims_erase(sb, [](let& q) {return q.num == 0;});
+	//std::erase_if(sb, [](let& q) {return q.num == 0;});
 
 	subspace ns;
 	ns.idx = m_points.size();

@@ -2,3 +2,5 @@
 #define ims_global
 #define ims_static static
 #define ims_func_static static
+#define IMS_DEFINE_OPAQUE_DELETER(T)
+#define IMS_SCOPE(lambda)
