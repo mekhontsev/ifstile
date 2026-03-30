@@ -43,7 +43,7 @@ struct visible_blocks
 	std::vector<const oper_block*> m_vis_blocks;
 
 	//number of marked
-	std::atomic<uint32_t> m_checked{};
+	uint32_t m_checked{};
 
 	void reset_vis_blocks(const ifs_list& lst);
 	size_t find_vis_block(const oper_block* b);

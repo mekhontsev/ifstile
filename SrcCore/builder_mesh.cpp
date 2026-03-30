@@ -46,14 +46,14 @@ bool builder_mesh::calc_buffer(
 	DynVec<Real> tv;//temporary
 
 
-	auto& rnfo = *ims_worker::get();
+	auto& rnfo = ims_stage::get();
 
 
 	let maxr = sb.get_radius();
 
 	while (ce) {
 
-		if (rnfo.is_need_stop2())
+		if (ims_need_stop())
 		{
 			return false;
 		};

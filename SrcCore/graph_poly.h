@@ -117,5 +117,5 @@ void compute_graph_poly(
 
 	//here the calculations can take a very long time
 	DynMat<Integer> T, nmatB;
-	char_poly(nmat, num_ver, nmatB, T, h.data(), ims_worker::get());
+	char_poly(nmat, num_ver, nmatB, T, h.data(), &ims_stage::get());
 }

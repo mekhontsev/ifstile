@@ -376,10 +376,8 @@ void creator_state::find_poly()
 
 	m_hash_cyc.resize(cgi.size());
 
-	
-	auto& irn = ims_random::getR();
-	irn.seed();
-	
+	auto& irn = ims_random::get();
+
 	RationalPoly poly;
 	poly.d = 1;
 	

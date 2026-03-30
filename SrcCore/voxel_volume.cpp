@@ -19,7 +19,7 @@
 #include "ball3d.h"
 #include "voxel.h"
 #include "mesh3d.h"
-#include "ims_worker.h"
+#include "ims_stage.h"
 
 
 static_assert(sizeof(voxel_volume::voxel) == 8, "Invalid voxel size");
@@ -324,17 +324,17 @@ void voxel_volume::triangulate(mesh& m) const
 
 	let wa = 1.0/((p1.z - p0.z + 1)*(p1.y - p0.y + 1));
 
-	auto* rt = ims_worker::get();
+	auto& rt = ims_stage::get();
 
 	for (unsigned z = p0.z; z <= p1.z; ++z) {
 		for (unsigned y = p0.y; y <= p1.y; ++y) {
 
 
-			if (rt->is_need_stop2()) {
+			if (ims_need_stop()) {
 				m.clear();
 				return;
 			}
-			rt->work_add(wa);
+			rt.work_add(wa);
 
 			for (unsigned x = p0.x; x <= p1.x; ++x) {
 				point3d p[12];//vertices - lie on the edges of the cube

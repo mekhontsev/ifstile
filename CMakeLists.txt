@@ -161,6 +161,7 @@ parser_state.h parser_state.cpp  spline.h print_dimensions.cpp
 matrix_funcs.h matrix_group.h matrix_group.cpp 
 ims_keywords.h ims_operator.h ims_operator.cpp block_class.h block_class.cpp 
 data_column.cpp data_column.h def_number_types.h ims_random.h ims_random.cpp 
+ims_stage.h ims_stage.cpp
 ims_info.h ims_info.cpp call_thread.h aifs_printer.h aifs_printer.cpp
 search_info.h print_operator.cpp oper_block.h oper_block.cpp
 ovr_data.h ovr_data.cpp eval_context.h eval_context.cpp
@@ -178,7 +179,7 @@ finder.h finder.cpp column_id.h pch_core.h pch.h
 columns.h columns.cpp graph_init_data.h graph_init_data.cpp
 ifs_list.h ifs_list.cpp
 projector.h projector.cpp env_block.h env_block.cpp ims_identifiers.cpp ims_identifiers.h
-ims_full_graph.h ims_full_graph.cpp ims_worker.h ims_worker.cpp 
+ims_full_graph.h ims_full_graph.cpp
 utf8.h utf8.cpp main_utf8.h ims_chrono.h ims_ini.h ims_ini.cpp
 block_converter.h block_converter.cpp graph_poly.h js_engine.h js_engine.cpp
 operator_ptr.h operator_ptr.cpp  palette.h palette.cpp ims_visitor.h 
@@ -213,7 +214,7 @@ creator_state.h creator_state.cpp
 ims_to_string_ex.h ims_to_string_ex.cpp
 flame_calc.h flame_calc.cpp
 info_printer.h info_printer.cpp save_type.h  draw_task.h
-program_state.h program_state.cpp ims_help.h ims_help.cpp
+ims_help.h ims_help.cpp
 visible_blocks.h visible_blocks.cpp  block_sets.h block_sets.cpp
 )
 
@@ -245,7 +246,7 @@ js_ifs.cpp ims_rw.h ims_rw.cpp
 file_dialog_state.h file_dialog_state.cpp 
 thread_priority.cpp platform.h platform.cpp 
 platform_windows.cpp platform_macos.cpp platform_android.cpp platform_wasm.cpp
-platform_linux.cpp
+platform_linux.cpp program_state.h program_state.cpp
 ui_window.h ui_window.cpp gui.h gui.cpp ims_window_drag.h ims_window_drag.cpp
 ui_creator.h ui_creator.cpp ui_animation.h ui_animation.cpp
 ui_examples.h ui_examples.cpp ui_colum_info.cpp ui_finder.h ui_finder.cpp
@@ -260,6 +261,7 @@ ui_render_par.cpp ui_console.h ui_console.cpp ui_editor.h ui_editor.cpp
 ui_utils.h ui_utils.cpp ims_markdown.h ims_markdown.cpp icons.cpp
 font_icons.cpp font_regular.cpp font_bold.cpp font_italic.cpp
 ims_val_widget.h ims_val_widget.cpp edit_helper.h edit_helper.cpp
+ims_worker.h ims_worker.cpp
 )
 prepend(SRC_GENERAL Src)
 

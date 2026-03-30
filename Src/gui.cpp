@@ -79,6 +79,7 @@
 #include "variable.h"
 #include "ovr_data.h"
 #include "aifs_load.h"
+#include "ims_worker.h"
 
 #if 0
 #include "imgui_virtual_keyboard.h"
@@ -421,7 +422,7 @@ void rand_current_set()
 			*nb,
 			*bd->m_block_sq,
 			vp,
-			ims_random::getR());
+			ims_random::get());
 
 		if (nv > 0) {
 			std::swap(bd->m_block_sq, nb);
@@ -715,7 +716,7 @@ static bool build_mesh(
 		gm,
 		root);
 
-	auto& nfo = *ims_worker::get();
+	auto& nfo = ims_stage::get();
 
 	builder_mesh mesh_builder;
 	voxel_volume vol;
@@ -807,7 +808,7 @@ static bool save_mesh(
 
 	if (!res)return false;
 
-	auto& nfo = *ims_worker::get();
+	auto& nfo = ims_stage::get();
 	nfo.m_stage_name = "Saving...";
 	nfo.work_reset();
 
@@ -1439,10 +1440,9 @@ void console_compute(const F& f)
 	auto* xd = get_global_bd();
 	if (!xd || !xd->m_bi.exists())return;
 
-
 	ta.start([xd, f]() {
 		set_thread_name("Computing");
-		ims_worker::get()->m_stage_name = "Computing...";
+		ims_stage::get().m_stage_name = "Computing...";
 		f(&xd->m_bi);
 		redraw_gui(1);
 	});
@@ -1452,9 +1452,9 @@ void console_compute(const F& f)
 void console_execute(std::string_view script)
 {
 	auto& ta = get_thread(e_ims_threads::aux);
-	ta.m_stage_name = "JavaScript exec";
 	std::string s{ script };
 	ta.start([s = std::move(s)]() {
+		ims_stage::get().m_stage_name = "JavaScript exec";
 		clock_print clock("JS execution time");
 		ims_info_get().m_js_engine.eval(s);
 	});
@@ -2344,7 +2344,6 @@ static void build_task(draw_task task)
 	rp.max_bits = finder::get().m_max_bits;
 	rp.find_prec2 = finder::get().m_find_prec;
 
-	auto& rth = *ims_worker::get();
 
 	g_ps.build_image(
 		ifs_list_get().m_idf,
@@ -2357,7 +2356,7 @@ static void build_task(draw_task task)
 		s_ui.m_location.m_force2D,
 		get_rpars(),
 		get_build_mode(),
-		rth);
+		ims_stage::get());
 
 
 	if (!ims_need_stop() && g_ps.m_ts2 == 1) {
@@ -2813,7 +2812,7 @@ void open_file(
 			assert(!ims_worker::is_main_thread());
 
 			set_thread_name("Loading");
-			ims_worker::get()->m_stage_name = "Loading...";
+			ims_stage::get().m_stage_name = "Loading...";
 
 			ims_reader reader;
 			if (!edit) {
@@ -2860,16 +2859,19 @@ void open_file(
 					ims_png::find_aifs(iter);
 				};
 
-
 				clear_before_load();
 
 				finder::get().init();
-
 
 				pnfo.reset(new ims_info);
 				load_ok = ims_load7(*pnfo, filename, iter, end, false);
 
 				if (load_ok) {
+					//if the user interrupted, we'll try to initialize what was loaded
+					auto* w = ims_worker::get();
+					assert(w);
+					w->try_to_continue();
+
 					keep_new = pnfo->m_list.find_block2(block_id, block_name);
 					std::swap(g_ims_info, pnfo);
 				}
@@ -3269,8 +3271,8 @@ struct render_context
 	render_params ren_par;
 	bool force2d;
 
-	std::atomic<uint32_t> saved_blocks{};
-	std::atomic<uint32_t> active_threads{};
+	uint32_t saved_blocks = 0;
+	uint32_t active_threads = 0;
 
 	static std::string get_file_name(const oper_block* sr) 
 	{
@@ -3288,7 +3290,7 @@ struct render_context
 
 		cur_ps.m_build_data.resize(1);
 
-		auto& rth = *ims_worker::get();
+		auto& rth = ims_stage::get();
 
 		for (let& q : ifs_list_get().m_id2data) {
 			if (ims_need_stop()) {
@@ -3304,7 +3306,7 @@ struct render_context
 
 			IMS_SCOPE([&]{
 				fclose(f);
-				++saved_blocks;
+				ims_increment(saved_blocks);
 			});
 
 			////////////////////////////////////////////////////////////
@@ -3415,9 +3417,9 @@ void do_batch_rendering()
 	for (size_t i = 0; i < nt; ++i) {
 		auto& rth = ims_worker::get_thread(i + thread_start_idx);
 		rth.start([&]() {
-			++rc.active_threads;
+			ims_increment(rc.active_threads);
 			rc.render();
-			--rc.active_threads;
+			ims_decrement(rc.active_threads);
 		});
 	}
 };
@@ -3532,14 +3534,17 @@ static void show_helper(ListViewMode m)
 static void show_aux_dialog()
 {
 	auto& ct = get_thread(e_ims_threads::aux);
+	auto* st = ct.m_stage;
+	if (!st)return;
 
-	let* tt = ct.m_stage_name.empty() ? "Computing" : ct.m_stage_name.c_str();
+
+	let* tt = st->m_stage_name.empty() ? "Computing" : st->m_stage_name.c_str();
 
 	std::array<char, 32> buf = {};
 	fmt::format_to_n(buf.data(), buf.size(), "{}###Compute\0", tt);
 
 	std::array<char, 32> text = {};
-	let w = ct.work_done();
+	let w = st->work_done();
 	if (w <= 1) {
 		fmt::format_to_n(text.data(), text.size(), "{:5.2f}% Completed\0", w * 100);
 	}else {
@@ -5097,9 +5102,12 @@ bool on_draw()
 				g_status_text += std::string("[1/") + std::to_string(bs) + "]";
 			}
 		}
-		g_status_text +=
-			std::to_string(tb.work_done() * 100) + "%";
 
+		let* stage = tb.m_stage;
+		if (stage) {
+			g_status_text +=
+				std::to_string(stage->work_done() * 100) + "%";
+		}
 	}
 
 	//before drawing the StatusBar because it changes the text
@@ -5389,4 +5397,24 @@ static void draw_base(const frect& rc)
 			0, 0, 1);
 	}
 }
+
+#if 0
+#include "ims_chrono.h"
+void test_allocation_rate()
+{
+	let num_iters = 1024 * 1024 * 16;
+	size_t sum = 0;
+
+	let start = ims_chrono::now();
+	for (size_t iter = 0; iter < num_iters; ++iter) {
+		pool_ptr p(eval_pool::ep.get_affine_real(((iter + sum) & 15) + 1));//170 million/c
+		//pool_ptr p(eval_pool::ep.get_affine_real(1));//250 million/c
+		sum += reinterpret_cast<size_t>(p.get() + iter);
+	}
+	let time = ims_chrono::dif_micro(start, ims_chrono::now()) * 1e-6;
+
+	std::cout << "rate = " << num_iters / time <<
+		" sum = " << sum << std::endl;
+}
+#endif
 

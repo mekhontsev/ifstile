@@ -27,6 +27,7 @@
 #include "ims_info.h"
 #include "edge_map.h"
 #include "variable.h"
+#include "ims_worker.h"
 
 thumb_elem* program_state::get_first_thumb_elem()
 {
@@ -62,7 +63,6 @@ ims_bitmap& program_state::get_img_rend()
 
 void program_state::clear_draw_image()
 {
-	assert(ims_worker::is_main_thread());
 	std::scoped_lock lock(m_lock_draw);
 	get_img_draw().recreate(0, 0);
 	m_img_draw_uploaded = false;
@@ -97,7 +97,6 @@ void program_state::init7()
 
 void program_state::swap_buffer()
 {
-	assert(!ims_worker::is_main_thread());
 	std::scoped_lock lock(m_lock_draw);
 	m_draw_img_idx ^= 1;
 	m_img_draw_uploaded = false;
@@ -183,8 +182,6 @@ bool program_state::on_start_build(
 	const visible_blocks& vb,
 	const variator_params& vp)
 {
-	assert(ims_worker::is_main_thread());
-
 	if (max_thumb == 1 || !thumb_list) {
 		scr.initX(1, max_thumb);
 		m_build_data.resize(1);
@@ -304,11 +301,9 @@ void program_state::build_image(
 	bool force2d, 
 	const render_params& rend,
 	const ifs_object_type mode,
-	ims_worker& rth)
+	ims_stage& rth)
 {
 	assert(on_frame_complete);
-
-	assert(!ims_worker::is_main_thread());
 
 	size_t num_thumb = 0;
 
@@ -419,7 +414,7 @@ void program_state::build_image(
 		auto& cur = *m_thumb_arr[i];
 		auto& cdt = *cur.m_data3;
 
-		if (rth.is_need_stop2()) {
+		if (ims_need_stop()) {
 			return;
 		}
 
@@ -427,7 +422,7 @@ void program_state::build_image(
 			continue;
 		}
 
-		if (rth.is_need_stop2()) {
+		if (ims_need_stop()) {
 			return;
 		}
 		if (mode != ifs_object_type::normal) {
@@ -436,7 +431,7 @@ void program_state::build_image(
 			};
 		}
 
-		if (rth.is_need_stop2()) {
+		if (ims_need_stop()) {
 			return;
 		}
 
@@ -500,7 +495,7 @@ void program_state::build_image(
 		}
 
 
-		if (rth.is_need_stop2()) {
+		if (ims_need_stop()) {
 			return;
 		}
 
@@ -619,7 +614,7 @@ void program_state::build_image(
 	if (m_ts2 == 0) {
 
 		//you need to take this, not the current one, otherwise there will be freezes
-		m_img_rend_start_time = rth.m_time_start;
+		m_img_rend_start_time = ims_worker::get()->m_time_start;
 
 		for (size_t i = 0; i < num_thumb; ++i) {
 			auto& cur = *m_thumb_arr[i];

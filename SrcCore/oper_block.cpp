@@ -382,7 +382,7 @@ void oper_block::generate_random_vector(size_t dst_idx,
 
 	bool err = false;
 
-	auto& irn = ims_random::getR();
+	auto& irn = ims_random::get();
 
 	if (di.t == ETYPE::distribution_int) {
 		m_ops[dst_idx].hdr.ts = ESUBTYPE::integer;
@@ -503,7 +503,7 @@ void oper_block::generate_random_permutation(size_t dst_idx,
 	}
 	assert(idx == dim);
 
-	auto& irn = ims_random::getR();
+	auto& irn = ims_random::get();
 	std::shuffle(&d[0].u64, &d[dim].u64, irn.rng);
 }
 

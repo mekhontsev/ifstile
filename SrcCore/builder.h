@@ -18,7 +18,7 @@
 
 #include "palette.h"
 #include "ims_bitmap.h"
-#include "ims_worker.h"
+#include "ims_stage.h"
 #include "ims_graph.h"//init_cmaps
 #include "edge_ball.h"
 #include "big_array.h"
@@ -49,7 +49,7 @@ void to_bitmap(
 		return;//for example, there wasn't enough memory
 	}
 
-	auto& rnfo = *ims_worker::get();
+	auto& rnfo = ims_stage::get();
 
 	let wr = 1.0 / (sx*sy);
 
@@ -60,7 +60,7 @@ void to_bitmap(
 		
 		for (size_t dx = 0; dx < sx; ++dx) {
 
-			if (rnfo.is_need_stop2()) {
+			if (ims_need_stop()) {
 				return;//instant reaction
 			}
 

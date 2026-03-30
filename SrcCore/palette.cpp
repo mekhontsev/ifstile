@@ -332,7 +332,7 @@ void palette::randomize(size_t from)
 		max_b = 1;
 	}
 
-	auto& rng = ims_random::getR().rng;
+	auto& rng = ims_random::get().rng;
 	std::uniform_real_distribution<float> distr(min_b, max_b);
 
 	for (size_t i = from; i < data.size(); ++i) {
@@ -397,7 +397,7 @@ void palette::randomize(
 	auto dV = get_dist(V[0], V[1]);
 	auto dA = get_dist(A[0], A[1]);
 
-	auto& rng = ims_random::getR().rng;
+	auto& rng = ims_random::get().rng;
 
 	for (size_t i = 0; i < data.size(); ++i) {
 		auto& q = data[i];

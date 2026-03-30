@@ -26,6 +26,7 @@
 #include "gbuffer3d.h"
 #include "draw_task.h"
 #include "report_params.h"
+#include "ims_chrono.h"
 
 
 struct oper_block;
@@ -228,7 +229,7 @@ public:
 		bool force2d,
 		const render_params& rend,
 		const ifs_object_type mode,
-		ims_worker& rth);
+		ims_stage& rth);
 
 	bool save_png(
 		const ims_info& nfo,

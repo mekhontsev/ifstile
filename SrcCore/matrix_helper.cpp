@@ -19,7 +19,7 @@
 #include "math_helpers.h"//mulpow
 
 
-ims_static thread_local matrix_helper s_matrix_helper;
+static thread_local matrix_helper s_matrix_helper;
 
 matrix_helper& matrix_helper::get_matrix_helper()
 {

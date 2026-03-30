@@ -592,25 +592,6 @@ bool block_info::atom_data::invalid() const
 
 
 
-#include "ims_chrono.h"
-void test_allocation_rate()
-{
-	let num_iters = 1024 * 1024 * 16;
-	size_t sum = 0;
-
-	let start = ims_chrono::now();
-	for (size_t iter = 0; iter < num_iters; ++iter) {
-		pool_ptr p(eval_pool::ep.get_affine_real(((iter + sum) & 15) + 1));//170 million/c
-		//pool_ptr p(eval_pool::ep.get_affine_real(1));//250 million/c
-		sum += reinterpret_cast<size_t>(p.get() + iter);
-	}
-	let time = ims_chrono::dif_micro(start, ims_chrono::now()) * 1e-6;
-		
-	std::cout << "rate = " << num_iters/time  <<
-		" sum = " << sum << std::endl;
-}
-
-
 const ims_val* block_info::create_proj_map(size_t i, const ast_maps& am) const
 {
 	let& m = am.get_map(i);

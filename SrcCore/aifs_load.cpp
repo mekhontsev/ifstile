@@ -18,7 +18,7 @@
 #include "aifs_load.h"
 #include "ims_info.h"
 #include "ifs_data_text.h"
-#include "ims_worker.h"
+#include "ims_stage.h"
 #include "aifs_printer.h"
 #include "oper_block.h"
 
@@ -32,15 +32,14 @@ bool aifs_from_stream(
 	std::istreambuf_iterator<char>& it_beg,
 	const std::istreambuf_iterator<char>& it_end)
 {
-
-	auto* rt = ims_worker::get();
+	auto& rt = ims_stage::get();
 
 	for (;;) {//loop through blocks
 
 		if (ims_need_stop()) {
 			break;
 		}
-		if (rt)rt->work_add(1);
+		rt.work_add(1);
 
 		if (!aifs_from_stream_ex(lst, cur_line, rs, it_beg, it_end)) {
 			return false;
@@ -62,7 +61,6 @@ bool ims_load7(
 	bool bappend
 )
 {
-
 	let from = bappend ? nfo.m_list.m_blocks.size() : 0;
 
 	size_t cur_line = 1;
@@ -104,16 +102,11 @@ bool ims_load7(
 		return true;//then the user can manually add blocks
 	}
 
-	//if the user interrupted, we'll try to initialize what was loaded
-	auto* w = ims_worker::get();
-	if (w) {
-		w->try_to_continue();
-	} else {
-		//from clipboard (main thread)
-		assert(ims_worker::is_main_thread());
+	if (!nfo.link_refs(from)) {
+		return false;
 	}
 
-	return nfo.link_refs(from);
+	return true;
 }
 
 

@@ -49,7 +49,7 @@ struct error_location
 	std::string m_buf;
 };
 
-ims_static thread_local error_location g_location;
+static thread_local error_location g_location;
 
 
 std::string error_helper::get_buf()

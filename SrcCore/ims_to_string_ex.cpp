@@ -33,7 +33,7 @@ using Real = double;
 static void random_rotate3d(DynMat<Real>& rm)
 {
 	DynMat<Real> rot(3, 3);
-	auto& rng = ims_random::getR().rng;
+	auto& rng = ims_random::get().rng;
 	std::uniform_real_distribution<Real>
 		distr(0, 2 * boost::math::constants::pi<Real>());
 

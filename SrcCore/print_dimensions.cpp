@@ -409,7 +409,7 @@ bool print_dimensions(std::ostream& sout, const block_info& bi)
 			}
 		}
 
-		ims_worker::get()->work_reset();
+		ims_stage::get().work_reset();
 		compute_graph_poly(graph_poly.data(), g, ci, pows);
 		if (ims_need_stop())return false;
 

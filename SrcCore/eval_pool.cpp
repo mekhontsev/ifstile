@@ -362,3 +362,5 @@ ims_val* eval_pool::get_affine_big_rational(size_t dim)
 {
 	return get_matrix_big_rational(dim, dim + 1);
 }
+
+

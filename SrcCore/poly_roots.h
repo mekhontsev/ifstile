@@ -139,7 +139,7 @@ inline Real compute_direct(RootList<Real>& roots, const Poly<Real>& poly)
 	roots.resize(n);
 
 
-	auto& rng = ims_random::getR().rng;
+	auto& rng = ims_random::get().rng;
 	std::uniform_real_distribution<Real> distr(-1, 1);
 
 	for (size_t i = 0; i < n; ++i) {

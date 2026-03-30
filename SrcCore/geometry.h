@@ -256,7 +256,7 @@ struct camera
 	//set randomly relative to the ball
 	void randomize(const ball3d<Real>& b)
 	{
-		auto& rng = ims_random::getR().rng;
+		auto& rng = ims_random::get().rng;
 		std::uniform_real_distribution<Real> distr(-1, 1);
 
 		Eigen::Vector3d cdir;

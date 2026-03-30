@@ -282,7 +282,7 @@ void finder::set_default()
 uint32_t finder::get_rate()
 {
 	uint32_t ret = m_last_attempts;
-	m_last_attempts = 0;
+	ims_store(m_last_attempts, uint32_t(0));
 	return ret;
 }
 
@@ -715,7 +715,7 @@ struct search_contex
 		finder& fnd4)
 	{
 
-		auto& irn = ims_random::getR();
+		auto& irn = ims_random::get();
 
 		bi_cl* bcl = &fnd4.m_bi_map_vec[irn.rng() % fnd4.m_bi_map_vec.size()];
 		
@@ -759,7 +759,7 @@ struct search_contex
 		int32_t& num_changed) //how many maps have changed
 	{
 
-		auto& irn = ims_random::getR();
+		auto& irn = ims_random::get();
 
 		//existing or newly created block
 		oper_block* sr = nullptr;
@@ -964,7 +964,7 @@ struct search_contex
 		auto* ccl = thread_graphs[sr_index].get();
 
 		let eps = ims_num_traits<real_number>::almost_zero();
-		auto& irn = ims_random::getR();
+		auto& irn = ims_random::get();
 
 		auto& bi = ccl->m_bi2;
 
@@ -1076,8 +1076,7 @@ struct search_contex
 		}
 
 		////////////////////////////////////////////////////////////////////////
-
-		fnd2.m_last_attempts++;
+		ims_increment(fnd2.m_last_attempts);
 		auto* bcl = &fnd2.m_bi_map_vec[sr_index];
 		////////////////////////////////////////////////////////////////////////
 		//find intersections by 2
@@ -2189,11 +2188,9 @@ void finder::find_set(
 			cols.used(column_id::Z3); //  ||	cols.used(column_id::CT3) 
 	}
 
-	ims_random::getR().seed();
 	search_cb(check_result::init_started, nullptr);
 
 	search_contex ctx;
-
 
 	ctx.thread_graphs.resize(fnd3.m_bi_map_vec.size());
 	for(auto& v: ctx.thread_graphs){

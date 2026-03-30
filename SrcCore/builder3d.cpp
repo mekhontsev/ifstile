@@ -20,8 +20,10 @@
 #include "projector.h"
 #include "lqsort.h"
 #include "gbuffer3d.h"
-#include "clock_print.h"
 
+#ifdef DEVELOPER_VERSION
+#include "clock_print.h"
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef DEVELOPER_VERSION
 void builder3d::print_statistics()
@@ -296,7 +298,7 @@ bool builder3d::calc(
 	}
 
 
-	auto& cth = *ims_worker::get();
+	auto& cth = ims_stage::get();
 
 	m_ext.clear();
 
@@ -306,7 +308,7 @@ bool builder3d::calc(
 
 	while (ce) {
 
-		if (cth.is_need_stop2())break;
+		if (ims_need_stop())break;
 
 		let cd = ce->depth4;
 

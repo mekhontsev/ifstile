@@ -43,6 +43,11 @@ oper_block* get_cur_block()
 
 void ext_console_clear() {};
 
+bool ims_need_stop()
+{
+	return false;
+}
+
 int main_utf8(int argc, char** argv)
 {    
     if (argc < 2) {

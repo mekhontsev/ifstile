@@ -14,13 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#pragma once
 
-#include "graph_init_data.h"
-
-static thread_local graph_init_data s_graph_init_data;
-
-graph_init_data& graph_init_data::get()
+struct ims_stage : public boost::noncopyable
 {
-	return s_graph_init_data;
-}
+	//amount of work completed, from 0 to 1
+	double m_work_done = 0;
 
+	double	m_work_mul = 1;
+
+	std::string m_stage_name;
+
+	void work_reset() { m_work_done = 0; };
+	void work_add(double w) { m_work_done += w * m_work_mul; };
+	double work_done() const { return m_work_done; };
+	static ims_stage& get();
+};

@@ -15,8 +15,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
-#include "ims_random.h"
 #include "ims_chrono.h"
+
+struct ims_stage;
 
 struct ims_worker : public boost::noncopyable
 {
@@ -26,8 +27,6 @@ struct ims_worker : public boost::noncopyable
 	static ims_worker* get();
 
 	static bool is_main_thread();
-
-	static ims_random& rng();
 
 	//number of running threads
 	static int active_workers();
@@ -73,26 +72,15 @@ struct ims_worker : public boost::noncopyable
 	//pause or unpause
 	void pause(bool p);
 
-
 	//under normal conditions (m_req_status == work) it works fast
 	bool is_need_stop2();
 
 	////////////////////////////////////////////////////////////////////////////
 
-	//amount of work completed, from 0 to 1
-	double m_work_done = 0;
-
-	double	m_work_mul = 1;
-
-	std::string m_stage_name;
-
-
-	void work_reset();
-	void work_add(double w) { m_work_done += w * m_work_mul; };
-	double work_done() const { return m_work_done; };
-
 	//start time
 	ims_chrono m_time_start;
+
+	ims_stage* m_stage = nullptr;
 
 	void try_to_continue() { m_req_status = status::work; };
 private:
@@ -110,10 +98,5 @@ private:
 	//freed only when there is nothing to do
 	mutable std::mutex m_lock;
 	std::condition_variable m_cond;
-
 	std::thread m_cur_thread;
-
-
-	ims_random m_rng;
-
 };

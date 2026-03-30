@@ -477,7 +477,7 @@ bool check_block_ex(oper_block& sr, eval_context& ec, ast_maps& am)
 void check_block(const oper_block* sr)
 {
 	if (sr->m_flags.ready)return;
-	thread_local eval_context t_eval_context;
-	thread_local ast_maps t_ast_maps;
+	static thread_local eval_context t_eval_context;
+	static thread_local ast_maps t_ast_maps;
 	check_block_ex(const_cast<oper_block&>(*sr), t_eval_context, t_ast_maps);
 }

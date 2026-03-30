@@ -157,6 +157,33 @@
 #pragma GCC diagnostic pop
 #endif//_MSC_VER
 ////////////////////////////////////////////////////////////////////////////////
+#if !defined(__EMSCRIPTEN__) || defined(__EMSCRIPTEN_PTHREADS__)
+#define IMS_THREADS
+template<typename T>
+T ims_decrement(T& v)
+{
+	return std::atomic_ref{ v }.fetch_sub(1, std::memory_order_acq_rel);
+};
+template<typename T>
+void ims_increment(T& v)
+{
+	std::atomic_ref{ v }.fetch_add(1, std::memory_order_relaxed);
+}
+template<typename T>
+void ims_store(T& v, T nv)
+{
+	std::atomic_ref{ v }.store(nv, std::memory_order_relaxed);
+}
+#else
+template<typename T>
+T ims_decrement(T& v){return v--;};
+template<typename T>
+void ims_increment(T& v){++v;}
+template<typename T>
+void ims_store(T& v, T nv) { v = nv; }
+#endif
+////////////////////////////////////////////////////////////////////////////////
+
 //restrict
 #ifdef _MSC_VER
 #define restrict_var __restrict

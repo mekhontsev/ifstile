@@ -89,9 +89,9 @@ void visible_blocks::set_checked(oper_block* b, bool c)
 {
 	auto& f = b->m_flags;
 	if (f.checked && !c) {
-		--m_checked;
+		ims_decrement(m_checked);
 	} else if (!f.checked && c) {
-		++m_checked;
+		ims_increment(m_checked);
 	}
 
 	f.checked = c;
@@ -130,7 +130,7 @@ void visible_blocks::update_num_checked(const ifs_list& lst)
 		let* q = lst.get_block(id);
 		if (q->m_flags.checked)++num;
 	}
-	m_checked.store(num);
+	ims_store(m_checked, num);
 }
 
 void visible_blocks::remove_marked(ifs_list& lst)
@@ -211,7 +211,7 @@ void visible_blocks::list_action(const data_column* dc_arr, e_action& action)
 bool visible_blocks::append_block(oper_block* sr)
 {
 	if (sr->m_flags.checked) {
-		++m_checked;
+		ims_increment(m_checked);
 	}
 
 	if (!columns::get().accepted(sr, sr->m_calc_data.get(), true)){
@@ -222,5 +222,3 @@ bool visible_blocks::append_block(oper_block* sr)
 
 	return true;
 }
-
-

@@ -87,7 +87,6 @@ void print_diams(const oper_block& sr, const block_info* bi)
 {
 	print_header("Geometry balls:"); IMS_SCOPE(print_footer);
 
-	assert(!ims_worker::is_main_thread());
 
 	if (!bi->exists()) {
 		return;
@@ -140,7 +139,7 @@ void print_diams(const oper_block& sr, const block_info* bi)
 		//std::cout << "ds.m_heap.size()=" << ds.m_heap.size() << std::endl;
 
 		if (ims_need_stop())return;
-		ims_worker::get()->work_add(w);
+		ims_stage::get().work_add(w);
 
 		let& diams = diam_s.m_result;
 
@@ -170,7 +169,7 @@ void print_diams(const oper_block& sr, const block_info* bi)
 		//std::cout << "dhb.m_heap.size()=" << dhb.m_heap.size() << std::endl;
 
 		if (ims_need_stop())return;
-		ims_worker::get()->work_add(w);
+		ims_stage::get().work_add(w);
 
 		let& rads = dist_s.m_result;
 
@@ -550,8 +549,6 @@ void print_ast(const oper_block& sr, const block_info& bi)
 void print_subspaces(const oper_block& sr, const block_info* bi)
 {
 	print_header("Subspaces:"); IMS_SCOPE(print_footer);
-	
-	assert(!ims_worker::is_main_thread());
 
 	if (!bi->exists()) {
 		return;

@@ -118,8 +118,6 @@ elem* state_stack::divide(elem* ce, size_t* id)
 	ce->m_next = nullptr;
 	auto* div_list = ce;//who else are we going to divide?
 
-	auto* rnfo = ims_worker::get();
-
 	constexpr Real min_ratio = 0.9;
 	let div_threshold = std::max(min_ratio, cdpx);
 	const Real rt = ce->b.defined2() ?
@@ -127,7 +125,7 @@ elem* state_stack::divide(elem* ce, size_t* id)
 		std::numeric_limits<Real>::max();
 
 	while (div_list) {
-		if (rnfo->is_need_stop2()) {
+		if (ims_need_stop()) {
 			return nullptr;
 		}
 		ce = div_list;

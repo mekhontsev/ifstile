@@ -16,14 +16,13 @@
 
 #include "pch.h"
 #include "ims_worker.h"
+#include "ims_stage.h"
 
 
-ims_static thread_local ims_worker* s_nfo = nullptr;
-
-ims_static ims_random g_rng;//for the main thread
+static thread_local ims_worker* s_nfo = nullptr;
 
 //number of running threads
-ims_static std::atomic<int> g_num_workers{};
+ims_static int g_num_workers{};
 
 ims_static bool s_do_exit_program = false;
 
@@ -35,7 +34,6 @@ ims_static std::vector<std::unique_ptr<ims_worker>> g_threads;
 void ims_worker::init_main()
 {
 	s_nfo = nullptr;
-	g_rng.seed();
 }
 
 ims_worker* ims_worker::get()
@@ -95,11 +93,6 @@ bool ims_worker::is_main_thread()
 	return get() == nullptr;
 }
 
-ims_random& ims_worker::rng()
-{
-	auto* p = get();
-	return p ? p->m_rng : g_rng;
-};
 
 void ims_worker::pause_workers(bool p)
 {
@@ -120,12 +113,11 @@ bool ims_need_stop()
 
 void ims_worker::thread_proc()
 {
-	
 	assert(!s_nfo);
 	s_nfo = this;
+	m_stage = &ims_stage::get();
 
 	while (!s_do_exit_program) {
-
 		{
 			while (!m_func || m_req_status != status::work) {
 				std::unique_lock<std::mutex> lk(m_lock);
@@ -136,8 +128,7 @@ void ims_worker::thread_proc()
 			m_idle = false;
 		}
 		
-
-		++g_num_workers;
+		ims_increment(g_num_workers);
 
 		m_time_start = ims_chrono::now();
 
@@ -152,14 +143,13 @@ void ims_worker::thread_proc()
 			std::scoped_lock lk(m_lock);
 			m_func = nullptr;
 		}
-		
-		--g_num_workers;
+	
+		ims_decrement(g_num_workers);
 	};
 };
 
 void ims_worker::init_thread() 
 {
-	m_rng.seed();
 	m_cur_thread = std::thread(&ims_worker::thread_proc,this);
 }
 
@@ -188,13 +178,13 @@ bool ims_worker::is_need_stop2()
 	assert(!is_main_thread());//worker thread checks itself
 
 	if (m_req_status == status::pause){
-		--g_num_workers;
+		ims_decrement(g_num_workers);
 
 		while (m_req_status == status::pause && !s_do_exit_program) {
 			std::unique_lock<std::mutex> lk(m_lock);
 			m_cond.wait(lk);
 		}
-		++g_num_workers;
+		ims_increment(g_num_workers);
 	}
 	
 	return s_do_exit_program ||
@@ -207,13 +197,11 @@ void ims_worker::start(FUNC&& f)
 	assert(!is_running());
 	assert(is_main_thread());//running is allowed only from the main thread
 
-	work_reset();
-	
+	ims_stage::get().work_reset();
 	{
 		std::scoped_lock lk(m_lock);
 		m_func = std::move(f);
 	}
-	
 	m_req_status = status::work;
 	m_cond.notify_one();
 }
@@ -239,10 +227,4 @@ void ims_worker::stop(uint64_t min_time_ms)
 	
 	m_cond.notify_one();//in case the thread was paused
 }
-
-void ims_worker::work_reset()
-{
-	m_work_done = 0;
-}
-
 

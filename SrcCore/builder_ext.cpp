@@ -228,7 +228,7 @@ void builder_ext::calc_buffer(
 	tv.resize(dim);
 
 
-	auto& rnfo = *ims_worker::get();
+	auto& rnfo = ims_stage::get();
 
 	//list to process for the current element
 	auto* intB = &m_list.back();//that's how prepare worked.
@@ -236,7 +236,7 @@ void builder_ext::calc_buffer(
 	m_ext.clear();
 
 	while (ce) {
-		if (rnfo.is_need_stop2())break;
+		if (ims_need_stop())break;
 
 		let cd = ce->depth4;
 

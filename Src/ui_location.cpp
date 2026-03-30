@@ -33,7 +33,7 @@ static void randomize_section(subspace_info<DefNumTypes::Real>& si)
 {
 	auto& b = si.basis_user;
 	std::uniform_real_distribution<double> distr(-1, 1);
-	auto& rng = ims_random::getR().rng;
+	auto& rng = ims_random::get().rng;
 	for (int c = 0; c < b.cols(); ++c) {
 		for (int r = 0; r < b.rows(); ++r) {
 			b(r, c) = distr(rng);

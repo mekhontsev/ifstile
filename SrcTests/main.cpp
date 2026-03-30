@@ -30,6 +30,11 @@ void ext_console_clear()
 	g_conbuf.clear();
 };
 
+bool ims_need_stop()
+{
+	return false;
+}
+
 int main_utf8(int argc, char** argv)
 {
 	ims_num_traits_init_all();

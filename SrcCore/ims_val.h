@@ -404,12 +404,12 @@ public:
 	size_t dec_ref() const
 	{
 		check_ref();
-		return std::atomic_ref{ m_use_count }.fetch_sub(1, std::memory_order_acq_rel);
+		return ims_decrement(m_use_count);
 	};
 
 	void add_ref() const
 	{
-		std::atomic_ref{ m_use_count }.fetch_add(1, std::memory_order_relaxed);
+		ims_increment(m_use_count);
 	}
 
 	void check_ref() const

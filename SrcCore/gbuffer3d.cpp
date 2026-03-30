@@ -16,7 +16,7 @@
 
 #include "pch.h"
 #include "gbuffer3d.h"
-#include "ims_worker.h"
+#include "ims_stage.h"
 
 void gbuffer3d::init(
 	float brightness,
@@ -139,7 +139,7 @@ void gbuffer3d::calc_ssao(
 
 	///////////////////////////////////////////////////////
 
-	auto& rng = ims_random::getR().rng;
+	auto& rng = ims_random::get().rng;
 
 	//create an array of random offsets
 	if (m_ssao_kernel.size() != ssao_samples) {
@@ -158,13 +158,13 @@ void gbuffer3d::calc_ssao(
 
 	using Mat3 = Eigen::Matrix<Real, 3, 3>;
 
-	auto& cth = *ims_worker::get();
+	auto& cth = ims_stage::get();
 
 	double w = 1.0 / (iw * ih);
 
 	for (size_t iy = 0; iy < ih; ++iy) {
 		for (size_t ix = 0; ix < iw; ++ix) {
-			if (cth.is_need_stop2()) {
+			if (ims_need_stop()) {
 				return;
 			}
 			cth.work_add(w);

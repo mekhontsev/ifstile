@@ -237,14 +237,14 @@ void builder2d::calc_buffer(
 	DynVec<Real> bc;//projection of the center onto the plane
 	DynVec<Real> tv;//temporary
 
-	auto& rnfo = *ims_worker::get();
+	auto& rnfo = ims_stage::get();
 
 
 	Real pc0 = 0, pc1 = 0;
 
 	while (ce) {
 
-		if (rnfo.is_need_stop2())break;
+		if (ims_need_stop())break;
 
 		auto& bd = ce->b;
 

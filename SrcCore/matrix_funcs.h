@@ -16,7 +16,7 @@
 
 #pragma once
 #include "math_helpers.h"
-#include "ims_worker.h"
+#include "ims_stage.h"
 
 template<typename Map>
 size_t is_zero(const Map& m)
@@ -189,7 +189,7 @@ typename Map::Scalar char_poly(
 	Matrix& B,
 	Matrix& T,
 	typename Map::Scalar* poly = nullptr,
-	ims_worker* ri = nullptr)
+	ims_stage* ri = nullptr)
 {
 	assert(dim > 0);
 
@@ -229,7 +229,7 @@ typename Map::Scalar char_poly(
 		if (poly)poly[n - k] = -p;
 
 		if (ri) {
-			if (ri->is_need_stop2()) {
+			if (ims_need_stop()) {
 				return Scalar(0);
 			}
 			ri->work_add(w);

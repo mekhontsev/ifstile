@@ -14,13 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include "pch.h"
+#include "ims_stage.h"
 
-#include "graph_init_data.h"
+static thread_local ims_stage s_stage;
 
-static thread_local graph_init_data s_graph_init_data;
-
-graph_init_data& graph_init_data::get()
-{
-	return s_graph_init_data;
-}
-
+ims_stage& ims_stage::get()
+{	
+	return s_stage;
+};

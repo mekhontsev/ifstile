@@ -78,7 +78,7 @@ struct ims_pool : public boost::noncopyable
 	{
 		if (idx < m_bucket.size()) {
 #ifndef NDEBUG
-			//++m_allocated_elems;
+			//ims_increment(m_allocated_elems);
 #endif
 			assert(idx < s_num_buckets);
 			auto& b = m_bucket[idx];
@@ -94,7 +94,7 @@ struct ims_pool : public boost::noncopyable
 		if (idx < m_bucket.size()) {
 #ifndef NDEBUG
 			//assert(m_allocated_elems > 0);
-			//--m_allocated_elems;
+			//ims_decrement(m_allocated_elems);
 #endif
 			auto& b = m_bucket[idx];
 			b.dealloc((bucket::link*)e);
@@ -152,7 +152,7 @@ private:
 	std::array<bucket, s_num_buckets> m_bucket{};
 
 #ifndef NDEBUG
-	//static std::atomic<int> m_allocated_elems;
+	//int m_allocated_elems;
 #endif
 
 };

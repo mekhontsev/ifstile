@@ -18,21 +18,15 @@
 
 struct ims_random 
 {
+	ims_random();
+
 	using Real = double;
 
 	std::mt19937 rng;
 	
 	std::normal_distribution<Real> distr;
 
-	void seed() 
-	{
-		rng.seed(std::random_device{}());
-	};
+	Real get_normal();
 
-	Real get_normal()
-	{
-		return distr(rng);
-	}
-
-	static ims_random& getR();
+	static ims_random& get();
 };
