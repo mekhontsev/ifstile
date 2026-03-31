@@ -1,4 +1,1 @@
-mkdir _macos
-cd ./_macos
-cmake .. -G "Xcode"
-cd ./..
+cmake -S . -B build/xcode -G Xcode

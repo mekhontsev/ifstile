@@ -1,6 +1,4 @@
 external/
-imgui/
-quickjs/
 bin/
 build/
 .vscode/
@@ -18,10 +16,3 @@ Setup/*.dmg
 Setup/*.apk
 Setup/*.aab
 *.jks
-_wasm32
-_sln
-_sln32
-_slnARM
-_macos
-_android
-_linux

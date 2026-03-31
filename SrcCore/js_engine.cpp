@@ -16,7 +16,7 @@
 
 #include "js_engine.h"
 
-#include "../quickjs/quickjs.h"
+#include "quickjs.h"
 
 #include "ifs_data_text.h"
 #include "oper_block.h"

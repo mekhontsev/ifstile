@@ -36,11 +36,16 @@ jobs:
         sudo apt update
         sudo apt install -y --no-install-recommends ninja-build xorg-dev libx11-dev libwayland-dev libgl1-mesa-dev
 
+    - name: Cache external dependencies
+      uses: actions/cache@v4
+      id: cache-external
+      with:
+        path: external
+        key: external-${{ hashFiles('bootstrap.sh') }}
+
     - name: Bootstrap
-      run: |
-        bash ./bootstrap.sh
-        cd bootstrap
-        bash ./linux_rebuild.sh
+      if: steps.cache-external.outputs.cache-hit != 'true'
+      run: bash ./bootstrap.sh
 
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -G Ninja -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}

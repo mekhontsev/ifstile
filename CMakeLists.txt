@@ -71,8 +71,84 @@ set(CMAKE_CONFIGURATION_TYPES Debug Release)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-include(compiler_flags.cmake)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
+if (MSVC)
+	add_compile_options(/W4 /utf-8 /Zc:char8_t- /MP /bigobj /fp:except- /Zm256 /permissive-)
+	#add_compile_options(/GR-)
+	#add_definitions(/D_HAS_STATIC_RTTI=0)
+	add_compile_options("$<$<CONFIG:Release>:/Oi;/Ot;/Oy;/GT;/Gy;/GF;/GS->")
+	#add_compile_options("$<$<CONFIG:Debug>:/fsanitize=address>")
+	add_definitions(-D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00 -DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN)
+
+	#add_definitions(/arch:AVX2)
+	add_link_options(/STACK:10000000 /LARGEADDRESSAWARE /MANIFEST:NO)
+	add_link_options("$<$<CONFIG:Release>:/OPT:REF;/OPT:ICF>")
+	add_link_options("$<$<CONFIG:Release>:/LTCG>") #https://gitlab.kitware.com/cmake/cmake/-/issues/20484
+else()
+	add_compile_options(-Wall -Wextra -Wpedantic -fno-math-errno)
+	add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-char8_t>")
+	#add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>")
+	add_compile_options("$<$<CONFIG:Release>:-ffunction-sections;-fdata-sections;-fno-stack-protector;-fvisibility=hidden;-U_FORTIFY_SOURCE;-D_FORTIFY_SOURCE=0>")
+	add_compile_options("$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-fvisibility-inlines-hidden>")
+endif()
+
+if(APPLE)
+	add_compile_options(-stdlib=libc++)
+	#set(LLVM_ENABLE_LIBCXX ON)
+elseif(ANDROID)
+	#set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+	#add_definitions(-DSDL_DYNAMIC_API=0)
+	add_link_options("$<$<CONFIG:Release>:LINKER:--exclude-libs,ALL,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/android.map>")
+	add_link_options(-static-libstdc++)
+elseif(EMSCRIPTEN)
+	add_compile_options(-fwasm-exceptions -mnontrapping-fptoint)
+	add_link_options(-fwasm-exceptions)
+	add_compile_options("$<$<CONFIG:Debug>:-g;-gseparate-dwarf>")
+
+	add_compile_options(-pthread -Wno-pthreads-mem-growth)
+	add_link_options(-pthread -Wno-pthreads-mem-growth)
+
+	#add_compile_options("$<$<CONFIG:Release>:-fexceptions;-UNDEBUG;-s;-gseparate-dwarf;-g>")#-fno-inline	
+	#add_link_options("$<$<CONFIG:Release>:-sGL_DEBUG=1;-sASSERTIONS=1;-sNO_DISABLE_EXCEPTION_CATCHING>")
+	#add_link_options("$<$<CONFIG:Debug>:-sGL_DEBUG=1;-sASSERTIONS=1;-sNO_DISABLE_EXCEPTION_CATCHING>")
+	
+	add_link_options("$<$<CONFIG:Debug>:-sGL_DEBUG=1;-sASSERTIONS=1>")
+
+	add_link_options(
+	-lidbfs.js
+	-lhtml5
+	-lGL
+	#-sERROR_ON_UNDEFINED_SYMBOLS=0
+	#-sSTRICT=1 
+	-sSTACK_SIZE=10Mb
+	-sMIN_WEBGL_VERSION=2
+	-sMAX_WEBGL_VERSION=2
+	-sINITIAL_MEMORY=64MB
+	-sMAXIMUM_MEMORY=2gb
+	-sALLOW_MEMORY_GROWTH=1
+	-sPTHREAD_POOL_SIZE=4
+	-sEXPORTED_RUNTIME_METHODS=ccall,cwrap)
+
+elseif(LINUX)
+	add_compile_options("$<$<CONFIG:Release>:-ffat-lto-objects>")
+	add_link_options("$<$<CONFIG:Release>:LINKER:-s,--gc-sections>")
+	add_link_options(-static-libstdc++ -static-libgcc)
+endif()
+
+#------------------------------------------------------------------------------
+cmake_path(SET ext NORMALIZE "${CMAKE_CURRENT_SOURCE_DIR}/external")
+#------------------------------------------------------------------------------
+
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+set(SDL_CAMERA OFF CACHE BOOL "")
+set(SDL_AUDIO OFF CACHE BOOL "")
+
+add_subdirectory(${ext}/SDL EXCLUDE_FROM_ALL)
 #------------------------------------------------------------------------------
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     set(arch32 TRUE)
@@ -81,33 +157,14 @@ else()
 endif()
 
 set(exe_suffix)
-
 if(MSVC AND (CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64"
 		OR CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|aarch64)$"))
-	set(platform "msvc_arm")
 	set(exe_suffix "ARM")
-elseif(MSVC)
-	set(platform "msvc")
-	if(arch32)
-		set(exe_suffix "32")
-	endif()
-elseif(APPLE)
-	set(platform "macos")
-elseif(ANDROID)
-	set(platform "android")
+elseif(MSVC AND arch32)
+	set(exe_suffix "32")
 elseif(EMSCRIPTEN)
-	set(platform "wasm")
 	set(exe_suffix "_${PROJECT_VERSION}")
-elseif(LINUX)
-	set(platform "linux")
-else()
-	message(FATAL_ERROR "not supported")
 endif()
-
-if(arch32)
-	set(platform ${platform}_32)
-endif()
-
 set(exe_name ${PROJECT_NAME}${exe_suffix})
 
 if (MSVC)
@@ -115,7 +172,7 @@ if (MSVC)
 endif()
 
 #-------------------------------------------------------------------------------
-cmake_path(SET ext NORMALIZE "${CMAKE_CURRENT_SOURCE_DIR}/external")
+
 set(bin ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 if(EMSCRIPTEN)	
@@ -220,23 +277,7 @@ visible_blocks.h visible_blocks.cpp  block_sets.h block_sets.cpp
 
 prepend(SRC_Core SrcCore)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/SrcCore PREFIX "SrcCore" FILES ${SRC_Core})
-#------------------------------------------------------------------------------
-set (SRC_QuickJS 
-	cutils.c cutils.h libregexp.c libregexp.h  libregexp-opcode.h
-	libunicode.c  libunicode.h libunicode-table.h quickjs.c quickjs.h list.h
-	dtoa.h dtoa.c
-)
-prepend(SRC_QuickJS quickjs)
-#------------------------------------------------------------------------------
-set (SRC_Tiny
-	cute_png.h tinyexr.h utf8_decoder.h 
-	md4c.h md4c.c
-	miniz.h miniz.c IconsForkAwesome.h
-)
-if(MSVC)
-	list (APPEND SRC_Tiny dirent/dirent.h)
-endif()
-prepend(SRC_Tiny Tiny)
+
 #------------------------------------------------------------------------------
 set (SRC_GENERAL
 ims_settings.h ims_settings.cpp
@@ -294,7 +335,7 @@ else()
 		backends/imgui_impl_opengl2.h backends/imgui_impl_opengl2.cpp)
 endif()
 
-prepend(SRC_IMGUI imgui)
+prepend(SRC_IMGUI ${ext}/imgui)
 source_group(ImGui FILES ${SRC_IMGUI})
 #-------------------------------------------------------------------------------
 if(MSVC_IDE)
@@ -305,10 +346,8 @@ if(MSVC_IDE)
 		boost_Regex.natvis boost_SmartPointers.natvis boost_uBLAS.natvis boost_Unordered.natvis
 		boost_Variant.natvis directx.natvis eigen.natvis)
 	prepend(NATVIS_FILES natvis)
-	set (NATVIS_FILES ${NATVIS_FILES} imgui/misc/debuggers/imgui.natvis)
 	source_group(natvis FILES ${NATVIS_FILES})
 endif()
-
 #-------------------------------------------------------------------------------
 set(ALL_SRC 
 	${SRC_GENERAL} ${SRC_IMGUI} ${NATVIS_FILES}	${verhdr} manual.md)
@@ -317,7 +356,6 @@ if(MSVC_IDE)
     list(APPEND ALL_SRC ifstile.natvis)
 endif()
 #-------------------------------------------------------------------------------
-
 add_library(IFScore STATIC ${SRC_Core})
 target_precompile_headers(IFScore PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/SrcCore/pch.h  ${verhdr}
@@ -327,24 +365,45 @@ target_include_directories(IFScore BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(IFScore AFTER PUBLIC SrcCore)#AFTER - because pch.h
 target_include_directories(IFScore PUBLIC
 	${ext}
+	${ext}/eigen
+	${ext}/quickjs
 	${ext}/fmt/include
 	Tiny
 )
 target_include_directories(IFScore PUBLIC ${GENERATE_HEADER_LOCATION})
 #------------------------------------------------------------------------------
-add_library(QuickJS STATIC ${SRC_QuickJS})
-target_include_directories(QuickJS PUBLIC quickjs)
+set (SRC_Tiny
+	cute_png.h tinyexr.h utf8_decoder.h 
+	md4c.h md4c.c
+	miniz.h miniz.c IconsForkAwesome.h
+)
+if(MSVC)
+	list (APPEND SRC_Tiny dirent/dirent.h)
+endif()
+prepend(SRC_Tiny Tiny)
 
 add_library(TinyLib STATIC ${SRC_Tiny})
 target_include_directories(TinyLib PUBLIC Tiny)
+#------------------------------------------------------------------------------
+set (SRC_QuickJS 
+	cutils.h libregexp.c libregexp.h  libregexp-opcode.h
+	libunicode.c  libunicode.h libunicode-table.h quickjs.c quickjs.h list.h
+	dtoa.h dtoa.c
+)
+prepend(SRC_QuickJS ${ext}/quickjs)
+
+add_library(QuickJS STATIC ${SRC_QuickJS})
+target_include_directories(QuickJS PUBLIC ${ext}/quickjs)
 #------------------------------------------------------------------------------
 #disable warnings for 3rd party code
 if(MSVC)
 	target_compile_options(QuickJS PRIVATE /W0)
 	target_compile_options(TinyLib PRIVATE /W0)
+	target_compile_options(SDL3-static PRIVATE /W0)
 else()
 	target_compile_options(QuickJS PRIVATE -w)
 	target_compile_options(TinyLib PRIVATE "-w;-Wno-#pragma-messages")
+	target_compile_options(SDL3-static PRIVATE -w)
 endif()
 #------------------------------------------------------------------------------
 
@@ -353,7 +412,7 @@ if(MSVC)
 
 	target_link_options(${PROJECT_NAME} PRIVATE
 		/VERSION:${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
-	
+
 	add_custom_command(
 		TARGET ${PROJECT_NAME}
 		POST_BUILD
@@ -374,7 +433,7 @@ elseif(APPLE)
 	set( MACOSX_BUNDLE_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 	set( MACOSX_BUNDLE_SHORT_VERSION_STRING ${MACOSX_BUNDLE_VERSION})
 	set( MACOSX_BUNDLE_BUNDLE_VERSION ${MACOSX_BUNDLE_VERSION})
-	set( MACOSX_BUNDLE_LONG_VERSION_STRING "Version ${MACOSX_BUNDLE_VERSION}" )
+	set( MACOSX_BUNDLE_LONG_VERSION_STRING "Version ${MACOSX_BUNDLE_VERSION}")
 	set( MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2016-2026, Dmitry Mekhontsev. All Rights Reserved.")
 	set( MACOSX_BUNDLE_GUI_IDENTIFIER "com.ifstile")
 #	set( MACOSX_BUNDLE_ADDITIONAL "<key>NSPrincipalClass</key>\n<string>NSApplication</string>") 
@@ -392,12 +451,10 @@ elseif(APPLE)
 	#get_dotapp_dir(${APPLICATION_BIN} APPLICATION_APP_LOCATION) 
 
 elseif(ANDROID)
-
 	add_library(${PROJECT_NAME} SHARED ${ALL_SRC})
-		
 elseif(EMSCRIPTEN)
 	#set(CMAKE_EXECUTABLE_SUFFIX ".html")
-	add_executable(${PROJECT_NAME} ${ALL_SRC})	
+	add_executable(${PROJECT_NAME} ${ALL_SRC})
 elseif(LINUX)
 	add_executable(${PROJECT_NAME} ${ALL_SRC})
 
@@ -413,14 +470,13 @@ endif()
 target_include_directories(${PROJECT_NAME} BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} AFTER PUBLIC SrcCore)#AFTER - because pch.h
 target_include_directories(${PROJECT_NAME} PUBLIC
-	Tiny 
-	Src 
-	imgui 
-	imgui/misc/cpp 
-	imgui/backends
-	${ext} 
-	${ext}/fmt/include 
-	${ext}/SDL/include
+	Tiny
+	Src
+	${ext}
+	${ext}/imgui 
+	${ext}/imgui/misc/cpp 
+	${ext}/imgui/backends
+	${ext}/fmt/include
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ${GENERATE_HEADER_LOCATION})
 
@@ -439,17 +495,14 @@ if(EMSCRIPTEN)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/ifstile512.png ${bin} COPYONLY)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/favicon.ico ${bin} COPYONLY)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/apple-touch-icon.png ${bin} COPYONLY)
-	
 elseif(NOT ANDROID)
 	set_target_properties (${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX d)
 endif()
-
 
 set_target_properties (${PROJECT_NAME} PROPERTIES
 	OUTPUT_NAME ${exe_name}
 #	PREFIX ""
 )
-
 #-------------------------------------------------------------------------------
 #strip
 if(NOT EMSCRIPTEN AND NOT MSVC)
@@ -460,22 +513,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 )
 endif()
 #-------------------------------------------------------------------------------
-#link other
-if(MSVC)
-	set (linkto SDL3.lib)
-else()
-	set (linkto libSDL3.a)
-endif()
-
-set (lib ${ext}/lib/${platform})
 set (LINK_LIST)
-foreach(x ${linkto})
-	list(APPEND LINK_LIST
-		"$<$<CONFIG:Debug>:${lib}/Debug/${x}>"
-		"$<$<CONFIG:Release>:${lib}/Release/${x}>")
-endforeach()
-
-#-------------------------------------------------------------------------------
 if(MSVC)
 	list (APPEND LINK_LIST 
 		setupapi.lib winmm.lib comctl32.lib version.lib ole32.lib 
@@ -507,8 +545,13 @@ elseif(LINUX)
 		GL dl pthread rt)
 endif()	
 
-target_link_libraries(${PROJECT_NAME} PRIVATE IFScore QuickJS TinyLib ${LINK_LIST})
-
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+	IFScore
+	QuickJS
+	TinyLib
+	SDL3::SDL3
+	${LINK_LIST}
+)
 
 #-----------------------------------Finder--------------------------------------
 if(NOT EMSCRIPTEN AND NOT ANDROID)
@@ -521,8 +564,8 @@ target_include_directories(IFSfinder BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(IFSfinder AFTER PUBLIC SrcCore)#AFTER - because pch.h
 target_include_directories(IFSfinder PUBLIC 
 	Tiny 
-	SrcFinder 
-	${ext} 
+	SrcFinder
+	${ext}
 	${ext}/fmt/include
 )
 
@@ -548,36 +591,37 @@ endif()
 
 #------------------------------------Tests--------------------------------------
 if(NOT EMSCRIPTEN AND NOT ANDROID)
-add_executable(Tests 
+
+# Proper GTest integration via add_subdirectory — creates GTest::gtest and GTest::gmock targets
+set(BUILD_GMOCK        ON  CACHE BOOL "" FORCE)
+set(INSTALL_GTEST      OFF CACHE BOOL "" FORCE)
+# Match MSVC runtime with the rest of the project (MT/MTd via CMAKE_MSVC_RUNTIME_LIBRARY)
+set(gtest_force_shared_crt OFF CACHE BOOL "" FORCE)
+add_subdirectory(${ext}/googletest EXCLUDE_FROM_ALL)
+
+add_executable(Tests
 	SrcTests/main.cpp SrcTests/main_utf8.cpp SrcTests/pch.h
 	SrcTests/test.cpp SrcTests/spline.cpp
 	SrcTests/aifs_simple.cpp SrcTests/aifs_examples.cpp
 	SrcTests/aifs_tester.h SrcTests/aifs_tester.cpp
 	SrcTests/render_tester.h SrcTests/render_tester.cpp
-	${ext}/googletest/googletest/src/gtest-all.cc
-	${ext}/googletest/googlemock/src/gmock-all.cc
 	${verhdr})
 
-# Setup include
 target_include_directories(Tests BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(Tests AFTER PUBLIC SrcCore)#AFTER - because pch.h
-target_include_directories(Tests PUBLIC 
-	Tiny 
-	SrcTests 
-	${ext} 
+target_include_directories(Tests AFTER PUBLIC SrcCore) # AFTER - because pch.h
+target_include_directories(Tests PUBLIC
+	Tiny
+	SrcTests
+	${ext}
 	${ext}/fmt/include
-	${ext}/googletest/googletest
-	${ext}/googletest/googletest/include
-	${ext}/googletest/googlemock
-	${ext}/googletest/googlemock/include
 )
-
 
 target_precompile_headers(Tests PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/SrcTests/pch.h
 )
 
-target_link_libraries(Tests PRIVATE IFScore QuickJS TinyLib)
+# main.cpp provides its own main() calling RUN_ALL_TESTS() - use GTest::gtest, not GTest::gtest_main
+target_link_libraries(Tests PRIVATE IFScore QuickJS TinyLib GTest::gtest GTest::gmock)
 
 if(LINUX)
 	target_link_libraries(Tests PRIVATE pthread)

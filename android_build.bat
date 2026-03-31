@@ -1,4 +1,1 @@
-pushd _android
-cmake --build .
-popd
-pause
+cmake --build build/android
