@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "pch.h"
+#include "gtest/gtest.h"
 #include "render_tester.h"
 #include "ifs_renderer.h"
 
