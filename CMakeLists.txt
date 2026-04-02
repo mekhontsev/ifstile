@@ -11,14 +11,6 @@ project(IFStile LANGUAGES CXX C VERSION ${PROJECT_VERSION})
 include(CTest)
 
 #------------------------------------------------------------------------------
-function(prepend var path)
-	set(listVar "")
-	foreach(f ${${var}})
-		list(APPEND listVar ${path}/${f})
-	endforeach()
-	set(${var} ${listVar} PARENT_SCOPE)
-endfunction()
-
 #https://thatonegamedev.com/cpp/cmake/how-to-embed-files-in-your-c-project/
 function(generate_embed_header EMBED_HEADERS_LOCATION DST_FILE)
 
@@ -74,17 +66,24 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
 
 if (MSVC)
-	add_compile_options(/W4 /utf-8 /Zc:char8_t- /MP /bigobj /fp:except- /Zm256 /permissive-)
+    # No debug information in Release; ProgramDatabase (/Zi) in Debug only.
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug>:ProgramDatabase>")
+
+    add_compile_options(/W4 /utf-8 /Zc:char8_t- /MP /bigobj /fp:except- /Zm256 /permissive-)
 	#add_compile_options(/GR-)
 	#add_definitions(/D_HAS_STATIC_RTTI=0)
 	add_compile_options("$<$<CONFIG:Release>:/Oi;/Ot;/Oy;/GT;/Gy;/GF;/GS->")
 	#add_compile_options("$<$<CONFIG:Debug>:/fsanitize=address>")
-	add_definitions(-D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00 -DUNICODE -D_UNICODE -DWIN32_LEAN_AND_MEAN)
+	add_compile_definitions(_WIN32_WINNT=0x0A00 WINVER=0x0A00 UNICODE _UNICODE WIN32_LEAN_AND_MEAN)
 
 	#add_definitions(/arch:AVX2)
 	add_link_options(/STACK:10000000 /LARGEADDRESSAWARE /MANIFEST:NO)
 	add_link_options("$<$<CONFIG:Release>:/OPT:REF;/OPT:ICF>")
-	add_link_options("$<$<CONFIG:Release>:/LTCG>") #https://gitlab.kitware.com/cmake/cmake/-/issues/20484
+
+	# CMAKE_INTERPROCEDURAL_OPTIMIZATION adds /LTCG:incremental by default.
+	# Override with full /LTCG for Release to enable maximum LTO.
+	# See: https://gitlab.kitware.com/cmake/cmake/-/issues/20484
+	add_link_options("$<$<CONFIG:Release>:/LTCG>")
 else()
 	add_compile_options(-Wall -Wextra -Wpedantic -fno-math-errno)
 	add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-fno-char8_t>")
@@ -105,31 +104,24 @@ elseif(EMSCRIPTEN)
 	add_compile_options(-fwasm-exceptions -mnontrapping-fptoint)
 	add_link_options(-fwasm-exceptions)
 	add_compile_options("$<$<CONFIG:Debug>:-g;-gseparate-dwarf>")
-
-	add_compile_options(-pthread -Wno-pthreads-mem-growth)
-	add_link_options(-pthread -Wno-pthreads-mem-growth)
-
-	#add_compile_options("$<$<CONFIG:Release>:-fexceptions;-UNDEBUG;-s;-gseparate-dwarf;-g>")#-fno-inline	
-	#add_link_options("$<$<CONFIG:Release>:-sGL_DEBUG=1;-sASSERTIONS=1;-sNO_DISABLE_EXCEPTION_CATCHING>")
-	#add_link_options("$<$<CONFIG:Debug>:-sGL_DEBUG=1;-sASSERTIONS=1;-sNO_DISABLE_EXCEPTION_CATCHING>")
-	
 	add_link_options("$<$<CONFIG:Debug>:-sGL_DEBUG=1;-sASSERTIONS=1>")
 
+	# Shared memory settings for all WASM executables (IFStile, IFSlib).
 	add_link_options(
-	-lidbfs.js
-	-lhtml5
-	-lGL
-	#-sERROR_ON_UNDEFINED_SYMBOLS=0
-	#-sSTRICT=1 
-	-sSTACK_SIZE=10Mb
-	-sMIN_WEBGL_VERSION=2
-	-sMAX_WEBGL_VERSION=2
-	-sINITIAL_MEMORY=64MB
-	-sMAXIMUM_MEMORY=2gb
-	-sALLOW_MEMORY_GROWTH=1
-	-sPTHREAD_POOL_SIZE=4
-	-sEXPORTED_RUNTIME_METHODS=ccall,cwrap)
+		-sALLOW_MEMORY_GROWTH=1
+		"-sINITIAL_MEMORY=64MB"
+		"-sMAXIMUM_MEMORY=2GB"
+		"-sSTACK_SIZE=10MB"
+	)
 
+	set(EMSCRIPTEN_APP_LINK_OPTIONS
+		-pthread -Wno-pthreads-mem-growth
+		-lidbfs.js -lhtml5 -lGL
+		-sMIN_WEBGL_VERSION=2 
+		-sMAX_WEBGL_VERSION=2
+		-sPTHREAD_POOL_SIZE=4
+		-sEXPORTED_RUNTIME_METHODS=ccall,cwrap
+	)
 elseif(LINUX)
 	add_compile_options("$<$<CONFIG:Release>:-ffat-lto-objects>")
 	add_link_options("$<$<CONFIG:Release>:LINKER:-s,--gc-sections>")
@@ -145,10 +137,11 @@ set(SDL_STATIC ON CACHE BOOL "" FORCE)
 
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
-set(SDL_CAMERA OFF CACHE BOOL "")
-set(SDL_AUDIO OFF CACHE BOOL "")
+set(SDL_CAMERA OFF CACHE BOOL "" FORCE)
+set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(${ext}/SDL EXCLUDE_FROM_ALL)
+add_subdirectory(${ext}/SDL SYSTEM EXCLUDE_FROM_ALL)
+
 #------------------------------------------------------------------------------
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
     set(arch32 TRUE)
@@ -173,17 +166,12 @@ endif()
 
 #-------------------------------------------------------------------------------
 
-set(bin ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-
-if(EMSCRIPTEN)	
-	set(bin ${bin}/wasm)
-elseif (ANDROID)
-    set(bin ${bin}/arm64-v8a)
-endif()
+set(bin      ${CMAKE_CURRENT_SOURCE_DIR}/bin)
+set(bin_wasm ${bin}/wasm)
+set(bin_android ${bin}/arm64-v8a)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${bin})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${bin})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${bin})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${bin})
 
 set(GENERATE_HEADER_LOCATION "${CMAKE_BINARY_DIR}/embed/include")
 set(EMBED_HEADERS_LOCATION "${GENERATE_HEADER_LOCATION}/embed")
@@ -201,7 +189,7 @@ ${dev_version}
 ")
 
 include(examples.cmake)
-prepend(Examples ${CMAKE_CURRENT_SOURCE_DIR}/Examples)
+list(TRANSFORM Examples PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/Examples/")
 generate_embed_header(${EMBED_HEADERS_LOCATION} examples.h FILES "${Examples}")
 
 generate_embed_header(${EMBED_HEADERS_LOCATION} manual.h FILES ${CMAKE_CURRENT_SOURCE_DIR}/manual.md)
@@ -275,7 +263,7 @@ ims_help.h ims_help.cpp
 visible_blocks.h visible_blocks.cpp  block_sets.h block_sets.cpp
 )
 
-prepend(SRC_Core SrcCore)
+list(TRANSFORM SRC_Core PREPEND "SrcCore/")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/SrcCore PREFIX "SrcCore" FILES ${SRC_Core})
 
 #------------------------------------------------------------------------------
@@ -304,17 +292,9 @@ font_icons.cpp font_regular.cpp font_bold.cpp font_italic.cpp
 ims_val_widget.h ims_val_widget.cpp edit_helper.h edit_helper.cpp
 ims_worker.h ims_worker.cpp
 )
-prepend(SRC_GENERAL Src)
+list(TRANSFORM SRC_GENERAL PREPEND "Src/")
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Src PREFIX "Src" FILES ${SRC_GENERAL})
 
-if(MSVC)
-	list(APPEND SRC_GENERAL PlatDep/resource.rc PlatDep/cpp.hint)
-endif()
-
-list(APPEND SRC_GENERAL 
-${CMAKE_CURRENT_SOURCE_DIR}/Tiny/imgui_md.h 
-${CMAKE_CURRENT_SOURCE_DIR}/Tiny/imgui_md.cpp)
-
-#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Src PREFIX "Src" FILES ${SRC_GENERAL})
 #------------------------------------------------------------------------------
 set (SRC_IMGUI 
 imgui.h imgui.cpp imconfig.h imgui_internal.h imgui_demo.cpp imgui_draw.cpp
@@ -335,77 +315,132 @@ else()
 		backends/imgui_impl_opengl2.h backends/imgui_impl_opengl2.cpp)
 endif()
 
-prepend(SRC_IMGUI ${ext}/imgui)
+list(TRANSFORM SRC_IMGUI PREPEND "${ext}/imgui/")
 source_group(ImGui FILES ${SRC_IMGUI})
+
 #-------------------------------------------------------------------------------
-if(MSVC_IDE)
+set(ALL_SRC 
+	${SRC_GENERAL} ${SRC_IMGUI} ${verhdr} manual.md)
+
+if(MSVC)
+
+	list(APPEND ALL_SRC PlatDep/resource.rc)
+
 	set (NATVIS_FILES
 		boost.natvis boost_Containers.natvis boost_DateTime.natvis boost_Geometry.natvis 
 		boost_Gil.natvis boost_IntrusiveContainers.natvis boost_MultiArray.natvis 
 		boost_Multiprecision.natvis boost_PointerContainerLibrary.natvis boost_Rational.natvis
 		boost_Regex.natvis boost_SmartPointers.natvis boost_uBLAS.natvis boost_Unordered.natvis
 		boost_Variant.natvis directx.natvis eigen.natvis)
-	prepend(NATVIS_FILES natvis)
-	source_group(natvis FILES ${NATVIS_FILES})
-endif()
-#-------------------------------------------------------------------------------
-set(ALL_SRC 
-	${SRC_GENERAL} ${SRC_IMGUI} ${NATVIS_FILES}	${verhdr} manual.md)
+	list(TRANSFORM NATVIS_FILES PREPEND "PlatDep/natvis/")
 
-if(MSVC_IDE)
-    list(APPEND ALL_SRC ifstile.natvis)
+	set_property(DIRECTORY PROPERTY VS_SOLUTION_ITEMS
+	ifstile.natvis PlatDep/cpp.hint ${NATVIS_FILES})
+
+	source_group("Generated" FILES ${verhdr})
+	source_group("CMake"     REGULAR_EXPRESSION "cmake_pch")
+
 endif()
 #-------------------------------------------------------------------------------
+# Shared setup for IFScore and IFScore_ST to avoid duplication.
+function(setup_ifscore TARGET)
+	target_precompile_headers(${TARGET} PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/SrcCore/pch.h ${verhdr}
+	)
+	target_include_directories(${TARGET} BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+	target_include_directories(${TARGET} AFTER PRIVATE SrcCore) #AFTER - because pch.h
+	target_include_directories(${TARGET} PUBLIC
+		${ext}
+		${ext}/eigen
+		${ext}/quickjs
+		${ext}/fmt/include
+		Tiny
+	)
+	target_include_directories(${TARGET} PUBLIC ${GENERATE_HEADER_LOCATION})
+endfunction()
+
 add_library(IFScore STATIC ${SRC_Core})
-target_precompile_headers(IFScore PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/SrcCore/pch.h  ${verhdr}
-)
+setup_ifscore(IFScore)
 
-target_include_directories(IFScore BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(IFScore AFTER PUBLIC SrcCore)#AFTER - because pch.h
-target_include_directories(IFScore PUBLIC
-	${ext}
-	${ext}/eigen
-	${ext}/quickjs
-	${ext}/fmt/include
-	Tiny
-)
-target_include_directories(IFScore PUBLIC ${GENERATE_HEADER_LOCATION})
-#------------------------------------------------------------------------------
-set (SRC_Tiny
-	cute_png.h tinyexr.h utf8_decoder.h 
-	md4c.h md4c.c
-	miniz.h miniz.c IconsForkAwesome.h
-)
-if(MSVC)
-	list (APPEND SRC_Tiny dirent/dirent.h)
+if(EMSCRIPTEN)
+	# PUBLIC: IFScore and all its consumers get -pthread for compilation
+	target_compile_options(IFScore PUBLIC -pthread -Wno-pthreads-mem-growth)
+
+	# Single-threaded variant for IFSlib (STANDALONE_WASM, no -pthread).
+	add_library(IFScore_ST STATIC ${SRC_Core})
+	setup_ifscore(IFScore_ST)
 endif()
-prepend(SRC_Tiny Tiny)
 
+#----------------------------------------------
+set (SRC_Tiny
+	md4c.h md4c.c imgui_md.h imgui_md.cpp
+)
+list(TRANSFORM SRC_Tiny PREPEND "Tiny/")
 add_library(TinyLib STATIC ${SRC_Tiny})
-target_include_directories(TinyLib PUBLIC Tiny)
+target_include_directories(TinyLib PUBLIC Tiny ${ext}/imgui)
 #------------------------------------------------------------------------------
 set (SRC_QuickJS 
 	cutils.h libregexp.c libregexp.h  libregexp-opcode.h
 	libunicode.c  libunicode.h libunicode-table.h quickjs.c quickjs.h list.h
 	dtoa.h dtoa.c
 )
-prepend(SRC_QuickJS ${ext}/quickjs)
+list(TRANSFORM SRC_QuickJS PREPEND "${ext}/quickjs/")
 
 add_library(QuickJS STATIC ${SRC_QuickJS})
 target_include_directories(QuickJS PUBLIC ${ext}/quickjs)
-#------------------------------------------------------------------------------
-#disable warnings for 3rd party code
-if(MSVC)
-	target_compile_options(QuickJS PRIVATE /W0)
-	target_compile_options(TinyLib PRIVATE /W0)
-	target_compile_options(SDL3-static PRIVATE /W0)
-else()
-	target_compile_options(QuickJS PRIVATE -w)
-	target_compile_options(TinyLib PRIVATE "-w;-Wno-#pragma-messages")
-	target_compile_options(SDL3-static PRIVATE -w)
+
+# Single-threaded variants for IFSlib (STANDALONE_WASM, no -pthread).
+if(EMSCRIPTEN)
+	add_library(QuickJS_ST STATIC ${SRC_QuickJS})
+	target_include_directories(QuickJS_ST PUBLIC ${ext}/quickjs)
 endif()
+
 #------------------------------------------------------------------------------
+add_library(miniz STATIC Tiny/miniz.c Tiny/miniz.h)
+target_include_directories(miniz PUBLIC Tiny)
+
+if(EMSCRIPTEN)
+    add_library(miniz_ST STATIC Tiny/miniz.c Tiny/miniz.h)
+    target_include_directories(miniz_ST PUBLIC Tiny)
+endif()
+
+# Mark in-tree 3rd-party targets as SYSTEM so their headers
+# don't produce warnings in consuming targets.
+set_target_properties(QuickJS miniz TinyLib PROPERTIES SYSTEM ON)
+if(EMSCRIPTEN)
+    set_target_properties(QuickJS_ST miniz_ST PROPERTIES SYSTEM ON)
+endif()
+
+# Transitively propagate miniz and QuickJS to all IFScore consumers
+target_link_libraries(IFScore PUBLIC miniz QuickJS)
+if(EMSCRIPTEN)
+    target_link_libraries(IFScore_ST PUBLIC miniz_ST QuickJS_ST)
+endif()
+#-------------------------------------------------------------------------------
+
+# Silence warnings in 3rd-party targets.
+add_library(silence_warnings INTERFACE)
+if(MSVC)
+    target_compile_options(silence_warnings INTERFACE /W0)
+else()
+    target_compile_options(silence_warnings INTERFACE -w)
+endif()
+
+foreach(_t QuickJS miniz TinyLib)
+    target_link_libraries(${_t} PRIVATE silence_warnings)
+endforeach()
+
+# SDL3-static: apply warning suppression directly to avoid SDL's export() conflict
+target_compile_options(SDL3-static PRIVATE $<IF:$<BOOL:${MSVC}>,/W0,-w>)
+
+if(EMSCRIPTEN)
+    foreach(_t QuickJS SDL3-static miniz TinyLib)
+        target_compile_options(${_t} PRIVATE -pthread)
+    endforeach()
+    target_link_libraries(QuickJS_ST PRIVATE silence_warnings)
+    target_link_libraries(miniz_ST   PRIVATE silence_warnings)
+endif()
+#-------------------------------------------------------------------------------
 
 if(MSVC)
 	add_executable(${PROJECT_NAME} WIN32 ${ALL_SRC})
@@ -424,6 +459,13 @@ if(MSVC)
 	)
 
 	set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME} )
+elseif(EMSCRIPTEN)
+	add_executable(${PROJECT_NAME} ${ALL_SRC})
+	target_link_options(${PROJECT_NAME} PRIVATE ${EMSCRIPTEN_APP_LINK_OPTIONS})
+	set_target_properties(${PROJECT_NAME} PROPERTIES
+		RUNTIME_OUTPUT_DIRECTORY_RELEASE "${bin_wasm}"
+		RUNTIME_OUTPUT_DIRECTORY_DEBUG   "${bin_wasm}"
+	)
 elseif(APPLE)
 
 	# NOTE: Don't include the path in MACOSX_BUNDLE_ICON_FILE -- this is
@@ -452,9 +494,10 @@ elseif(APPLE)
 
 elseif(ANDROID)
 	add_library(${PROJECT_NAME} SHARED ${ALL_SRC})
-elseif(EMSCRIPTEN)
-	#set(CMAKE_EXECUTABLE_SUFFIX ".html")
-	add_executable(${PROJECT_NAME} ${ALL_SRC})
+	set_target_properties(${PROJECT_NAME} PROPERTIES
+		LIBRARY_OUTPUT_DIRECTORY_RELEASE "${bin_android}"
+		LIBRARY_OUTPUT_DIRECTORY_DEBUG   "${bin_android}"
+	)
 elseif(LINUX)
 	add_executable(${PROJECT_NAME} ${ALL_SRC})
 
@@ -467,34 +510,29 @@ endif()
 #-------------------------------------------------------------------------------
 # Setup include
 
-target_include_directories(${PROJECT_NAME} BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(${PROJECT_NAME} AFTER PUBLIC SrcCore)#AFTER - because pch.h
-target_include_directories(${PROJECT_NAME} PUBLIC
-	Tiny
-	Src
-	${ext}
-	${ext}/imgui 
-	${ext}/imgui/misc/cpp 
-	${ext}/imgui/backends
-	${ext}/fmt/include
+target_include_directories(${PROJECT_NAME} BEFORE PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${PROJECT_NAME} AFTER PRIVATE SrcCore) #AFTER - because pch.h
+target_include_directories(${PROJECT_NAME} PRIVATE
+    Tiny Src ${ext} ${ext}/imgui ${ext}/imgui/misc/cpp
+    ${ext}/imgui/backends ${ext}/fmt/include
 )
-target_include_directories(${PROJECT_NAME} PUBLIC ${GENERATE_HEADER_LOCATION})
+target_include_directories(${PROJECT_NAME} PRIVATE ${GENERATE_HEADER_LOCATION})
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/pch.h
 )
 
 if(EMSCRIPTEN)
-	file(MAKE_DIRECTORY ${bin})
-	set (wasm_files ${CMAKE_CURRENT_SOURCE_DIR}/Setup/wasm)
-	set (NAME_VER "${exe_name}")
-	configure_file(${wasm_files}/sw.js ${bin})
-	configure_file(${wasm_files}/index.html ${bin})
-	configure_file(${wasm_files}/manifest.json ${bin} COPYONLY)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/ifstile192mask.png ${bin} COPYONLY)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/ifstile512.png ${bin} COPYONLY)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/favicon.ico ${bin} COPYONLY)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/apple-touch-icon.png ${bin} COPYONLY)
+	file(MAKE_DIRECTORY ${bin_wasm})
+	set(wasm_files ${CMAKE_CURRENT_SOURCE_DIR}/Setup/wasm)
+	set(NAME_VER "${exe_name}")
+	configure_file(${wasm_files}/sw.js              ${bin_wasm})
+	configure_file(${wasm_files}/index.html         ${bin_wasm})
+	configure_file(${wasm_files}/manifest.json      ${bin_wasm} COPYONLY)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/ifstile192mask.png   ${bin_wasm} COPYONLY)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/ifstile512.png       ${bin_wasm} COPYONLY)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/favicon.ico          ${bin_wasm} COPYONLY)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/apple-touch-icon.png ${bin_wasm} COPYONLY)
 elseif(NOT ANDROID)
 	set_target_properties (${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX d)
 endif()
@@ -545,35 +583,24 @@ elseif(LINUX)
 		GL dl pthread rt)
 endif()	
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 
-	IFScore
-	QuickJS
-	TinyLib
-	SDL3::SDL3
-	${LINK_LIST}
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE IFScore TinyLib SDL3::SDL3 ${LINK_LIST})
 
 #-----------------------------------Finder--------------------------------------
 if(NOT EMSCRIPTEN AND NOT ANDROID)
 add_executable(IFSfinder 
-	SrcFinder/main.cpp SrcFinder/main_utf8.cpp SrcFinder/pch.h ${verhdr}
+	SrcFinder/main.cpp SrcFinder/main_utf8.cpp ${verhdr}
 )
 
 # Setup include
-target_include_directories(IFSfinder BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(IFSfinder AFTER PUBLIC SrcCore)#AFTER - because pch.h
-target_include_directories(IFSfinder PUBLIC 
-	Tiny 
-	SrcFinder
-	${ext}
-	${ext}/fmt/include
+target_include_directories(IFSfinder BEFORE PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(IFSfinder AFTER PRIVATE SrcCore) #AFTER - because pch.h
+target_include_directories(IFSfinder PRIVATE
+    Tiny SrcFinder ${ext} ${ext}/fmt/include
 )
 
-target_precompile_headers(IFSfinder PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/SrcFinder/pch.h
-)
+target_precompile_headers(IFSfinder REUSE_FROM IFScore)
 
-target_link_libraries(IFSfinder PRIVATE IFScore QuickJS TinyLib)
+target_link_libraries(IFSfinder PRIVATE IFScore)
 
 if(LINUX)
 	target_link_libraries(IFSfinder PRIVATE pthread)
@@ -581,7 +608,7 @@ if(LINUX)
 		LINK_SEARCH_START_STATIC 1
 		LINK_SEARCH_END_STATIC 1
 	)
-endif()	
+endif()
 
 set_target_properties(IFSfinder PROPERTIES
 	DEBUG_POSTFIX d
@@ -592,36 +619,31 @@ endif()
 #------------------------------------Tests--------------------------------------
 if(NOT EMSCRIPTEN AND NOT ANDROID)
 
-# Proper GTest integration via add_subdirectory — creates GTest::gtest and GTest::gmock targets
-set(BUILD_GMOCK        ON  CACHE BOOL "" FORCE)
+# GTest integration via add_subdirectory — creates GTest::gtest target.
+set(BUILD_GMOCK        OFF  CACHE BOOL "" FORCE)
 set(INSTALL_GTEST      OFF CACHE BOOL "" FORCE)
 # Match MSVC runtime with the rest of the project (MT/MTd via CMAKE_MSVC_RUNTIME_LIBRARY)
 set(gtest_force_shared_crt OFF CACHE BOOL "" FORCE)
 add_subdirectory(${ext}/googletest EXCLUDE_FROM_ALL)
 
 add_executable(Tests
-	SrcTests/main.cpp SrcTests/main_utf8.cpp SrcTests/pch.h
+	SrcTests/main.cpp SrcTests/main_utf8.cpp
 	SrcTests/test.cpp SrcTests/spline.cpp
 	SrcTests/aifs_simple.cpp SrcTests/aifs_examples.cpp
 	SrcTests/aifs_tester.h SrcTests/aifs_tester.cpp
 	SrcTests/render_tester.h SrcTests/render_tester.cpp
 	${verhdr})
 
-target_include_directories(Tests BEFORE PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-target_include_directories(Tests AFTER PUBLIC SrcCore) # AFTER - because pch.h
-target_include_directories(Tests PUBLIC
-	Tiny
-	SrcTests
-	${ext}
-	${ext}/fmt/include
+target_include_directories(Tests BEFORE PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(Tests AFTER PRIVATE SrcCore) # AFTER - because pch.h
+target_include_directories(Tests PRIVATE
+    Tiny SrcTests ${ext} ${ext}/fmt/include
 )
 
-target_precompile_headers(Tests PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/SrcTests/pch.h
-)
+target_precompile_headers(Tests REUSE_FROM IFScore)
 
 # main.cpp provides its own main() calling RUN_ALL_TESTS() - use GTest::gtest, not GTest::gtest_main
-target_link_libraries(Tests PRIVATE IFScore QuickJS TinyLib GTest::gtest GTest::gmock)
+target_link_libraries(Tests PRIVATE IFScore GTest::gtest)
 
 if(LINUX)
 	target_link_libraries(Tests PRIVATE pthread)
@@ -639,3 +661,34 @@ set_target_properties(Tests PROPERTIES
 	OUTPUT_NAME Tests${exe_suffix}
 )
 endif()
+
+#------------------------------------IFSlib-------------------------------------
+if(EMSCRIPTEN)
+
+add_executable(IFSlib
+	SrcLib/ifslib.cpp
+	${verhdr}
+)
+
+# Reuse IFScore_ST's PCH — avoids a redundant PCH compilation for IFSlib.
+target_precompile_headers(IFSlib REUSE_FROM IFScore_ST)
+
+# SrcCore and all ext dirs are inherited PUBLIC from IFScore_ST
+target_include_directories(IFSlib PRIVATE SrcLib)
+
+# Link against single-threaded variants only
+target_link_libraries(IFSlib PRIVATE IFScore_ST)
+
+target_link_options(IFSlib PRIVATE
+    --no-entry
+    -sSTANDALONE_WASM=1
+    "-sEXPORTED_FUNCTIONS=_malloc,_free,_ifslib_init,_ifslib_render"
+)
+
+set_target_properties(IFSlib PROPERTIES
+	OUTPUT_NAME IFSlib
+	SUFFIX ".wasm"
+	DEBUG_POSTFIX d
+)
+
+endif() # EMSCRIPTEN

@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "pch.h"
+#include "gtest/gtest.h"
 #include "conbuf.h"
 
 void ims_num_traits_init_all();

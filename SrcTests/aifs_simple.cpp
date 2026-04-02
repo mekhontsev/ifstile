@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "pch.h"
+#include "gtest/gtest.h"
 #include "oper_block.h"
 #include "aifs_tester.h"
 #include "block_class.h"
