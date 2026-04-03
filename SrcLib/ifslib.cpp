@@ -27,8 +27,8 @@ bool ims_need_stop(){return false;}
 // Eliminates the "env" import from the WASM binary.
 extern "C" void emscripten_notify_memory_growth(int) {}
 
-// Global renderer: recreated on each ifslib_init call for clean state.
-static std::optional<ifs_renderer> g_renderer;
+// Global renderer
+static ifs_renderer g_renderer;
 
 // Global output bitmap: reused across render calls to avoid allocations.
 static ims_bitmap g_bitmap;
@@ -41,8 +41,7 @@ extern "C" {
 EMSCRIPTEN_KEEPALIVE
 int ifslib_init(const char* aifs_text)
 {
-	g_renderer.emplace();
-	return g_renderer->init(std::string(aifs_text)) ? 1 : 0;
+	return g_renderer.init(aifs_text) ? 1 : 0;
 }
 
 // Render into an internal RGBA bitmap of size width x height.
@@ -51,14 +50,12 @@ int ifslib_init(const char* aifs_text)
 EMSCRIPTEN_KEEPALIVE
 const uint8_t* ifslib_render(int width, int height, float quality, float thickness)
 {
-	if (!g_renderer)
-		return nullptr;
 
 	g_bitmap.recreate(static_cast<size_t>(width), static_cast<size_t>(height));
 	if (g_bitmap.empty())
 		return nullptr;
 
-	if (!g_renderer->render(g_bitmap, quality, thickness))
+	if (!g_renderer.render(g_bitmap, quality, thickness))
 		return nullptr;
 
 	return reinterpret_cast<const uint8_t*>(g_bitmap.data());

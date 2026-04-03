@@ -102,11 +102,14 @@ elseif(ANDROID)
 	add_link_options(-static-libstdc++)
 elseif(EMSCRIPTEN)
 	add_compile_options(-fwasm-exceptions -mnontrapping-fptoint)
-	add_link_options(-fwasm-exceptions)
+	add_link_options(-fwasm-exceptions)  # needed by all Emscripten targets
 	add_compile_options("$<$<CONFIG:Debug>:-g;-gseparate-dwarf>")
 	add_link_options("$<$<CONFIG:Debug>:-sGL_DEBUG=1;-sASSERTIONS=1>")
+	#add_compile_options("$<$<Config:Release>:-fexceptions;-UNDEBUG;-s;-gseparate-dwarf;-g>")
+	#add_link_options("$<$<Config:Release>:-sGL_DEBUG=1;-sASSERTIONS=1;-sNO_DISABLE_EXCEPTION_CATCHING>")
+	#add_link_options("$<$<Config:Debug>:-sGL_DEBUG=1;-sASSERTIONS=1;-sNO_DISABLE_EXCEPTION_CATCHING>")
 
-	# Shared memory settings for all WASM executables (IFStile, IFSlib).
+	# Shared settings for all WASM executables (IFStile, IFSlib).
 	add_link_options(
 		-sALLOW_MEMORY_GROWTH=1
 		"-sINITIAL_MEMORY=64MB"
@@ -139,8 +142,8 @@ set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_CAMERA OFF CACHE BOOL "" FORCE)
 set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
-
 add_subdirectory(${ext}/SDL SYSTEM EXCLUDE_FROM_ALL)
+
 
 #------------------------------------------------------------------------------
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -599,7 +602,6 @@ target_include_directories(IFSfinder PRIVATE
 )
 
 target_precompile_headers(IFSfinder REUSE_FROM IFScore)
-
 target_link_libraries(IFSfinder PRIVATE IFScore)
 
 if(LINUX)
