@@ -260,6 +260,17 @@ Composition f with itself n times f(f(f(...)))
 **$union(a)**
 Create a union of compositions of union of ... etc from the nested input array a.
 
+### Complete minimal example (Sierpiński Triangle):
+
+```javascript
+@
+$dim=2
+f1=[0.5,0,0,0.5]
+f2=[0.5,0]*[0.5,0,0,0.5]
+f3=[0.25,0.5]*[0.5,0,0,0.5]
+S=(f1|f2|f3)*S
+```
+
 ### Templates
 Templates describe infinite sets of affine maps together with a random distribution that can be used in the search procedure and in the editor window.\
 Templates can be used in the same places where affine maps appear: within compositions, unions, etc.

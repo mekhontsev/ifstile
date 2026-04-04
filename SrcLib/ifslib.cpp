@@ -18,6 +18,7 @@
 #include "ifs_renderer.h"
 
 #include <emscripten.h>
+#include <wasi/api.h>
 
 
 void ext_console_clear(){};
@@ -26,6 +27,39 @@ bool ims_need_stop(){return false;}
 // Stub out Emscripten's memory-growth notification.
 // Eliminates the "env" import from the WASM binary.
 extern "C" void emscripten_notify_memory_growth(int) {}
+
+// WASI Preview 1 stubs — eliminates wasi_snapshot_preview1 imports.
+// Exact set derived from: WebAssembly.Module.imports(IFSlib.wasm)
+extern "C" {
+
+__wasi_errno_t __wasi_environ_get(uint8_t**, uint8_t*)                            { return __WASI_ERRNO_SUCCESS; }
+__wasi_errno_t __wasi_environ_sizes_get(__wasi_size_t* c, __wasi_size_t* s)       { *c = 0; *s = 0; return __WASI_ERRNO_SUCCESS; }
+
+__wasi_errno_t __wasi_clock_time_get(__wasi_clockid_t, __wasi_timestamp_t, __wasi_timestamp_t* t) {
+    *t = 0; return __WASI_ERRNO_SUCCESS;
+}
+
+__wasi_errno_t __wasi_fd_close(__wasi_fd_t)                                       { return __WASI_ERRNO_SUCCESS; }
+__wasi_errno_t __wasi_fd_read(__wasi_fd_t, const __wasi_iovec_t*, size_t, __wasi_size_t* n) {
+    *n = 0; return __WASI_ERRNO_BADF;
+}
+__wasi_errno_t __wasi_fd_write(__wasi_fd_t, const __wasi_ciovec_t*, size_t, __wasi_size_t* n) {
+    *n = 0; return __WASI_ERRNO_SUCCESS;
+}
+__wasi_errno_t __wasi_fd_seek(__wasi_fd_t, __wasi_filedelta_t, __wasi_whence_t, __wasi_filesize_t* p) {
+    *p = 0; return __WASI_ERRNO_SUCCESS;
+}
+
+__wasi_errno_t __wasi_random_get(uint8_t* buf, __wasi_size_t len) {
+    uint32_t s = 0xDEADBEEFu;
+    for (__wasi_size_t i = 0; i < len; ++i) {
+        s = s * 1664525u + 1013904223u;
+        buf[i] = static_cast<uint8_t>(s >> 24);
+    }
+    return __WASI_ERRNO_SUCCESS;
+}
+
+} // extern "C" (WASI stubs)
 
 // Global renderer
 static ifs_renderer g_renderer;
@@ -50,7 +84,6 @@ int ifslib_init(const char* aifs_text)
 EMSCRIPTEN_KEEPALIVE
 const uint8_t* ifslib_render(int width, int height, float quality, float thickness)
 {
-
 	g_bitmap.recreate(static_cast<size_t>(width), static_cast<size_t>(height));
 	if (g_bitmap.empty())
 		return nullptr;

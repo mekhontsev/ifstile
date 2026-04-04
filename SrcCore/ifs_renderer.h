@@ -19,12 +19,43 @@
 #include "ims_info.h"
 #include "block_info.h"
 #include "standard_vars.h"
+#include "builder.h"
+#include "builder2d.h"
+#include "builder3d.h"
+#include "builder_ext.h"
+#include "gbuffer3d.h"
+#include "render_params.h"
 
 struct ifs_renderer 
 {
+	using real_number = double;
+
+	static void fit1d2d(
+		standard_vars& sv,
+		block_info& bi,
+		camera_ex& cc,
+		size_t root,
+		size_t tw,
+		size_t th,
+		float iter_thk,
+		bool is2d);
+
 	bool init(const std::string& aifs);
 
 	bool render(ims_bitmap& dst, float quality, float thickness);
+
+	render_params m_rp;
+
+	builder2d m_builder2d;
+	builder3d m_builder3d;
+	builder_ext m_builder_ext;
+
+	draw_info2d m_buf2d_di;
+	draw_info_ext m_buf_ext_di;
+	gbuffer3d m_buf3d_di;
+
+	state_stack m_ss;
+	ims_cmap<real_number> m_cm;
 	
 	ims_info m_nfo;
 	block_info m_bi;

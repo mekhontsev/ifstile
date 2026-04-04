@@ -28,7 +28,7 @@
 #include "report_params.h"
 #include "ims_chrono.h"
 
-
+struct standard_vars;
 struct oper_block;
 struct visible_blocks;
 struct ims_identifiers;
@@ -208,13 +208,7 @@ public:
 		const visible_blocks& vb,
 		const variator_params& vp);
 
-	void fit1d2d(
-		thumb_elem& cur, 
-		size_t tw,
-		size_t th,
-		float iter_thk,
-		bool is2d
-	);
+
 
 	//finds derived ifs, the dimensions of each set, the measure, and the moments
 	//then constructs (2D, 3D, ext)

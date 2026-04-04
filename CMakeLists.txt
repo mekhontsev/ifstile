@@ -677,6 +677,7 @@ target_precompile_headers(IFSlib REUSE_FROM IFScore_ST)
 
 # SrcCore and all ext dirs are inherited PUBLIC from IFScore_ST
 target_include_directories(IFSlib PRIVATE SrcLib)
+target_include_directories(IFSlib AFTER PRIVATE SrcCore)  # AFTER — because pch.h
 
 # Link against single-threaded variants only
 target_link_libraries(IFSlib PRIVATE IFScore_ST)
@@ -688,7 +689,7 @@ target_link_options(IFSlib PRIVATE
 )
 
 set_target_properties(IFSlib PROPERTIES
-	OUTPUT_NAME IFSlib
+	OUTPUT_NAME ifslib
 	SUFFIX ".wasm"
 	DEBUG_POSTFIX d
 )

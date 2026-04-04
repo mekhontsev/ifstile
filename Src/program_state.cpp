@@ -28,6 +28,7 @@
 #include "edge_map.h"
 #include "variable.h"
 #include "ims_worker.h"
+#include "ifs_renderer.h"
 
 thumb_elem* program_state::get_first_thumb_elem()
 {
@@ -213,82 +214,6 @@ bool program_state::on_start_build(
 	return true;
 }
 
-
-void program_state::fit1d2d(
-	thumb_elem& cur,
-	size_t tw,
-	size_t th,
-	float iter_thk,
-	bool is2d)
-{
-	auto& bd = *cur.m_data3;
-	auto& cc = *cur.m_pcam;
-	auto& sv = bd.m_special;
-	auto& si = sv.m_si2;
-
-	box<real_number> dst;
-	auto& sd = cc.m_sd;
-
-	if (cc.empty(2)) {
-		sd.a = 0;
-	}
-
-
-	Eigen::Matrix2<real_number> rot;
-
-	
-	auto si_a = si;//copy
-	if (is2d) {
-		let a = sd.a * boost::math::constants::pi<double>() / 180;
-		let c = cos(a);
-		let s = sin(a);
-		rot << c, s, -s, c;
-		si_a.basis = si_a.basis * rot;
-	}
-
-	builder::adjust_box(
-		dst,
-		0.01,
-		si_a,
-		bd.m_bi.m_em,
-		bd.m_bi.m_vb,
-		bd.m_bi.get_fg(),
-		cur.m_root2);
-
-	if (ims_need_stop()) {
-		return;
-	}
-
-	assert(!dst.empty());
-
-	dst.adjust();
-
-
-	auto vc = dst.get_center();
-
-	if (is2d) {
-		vc = rot * vc;
-	}
-
-	sd.c[0] = vc(0);
-	real_number bw = dst.size(0);
-	real_number bh;
-	if (vc.size() > 1) {
-		sd.c[1] = vc(1);
-		bh = dst.size(1);
-	} else {
-		sd.c[1] = 0;
-		bh = 0;
-	}
-
-	let twh = std::min(tw, th);
-	let ps = std::max(bw / tw, bh / th);
-	sd.r = ps * twh / 2;
-	//expand by about 3 pixels
-	sd.r *= 1 + (1 + 2 * iter_thk) / twh;
-
-	cc.m_2d_empty = false;
-}
 
 void program_state::build_image(
 	ims_identifiers& idf,
@@ -520,7 +445,11 @@ void program_state::build_image(
 		if (sds == 2 || sds == 1) {
 			if (task.fit || cc.empty(2)) {
 
-				fit1d2d(cur,
+				ifs_renderer::fit1d2d(
+					cur.m_data3->m_special,
+					cur.m_data3->m_bi,
+					*cur.m_pcam,
+					cur.m_root2,
 					tx* iter_ovs,
 					ty* iter_ovs,
 					iter_thk,
