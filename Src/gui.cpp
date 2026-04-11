@@ -824,10 +824,9 @@ static bool save_mesh(
 static void switch_thumbnail()
 {
 	stop_build_then([]() {
-
 		g_thum_enabled = !g_thum_enabled;
-	do_rebuild_sync();
-		}, 0);//instant stop
+		do_rebuild_sync();
+	}, 0);//instant stop
 };
 
 static size_t get_rel_block(int step)
@@ -4188,10 +4187,12 @@ static bool menu_item_mode(ListViewMode m)
 static void create_new_document()
 {
 	try_open_file([]() {
-		g_ims_info.reset();
-		get_vb().init9(ifs_list_get());
-		s_ui.m_editor.m_eidt_type = ws_editor::EDITOR_SOURCE;
-		set_view_mode(ListViewMode::EDITOR);
+		stop_build_then([]() {
+			clear_before_load();
+			get_vb().init9(ifs_list_get());
+			s_ui.m_editor.m_eidt_type = ws_editor::EDITOR_SOURCE;
+			set_view_mode(ListViewMode::EDITOR);
+		});
 	});
 };
 

@@ -95,10 +95,10 @@ struct inter_result
 	size_t m_bits{};	//how many bits were used
 
 	//minimum depth where an exact overlap was found
-	//0 - no overlap was found
+	//0 - no overlap was found, that is, OSC condition is satisfied
 	uint32_t m_over_depth{};
 
-	bool m_completed{}; //intersections are fully created
+	bool m_completed{}; //intersections are fully created, if false, then some intersections were left as unknown, but the algorithm stopped due to complexity limits or user interruption
 	bool m_overflowed{};//there was a rational overflow
 
 	//the mode in which the calculations were performed

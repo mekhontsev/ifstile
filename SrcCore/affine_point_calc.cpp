@@ -57,7 +57,6 @@ void affine_point_calc::process(
 		for (size_t j = 0; j < c.num_ver; ++j) {//over all vertices of the component
 			let v = g.m_ver_sorted[j + c.idx_sorted];
 
-			
 			//turned out to be non-empty
 			status = cardinality::point;//contains at least one point
 
@@ -178,8 +177,11 @@ void affine_point_calc::process(
 
 				let& m = ri[qe.m].m;
 				let& bt = vb[qe.second];
+			
+				edge_ball mp(eval_helpers::mul_ball(m.get(), bt.get()));
+				//temporary
+				edge_ball mb(eval_helpers::create_ball(mp.center_data(), 0, mp.dim()));
 
-				edge_ball mb = eval_helpers::mul_ball(m.get(), bt.get());
 				auto* q = mb.center_data();
 				let dim = mb.dim();
 				if (vb[v].dim() < dim) {

@@ -225,7 +225,7 @@ neighbors_data.h neighbors_data.cpp math_helpers.h mprec.h
 poly_funcs.h poly_roots.h combinator.h combinator.cpp
 finder.h finder.cpp column_id.h pch_core.h pch.h
 columns.h columns.cpp graph_init_data.h graph_init_data.cpp
-ifs_list.h ifs_list.cpp
+ifs_list.h ifs_list.cpp custom_block.h custom_block.cpp
 projector.h projector.cpp env_block.h env_block.cpp ims_identifiers.cpp ims_identifiers.h
 ims_full_graph.h ims_full_graph.cpp
 utf8.h utf8.cpp main_utf8.h ims_chrono.h ims_ini.h ims_ini.cpp
@@ -685,7 +685,7 @@ target_link_libraries(IFSlib PRIVATE IFScore_ST)
 target_link_options(IFSlib PRIVATE
     --no-entry
     -sSTANDALONE_WASM=1
-    "-sEXPORTED_FUNCTIONS=_malloc,_free,_ifslib_init,_ifslib_render"
+    "-sEXPORTED_FUNCTIONS=_malloc,_free,_get_last_output,_init,_ifs_select,_render,_information, _custom_ifs, _calc_neighbor_graph, _set_camera"
 )
 
 set_target_properties(IFSlib PROPERTIES

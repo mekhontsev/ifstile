@@ -141,7 +141,18 @@ bool print_dimensions(std::ostream& sout, const block_info& bi)
 		let& dc = di[ci];
 		assert(dc.DR == dim_relations::own);
 
-		fmt::println(sout, "Component {}, dim ~= {}", ci, dc.H);
+		fmt::print(sout, "Component IDs: {}", ci);
+		for (size_t i = 0; i < g.m_comp.size(); ++i) {
+			if (i == ci)continue;//already printed
+			const Real dh = di[i].H - di[ci].H;
+			if (std::abs(dh) > eps) {
+				continue;
+			}
+			fmt::print(sout, ", {}", i);
+		}
+		fmt::println(sout, "", dc.H);
+
+		fmt::println(sout, "dim ~= {}", dc.H);
 
 		//TODO: make it work for real IFS too...
 
@@ -238,6 +249,10 @@ bool print_dimensions(std::ostream& sout, const block_info& bi)
 		//calculate the base matrix
 
 		let n = bi.get_dim_alg(alg_id);
+		if (n==0){
+			fmt::println(sout, "dim = 0");
+			continue;
+		}
 		
 		MatrixRational R(n, n), Ri(n, n), RT(n, n);
 
@@ -426,7 +441,6 @@ bool print_dimensions(std::ostream& sout, const block_info& bi)
 		fmt::println(sout, "=0");
 		fmt::println(sout, "x~={}", x);
 	}
-
 
 	return true;
 }

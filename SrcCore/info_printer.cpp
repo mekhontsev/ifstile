@@ -215,7 +215,7 @@ static void print_measure_1(const oper_block& sr, const block_info* bi)
 	for (size_t i = 0; i < g->m_refs.size(); ++i) {
 		let vr = sr.get_graph()->ref2fg(i);
 		if (vr == ims_max || fg.is_ver_empty(vr))continue;
-
+	
 		let& di = im.di[fg.m_ver2com[vr]];
 		let& mes = im.measure[vr];
 
@@ -229,6 +229,10 @@ static void print_measure_1(const oper_block& sr, const block_info* bi)
 		}
 
 		let& m = im.me[vr].I;
+		if (m.size() == 0) {
+			continue;
+		}
+		
 		let d = m(m.size() - 1);
 		let eps = ims_num_traits<Real>::almost_zero();
 		if (d > eps) {
@@ -311,6 +315,20 @@ void print_ifs_eval(const oper_block& sr, eval_context& ec)
 	};
 }
 
+
+void print_components(const oper_block& sr, const block_info& bi)
+{
+	print_header("Components:"); IMS_SCOPE(print_footer);
+
+	let* g = sr.get_class();
+	let& fg = bi.get_fg();
+
+	for (size_t i = 0; i < g->m_refs.size(); ++i) {
+		let vr = sr.get_graph()->ref2fg(i);
+		if (vr == ims_max)continue;
+		std::cout << g->get_var_name(i) << ": " << fg.m_ver2com[vr] << std::endl;
+	}
+}
 
 void print_ifs_proj(const oper_block& sr, const block_info& bi)
 {

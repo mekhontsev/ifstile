@@ -18,17 +18,18 @@
 
 struct report_params
 {
-	report_params(): 
+	report_params() :
 		only_max_inters(true),
-		intersections(false), 
-		connections(false), 
+		intersections(false),
+		connections(false),
 		neighbourhoods(true),
 		neighbourhoods_graph(false),
 		nboundary(false),
-		relators(false),	
+		relators(false),
 		filer(filter_type::all),
 		filer_post(filter_type::all)
 	{};
+
 
 	enum class filter_type : uint8_t
 	{

@@ -25,6 +25,10 @@
 #include "builder_ext.h"
 #include "gbuffer3d.h"
 #include "render_params.h"
+#include "integer_ims.h"
+#include "neighbors_data.h"
+
+struct report_params;
 
 struct ifs_renderer 
 {
@@ -42,7 +46,20 @@ struct ifs_renderer
 
 	bool init(const std::string& aifs);
 
+	bool select(std::string_view block_id, std::string_view root_id);
+
 	bool render(ims_bitmap& dst, float quality, float thickness);
+
+	bool information(const char* what);
+
+	size_t max_complexity = 1000;
+	size_t max_bits = 63;
+	float find_prec2 = 0;//0.3 is a reasonable value
+
+	bool calc_neighbor_graph(inter_result& ires, const integer_ims::settings& settings);
+	bool custom_ifs(const report_params& rp, bool boundary_mode);
+
+	bool set_camera(const double* camera_params, size_t num_params);
 
 	render_params m_rp;
 
@@ -56,9 +73,14 @@ struct ifs_renderer
 
 	state_stack m_ss;
 	ims_cmap<real_number> m_cm;
-	
-	ims_info m_nfo;
+	std::unique_ptr<ims_info> m_nfo;
+
 	block_info m_bi;
 	standard_vars m_sv;
-	const oper_block* m_bb;
+	const oper_block* m_bb = nullptr;
+
+	integer_ims m_cs;
+	neighbors_data m_nb;
+
+	bool m_fit = true;
 };

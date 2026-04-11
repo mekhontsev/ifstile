@@ -178,6 +178,32 @@ bool create_neghbours(
 {
 	test_clock_print clock("create_neghbours= ");
 
+// Prefixes used to generate unique variable names for each category of
+// derived object in the output oper_block. The actual names are formed
+// as  <prefix><1-based index>  (e.g. "k1", "k2", ...).
+//
+//   eva_prefix  ("q")   – extra pre-evaluated references copied from
+//                         the eval_context (ec.m_refs5 beyond the
+//                         original user refs).
+//   map_prefix  ("k")   – IFS contraction maps taken from the index map
+//                         (bg.m_am.m_ixm.m_maps).
+//   lab_prefix  ("e")   – identity-map labels for each contraction map;
+//                         emitted when neighbor maps or intersections are
+//                         requested.
+//   ver_prefix  ("v")   – implicit (non-user) attractor sets derived
+//                         from graph vertices that have no direct user
+//                         reference.
+//   nbm_prefix  ("m")   – neighbor conjugacy maps  r⁻¹ · ? · f  for
+//                         each pairwise neighborhood relation.
+//   rel_prefix  ("id_") – group relators built from products of
+//                         contraction maps (report_params::relators).
+//   nbi_prefix  ("i")   – pairwise boundary/intersection sets (order 2).
+//   nbu_prefix  ("u")   – pairwise connection unions (order 2,
+//                         report_params::connections).
+//   fi_prefix   ("j")   – higher-order intersection sets (order 3, 4 …,
+//                         report_params::intersections).
+//   fu_prefix   ("w")   – higher-order connection unions (order 3, 4 …,
+//                         report_params::connections).
 	const std::string 
 		eva_prefix = "q",
 		map_prefix = "k",
@@ -331,7 +357,10 @@ bool create_neghbours(
 
 				//filter connections by 2, 3, 4...
 				tgraph.init();
-				filter_func(used_vers, rp->filer_post, tgraph);
+				if (filter_func) {
+					filter_func(used_vers, rp->filer_post, tgraph);
+				}
+				
 				if (ims_need_stop()) {
 					return false;
 				}
@@ -341,7 +370,7 @@ bool create_neghbours(
 				for (size_t k = 0; k < ns.size(); ++k) {
 					auto& nsk = ns[k];
 					let idx = nsk.first;
-					if (!used_vers[k]) {
+					if (filter_func && !used_vers[k]) {
 						ns[k].first = ims_max;
 						nsi[idx] = ims_max;
 					}
@@ -729,7 +758,9 @@ bool create_neghbours(
 					tgraph.remove_non_strong_edges();
 				}
 
-				filter_func(used_vers, rp->filer_post, tgraph);
+				if (filter_func) {
+					filter_func(used_vers, rp->filer_post, tgraph);
+				}
 				if (ims_need_stop()) {
 					return false;
 				}
@@ -746,12 +777,10 @@ bool create_neghbours(
 				for (size_t j = r.first; j < r.second; ++j) {
 
 					let v = j - r.first;
-				
 
-					
 					let ds = make_var(pos, ipref + std::to_string(v + 1));
 
-					if (!used_vers[v]) {
+					if (filter_func && !used_vers[v]) {
 						dst.add_args(ds, ETYPE::empty, 0);
 					} else {
 						let ne = tgraph.num_edges(v);
@@ -759,7 +788,7 @@ bool create_neghbours(
 						size_t real_ne = 0;
 						for (size_t k = 0; k < ne; ++k) {
 							let& e = tgraph.get_edge(v, k);
-							if (!used_vers[e.second])continue;
+							if (filter_func && !used_vers[e.second])continue;
 							++real_ne;
 						}
 
@@ -770,7 +799,7 @@ bool create_neghbours(
 
 						for (size_t k = 0; k < ne; ++k) {
 							let& e = tgraph.get_edge(v, k);
-							if (!used_vers[e.second])continue;
+							if (filter_func && !used_vers[e.second])continue;
 
 
 							let a = dst.add_args(ofs + edge_idx, ETYPE::mul, 2);

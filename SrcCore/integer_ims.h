@@ -1,4 +1,4 @@
-﻿// This file is part of IFStile project
+// This file is part of IFStile project
 // Copyright (C)2026 Dmitry Mekhontsev <mekhontsev@gmail.com>
 
 // This program is free software: you can redistribute it and/or modify
@@ -22,31 +22,32 @@
 struct block_info;
 struct neighbors_data;
 
-
 struct integer_ims
 {	
-
 	struct settings
 	{
 		//maximum number of elements in the search tree
-		size_t max_inters;
-		//maximum tree depth
-		size_t max_depth;
+		//the performance depends linearly on this parameter, but the result may be incomplete if it's too small
+		size_t max_inters = 4000;//reasonable as starting point
 
-		//maximum number of bits for rational mode
-		size_t max_bits;
+		//maximum tree depth (ims_max for maximum, it should be default)
+		size_t max_depth = ims_max;
 
-		//precision, for real mode
-		double prec;
+		//max_bits: max rational precision during calculation
+		//>63 - slow, because of big rational arithmetic, but more complete results are possible.
+		size_t max_bits = 63;//fast
+
+		//find_prec: usually 0, >0 only for floating point search, or for infinite neighbour graph. 0.3 is ok
+		float prec = 0;
 
 		//use orientation finding mode - ignores translates
-		bool mode_ori;
+		bool mode_ori = false;
 
 		//stop processing the vertex if an overlap is found
-		bool stop_on_overlap;
+		bool stop_on_overlap = true;
 
 		//stop graph processing as soon as we couldn't process at least one vertex
-		bool stop_on_incomplete;
+		bool stop_on_incomplete = true;
 	};
 
 	//creates the set of all intersections

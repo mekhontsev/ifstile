@@ -29,5 +29,6 @@ void print_balls(const oper_block& sr, const block_info* bi);
 void print_diams(const oper_block& sr, const block_info* bi);
 void print_measure(const oper_block& sr, const block_info* bi);
 void print_ifs_proj(const oper_block& sr, const block_info& bi);
+void print_components(const oper_block& sr, const block_info& bi);
 void print_ast(const oper_block& sr, const block_info& bi);
 void print_subspaces(const oper_block& sr, const block_info* bi);

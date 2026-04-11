@@ -545,7 +545,7 @@ bool affine_dim_calc::compute_moments(
 
 		//Euclidean dimension of the component
 		let dim = vdim[gm.m_ver_sorted[comp.idx_sorted]];
-		if (dim==0)continue;
+
 
 		adjust(m_sum, dim);
 		auto sum = m_sum->MR();
@@ -664,7 +664,22 @@ bool affine_dim_calc::compute_moments(
 		for (size_t j = 0; j < comp.num_ver; ++j) {
 			let v = gm.m_ver_sorted[j + comp.idx_sorted];
 
+			
+
 			auto& q = im.me[v];
+
+			if (dim == 0) {
+				q.C.resize(1);	
+				q.C.setZero();
+
+				q.I.resize(1);
+				q.I.setIdentity();
+
+				q.Q.resize(1, 1);
+				q.Q.setIdentity();
+				continue;
+			}
+
 			q.C.resize(dim);
 			q.I.resize(dim);
 			q.Q.resize(dim, dim);
