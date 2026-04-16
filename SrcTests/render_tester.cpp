@@ -67,7 +67,7 @@ A=(f1|f2|f3|f4)*A
 
 	ifs_renderer r;
 	ASSERT_TRUE(r.init(aifs));
-	ASSERT_TRUE(r.set_block(""));
+	ASSERT_TRUE(r.set_block(-1));
 
 	inter_result ires;
 	integer_ims::settings s;
