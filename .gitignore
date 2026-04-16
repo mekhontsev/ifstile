@@ -16,3 +16,4 @@ Setup/*.dmg
 Setup/*.apk
 Setup/*.aab
 *.jks
+CMakePresets.json

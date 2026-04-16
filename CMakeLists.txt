@@ -28,7 +28,7 @@ function(generate_embed_header EMBED_HEADERS_LOCATION DST_FILE)
 
 		set(CURRENT_COMMENT "//${FILENAME}")
 		list(APPEND ARRAY_DECLARATIONS "${CURRENT_COMMENT}")
-		
+
         string(TOLOWER "${FILENAME}" ARR_NAME)
         string(MAKE_C_IDENTIFIER "${ARR_NAME}" ARR_NAME)
 
@@ -120,7 +120,7 @@ elseif(EMSCRIPTEN)
 	set(EMSCRIPTEN_APP_LINK_OPTIONS
 		-pthread -Wno-pthreads-mem-growth
 		-lidbfs.js -lhtml5 -lGL
-		-sMIN_WEBGL_VERSION=2 
+		-sMIN_WEBGL_VERSION=2
 		-sMAX_WEBGL_VERSION=2
 		-sPTHREAD_POOL_SIZE=4
 		-sEXPORTED_RUNTIME_METHODS=ccall,cwrap
@@ -204,16 +204,16 @@ generate_embed_header(${EMBED_HEADERS_LOCATION} icon256.png.h FILES "${CMAKE_CUR
 #-------------------------------------------------------------------------------
 set (SRC_Core
 full_search.h full_search.cpp ims_print.h
-ims_file.h ims_file.cpp built_in_func.h built_in_func.cpp big_array.h 
+ims_file.h ims_file.cpp built_in_func.h built_in_func.cpp big_array.h
 parser_state.h parser_state.cpp  spline.h print_dimensions.cpp
-matrix_funcs.h matrix_group.h matrix_group.cpp 
-ims_keywords.h ims_operator.h ims_operator.cpp block_class.h block_class.cpp 
-data_column.cpp data_column.h def_number_types.h ims_random.h ims_random.cpp 
+matrix_funcs.h matrix_group.h matrix_group.cpp
+ims_keywords.h ims_operator.h ims_operator.cpp block_class.h block_class.cpp
+data_column.cpp data_column.h def_number_types.h ims_random.h ims_random.cpp
 ims_stage.h ims_stage.cpp
 ims_info.h ims_info.cpp call_thread.h aifs_printer.h aifs_printer.cpp
 search_info.h print_operator.cpp oper_block.h oper_block.cpp
 ovr_data.h ovr_data.cpp eval_context.h eval_context.cpp
-geom_solver.h dist_solver.h dist_solver.cpp diam_solver.h diam_solver.cpp 
+geom_solver.h dist_solver.h dist_solver.cpp diam_solver.h diam_solver.cpp
 clock_print.h block_info.h block_info.cpp
 dfs.h dfs.cpp ims_graph_base.h ims_graph_base.cpp ims_graph.cpp ims_graph.h
 conbuf.h conbuf.cpp version.h ims_num_traits.cpp geometry.h
@@ -230,7 +230,7 @@ projector.h projector.cpp env_block.h env_block.cpp ims_identifiers.cpp ims_iden
 ims_full_graph.h ims_full_graph.cpp
 utf8.h utf8.cpp main_utf8.h ims_chrono.h ims_ini.h ims_ini.cpp
 block_converter.h block_converter.cpp graph_poly.h js_engine.h js_engine.cpp
-operator_ptr.h operator_ptr.cpp  palette.h palette.cpp ims_visitor.h 
+operator_ptr.h operator_ptr.cpp  palette.h palette.cpp ims_visitor.h
 ast_stack.h ast_stack.cpp proj_data.cpp proj_data.h
 ims_streambuf.h render_params.h ims_pool.h variable.h
 print_ims_val.cpp graph_divider.h graph_divider.cpp
@@ -242,19 +242,19 @@ pool_ptr.h pool_ptr.cpp graph_builder.h graph_builder.cpp string_view_hash.h
 block_graph.h block_vars.cpp indexed_maps.h indexed_maps.cpp
 param_walker.h param_walker.cpp
 mat_operations.h matrix_helper.h matrix_helper.cpp
-box.h ball3d.h ifs_metrics.h 
-affine_dim_calc.h affine_dim_calc.cpp 
-affine_bound_calc.h affine_bound_calc.cpp 
+box.h ball3d.h ifs_metrics.h
+affine_dim_calc.h affine_dim_calc.cpp
+affine_bound_calc.h affine_bound_calc.cpp
 affine_point_calc.h affine_point_calc.cpp
 affine_subspace.h affine_subspace.cpp samples.h samples.cpp
 aifs_load.h aifs_load.cpp
 exr.h exr.cpp  base64.h base64.cpp
 ims_bitmap.h ims_bitmap.cpp ims_image.h
 mesh_primitives.h mesh3d.cpp mesh3d.h point.h voxel_volume.cpp voxel_volume.h voxel.h
-octree.cpp octree.h 
+octree.cpp octree.h
 lqsort.h builder.h builder.cpp builder3d.h
 gbuffer3d.h gbuffer3d.cpp builder3d.cpp builder2d.h builder2d.cpp builder_ext.h builder_ext.cpp
-build_data.h build_data.cpp builder_mesh.h builder_mesh.cpp 
+build_data.h build_data.cpp builder_mesh.h builder_mesh.cpp
 standard_vars.h standard_vars.cpp ifs_renderer.h ifs_renderer.cpp
 png_support.h png_support.cpp png_impl.c
 animator.h animator.cpp create_block.cpp create_ifs.cpp
@@ -275,8 +275,8 @@ ims_settings.h ims_settings.cpp
 pch.h main.cpp main_utf8.cpp
 gl_helper.h gl_helper.cpp dx_helper.h
 js_ifs.cpp ims_rw.h ims_rw.cpp
-file_dialog_state.h file_dialog_state.cpp 
-thread_priority.cpp platform.h platform.cpp 
+file_dialog_state.h file_dialog_state.cpp
+thread_priority.cpp platform.h platform.cpp
 platform_windows.cpp platform_macos.cpp platform_android.cpp platform_wasm.cpp
 platform_linux.cpp program_state.h program_state.cpp
 ui_window.h ui_window.cpp gui.h gui.cpp ims_window_drag.h ims_window_drag.cpp
@@ -299,7 +299,7 @@ list(TRANSFORM SRC_GENERAL PREPEND "Src/")
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Src PREFIX "Src" FILES ${SRC_GENERAL})
 
 #------------------------------------------------------------------------------
-set (SRC_IMGUI 
+set (SRC_IMGUI
 imgui.h imgui.cpp imconfig.h imgui_internal.h imgui_demo.cpp imgui_draw.cpp
  imgui_widgets.cpp imgui_tables.cpp imstb_truetype.h imstb_rectpack.h  imstb_textedit.h
  backends/imgui_impl_sdl3.h backends/imgui_impl_sdl3.cpp
@@ -308,13 +308,13 @@ imgui.h imgui.cpp imconfig.h imgui_internal.h imgui_demo.cpp imgui_draw.cpp
 )
 
 if(win_directx)
-	set (SRC_IMGUI  ${SRC_IMGUI} 
+	set (SRC_IMGUI  ${SRC_IMGUI}
 		backends/imgui_impl_dx11.h backends/imgui_impl_dx11.cpp)
-elseif(EMSCRIPTEN OR ANDROID) 
-	set (SRC_IMGUI  ${SRC_IMGUI} 
+elseif(EMSCRIPTEN OR ANDROID)
+	set (SRC_IMGUI  ${SRC_IMGUI}
 		backends/imgui_impl_opengl3.h backends/imgui_impl_opengl3.cpp)
 else()
-	set (SRC_IMGUI  ${SRC_IMGUI} 
+	set (SRC_IMGUI  ${SRC_IMGUI}
 		backends/imgui_impl_opengl2.h backends/imgui_impl_opengl2.cpp)
 endif()
 
@@ -322,7 +322,7 @@ list(TRANSFORM SRC_IMGUI PREPEND "${ext}/imgui/")
 source_group(ImGui FILES ${SRC_IMGUI})
 
 #-------------------------------------------------------------------------------
-set(ALL_SRC 
+set(ALL_SRC
 	${SRC_GENERAL} ${SRC_IMGUI} ${verhdr} manual.md)
 
 if(MSVC)
@@ -330,8 +330,8 @@ if(MSVC)
 	list(APPEND ALL_SRC PlatDep/resource.rc)
 
 	set (NATVIS_FILES
-		boost.natvis boost_Containers.natvis boost_DateTime.natvis boost_Geometry.natvis 
-		boost_Gil.natvis boost_IntrusiveContainers.natvis boost_MultiArray.natvis 
+		boost.natvis boost_Containers.natvis boost_DateTime.natvis boost_Geometry.natvis
+		boost_Gil.natvis boost_IntrusiveContainers.natvis boost_MultiArray.natvis
 		boost_Multiprecision.natvis boost_PointerContainerLibrary.natvis boost_Rational.natvis
 		boost_Regex.natvis boost_SmartPointers.natvis boost_uBLAS.natvis boost_Unordered.natvis
 		boost_Variant.natvis directx.natvis eigen.natvis)
@@ -382,7 +382,7 @@ list(TRANSFORM SRC_Tiny PREPEND "Tiny/")
 add_library(TinyLib STATIC ${SRC_Tiny})
 target_include_directories(TinyLib PUBLIC Tiny ${ext}/imgui)
 #------------------------------------------------------------------------------
-set (SRC_QuickJS 
+set (SRC_QuickJS
 	cutils.h libregexp.c libregexp.h  libregexp-opcode.h
 	libunicode.c  libunicode.h libunicode-table.h quickjs.c quickjs.h list.h
 	dtoa.h dtoa.c
@@ -454,11 +454,11 @@ if(MSVC)
 	add_custom_command(
 		TARGET ${PROJECT_NAME}
 		POST_BUILD
-		COMMAND "mt.exe" -manifest 
-			\"${CMAKE_CURRENT_SOURCE_DIR}\\PlatDep\\ifstile.manifest\" 
-			\"${CMAKE_CURRENT_SOURCE_DIR}\\PlatDep\\dpiaware.manifest\" 
+		COMMAND "mt.exe" -manifest
+			\"${CMAKE_CURRENT_SOURCE_DIR}\\PlatDep\\ifstile.manifest\"
+			\"${CMAKE_CURRENT_SOURCE_DIR}\\PlatDep\\dpiaware.manifest\"
 			-outputresource:\"$<TARGET_FILE:${PROJECT_NAME}>\"\;\#1
-		COMMENT "Adding manifests..." 
+		COMMENT "Adding manifests..."
 	)
 
 	set_property( DIRECTORY PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME} )
@@ -481,19 +481,19 @@ elseif(APPLE)
 	set( MACOSX_BUNDLE_LONG_VERSION_STRING "Version ${MACOSX_BUNDLE_VERSION}")
 	set( MACOSX_BUNDLE_COPYRIGHT "Copyright (C) 2016-2026, Dmitry Mekhontsev. All Rights Reserved.")
 	set( MACOSX_BUNDLE_GUI_IDENTIFIER "com.ifstile")
-#	set( MACOSX_BUNDLE_ADDITIONAL "<key>NSPrincipalClass</key>\n<string>NSApplication</string>") 
+#	set( MACOSX_BUNDLE_ADDITIONAL "<key>NSPrincipalClass</key>\n<string>NSApplication</string>")
 
 	set(resFiles
 		"${CMAKE_CURRENT_SOURCE_DIR}/PlatDep/Resources/Application.icns"
 	)
 	set_property(
-	  SOURCE ${resFiles} 
+	  SOURCE ${resFiles}
 	  PROPERTY MACOSX_PACKAGE_LOCATION Resources
 	)
 
 	add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${ALL_SRC} ${resFiles})
-	
-	#get_dotapp_dir(${APPLICATION_BIN} APPLICATION_APP_LOCATION) 
+
+	#get_dotapp_dir(${APPLICATION_BIN} APPLICATION_APP_LOCATION)
 
 elseif(ANDROID)
 	add_library(${PROJECT_NAME} SHARED ${ALL_SRC})
@@ -504,7 +504,7 @@ elseif(ANDROID)
 elseif(LINUX)
 	add_executable(${PROJECT_NAME} ${ALL_SRC})
 
-	set_target_properties(${PROJECT_NAME} PROPERTIES 
+	set_target_properties(${PROJECT_NAME} PROPERTIES
 		LINK_SEARCH_START_STATIC 1
 		LINK_SEARCH_END_STATIC 1
 	)
@@ -556,8 +556,8 @@ endif()
 #-------------------------------------------------------------------------------
 set (LINK_LIST)
 if(MSVC)
-	list (APPEND LINK_LIST 
-		setupapi.lib winmm.lib comctl32.lib version.lib ole32.lib 
+	list (APPEND LINK_LIST
+		setupapi.lib winmm.lib comctl32.lib version.lib ole32.lib
 		comdlg32.lib shlwapi.lib Imm32.lib)
 	if (win_directx)
 		list (APPEND LINK_LIST D3D11.lib)
@@ -565,32 +565,32 @@ if(MSVC)
 		list (APPEND LINK_LIST opengl32.lib)
 	endif()
 elseif(ANDROID)
-	list (APPEND LINK_LIST 
+	list (APPEND LINK_LIST
 		EGL GLESv3 GLESv1_CM dl android log OpenSLES)
 elseif(EMSCRIPTEN)
-	list (APPEND LINK_LIST 
+	list (APPEND LINK_LIST
 		EGL)
 elseif(APPLE)
-	list (APPEND LINK_LIST 
+	list (APPEND LINK_LIST
 		iconv objc)
-	list (APPEND LINK_LIST 
-		"-framework audiotoolbox" "-framework Foundation" "-framework Cocoa" 
-		"-framework CoreAudio" "-framework audiounit" "-framework CoreVideo" 
-		"-framework ForceFeedback" "-framework IOKit" "-framework Carbon" 
+	list (APPEND LINK_LIST
+		"-framework audiotoolbox" "-framework Foundation" "-framework Cocoa"
+		"-framework CoreAudio" "-framework audiounit" "-framework CoreVideo"
+		"-framework ForceFeedback" "-framework IOKit" "-framework Carbon"
 		"-framework OpenGL" "-framework CoreHaptics" "-framework GameController"
 		"-framework Metal" "-framework QuartzCore" "-framework AVFoundation"
 		"-framework CoreMedia" "-framework UniformTypeIdentifiers"
 	)
 elseif(LINUX)
-	list (APPEND LINK_LIST 
+	list (APPEND LINK_LIST
 		GL dl pthread rt)
-endif()	
+endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE IFScore TinyLib SDL3::SDL3 ${LINK_LIST})
 
 #-----------------------------------Finder--------------------------------------
 if(NOT EMSCRIPTEN AND NOT ANDROID)
-add_executable(IFSfinder 
+add_executable(IFSfinder
 	SrcFinder/main.cpp SrcFinder/main_utf8.cpp ${verhdr}
 )
 
@@ -669,6 +669,7 @@ if(EMSCRIPTEN)
 
 add_executable(IFSlib
 	SrcLib/ifslib.cpp
+	SrcLib/wasi_stubs.cpp
 	${verhdr}
 )
 
@@ -685,7 +686,7 @@ target_link_libraries(IFSlib PRIVATE IFScore_ST)
 target_link_options(IFSlib PRIVATE
     --no-entry
     -sSTANDALONE_WASM=1
-    "-sEXPORTED_FUNCTIONS=_malloc,_free,_get_last_output,_init,_ifs_select,_render,_information, _custom_ifs, _calc_neighbor_graph, _set_camera"
+    "-sEXPORTED_FUNCTIONS=_malloc,_free,_get_last_output,_init,_get_block_idx,_set_block,_set_root,_get_var_name,_render,_information,_custom_ifs,_calc_neighbor_graph,_set_camera,_calc_boundary_dim,_root_enclosing_ball,_root_hdim,_root_measure,_root_mass_center,_root_mass_moments,_root_mass_matrix,_calc_diams,_calc_dists"
 )
 
 set_target_properties(IFSlib PROPERTIES

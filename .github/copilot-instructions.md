@@ -1,5 +1,9 @@
 # Copilot Instructions
 
+## Scratch folder
+
+Use a scratch folder **outside the repository** for all temporary scripts and experiments. Never create temporary files inside the repository.
+
 ## Project Structure
 - The VS workspace root is inside `build/` (e.g. `build/msvc/`); the repository root is `../../` relative to it.
 - Never use absolute paths or place any files inside `build/` — it is generated and git-ignored.

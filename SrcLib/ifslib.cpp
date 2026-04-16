@@ -23,46 +23,6 @@
 
 
 #include <emscripten.h>
-#include <wasi/api.h>
-
-
-
-// Stub out Emscripten's memory-growth notification.
-// Eliminates the "env" import from the WASM binary.
-extern "C" void emscripten_notify_memory_growth(int) {}
-
-// WASI Preview 1 stubs — eliminates wasi_snapshot_preview1 imports.
-// Exact set derived from: WebAssembly.Module.imports(IFSlib.wasm)
-extern "C" {
-
-__wasi_errno_t __wasi_environ_get(uint8_t**, uint8_t*)                            { return __WASI_ERRNO_SUCCESS; }
-__wasi_errno_t __wasi_environ_sizes_get(__wasi_size_t* c, __wasi_size_t* s)       { *c = 0; *s = 0; return __WASI_ERRNO_SUCCESS; }
-
-__wasi_errno_t __wasi_clock_time_get(__wasi_clockid_t, __wasi_timestamp_t, __wasi_timestamp_t* t) {
-    *t = 0; return __WASI_ERRNO_SUCCESS;
-}
-
-__wasi_errno_t __wasi_fd_close(__wasi_fd_t)                                       { return __WASI_ERRNO_SUCCESS; }
-__wasi_errno_t __wasi_fd_read(__wasi_fd_t, const __wasi_iovec_t*, size_t, __wasi_size_t* n) {
-    *n = 0; return __WASI_ERRNO_BADF;
-}
-__wasi_errno_t __wasi_fd_write(__wasi_fd_t, const __wasi_ciovec_t*, size_t, __wasi_size_t* n) {
-    *n = 0; return __WASI_ERRNO_SUCCESS;
-}
-__wasi_errno_t __wasi_fd_seek(__wasi_fd_t, __wasi_filedelta_t, __wasi_whence_t, __wasi_filesize_t* p) {
-    *p = 0; return __WASI_ERRNO_SUCCESS;
-}
-
-__wasi_errno_t __wasi_random_get(uint8_t* buf, __wasi_size_t len) {
-    uint32_t s = 0xDEADBEEFu;
-    for (__wasi_size_t i = 0; i < len; ++i) {
-        s = s * 1664525u + 1013904223u;
-        buf[i] = static_cast<uint8_t>(s >> 24);
-    }
-    return __WASI_ERRNO_SUCCESS;
-}
-
-} // extern "C" (WASI stubs)
 
 bool ims_need_stop() { return false; }
 
@@ -101,13 +61,10 @@ extern "C" {
 //          "Evaluation"  — IFS map evaluation data
 //          "NormalMaps"  — normal maps for the attractor (only for positive-dimension blocks)
 //          "Projection"  — affine projection data (projected maps and graph in the graphviz format)
-//          "Balls"       — covering ball radii for every attractor
-//          "Diameters"   — diameter estimates for every attractor          (can be slow)
-//          "Measure"     — numeric Hausdorff dimension and normalized measure distribution for every attractor
 //          "Subspaces"   — affine subspace for every attractor, defined by points (can be slow)
 //          "AST"         — abstract syntax tree of the block definition
 //
-// Must be called after ifs_select() has succeeded.
+// Must be called after set_block() has succeeded.
 // Returns 1 on success, 0 if the requested information type is unrecognised or
 // no block is currently selected. Call get_last_output() to retrieve
 // the results or error message.
@@ -167,7 +124,7 @@ int information(const char* what)
 //   fu_prefix   ("w")   – higher-order connection unions (order 3, 4 …,
 //                         report_params::connections).
 EMSCRIPTEN_KEEPALIVE
-int custom_ifs(int bitmask,int lim)
+int custom_ifs(int bitmask, int lim)
 {
     ext_console_clear();
 
@@ -182,17 +139,21 @@ int custom_ifs(int bitmask,int lim)
 	rp.relators = (bitmask & 16);
 	rp.nboundary = (bitmask & 32);
 
+    if (!rp.empty() && lim < 2) {
+        std::cerr << "invalid arguments: lim must be >= 2 when bitmask is not 0" << std::endl;
+		return false;
+    }
+
     if (!bmode && rp.empty()) {
         std::cerr << "invalid arguments" << std::endl;
         return false;
     }
 
-   
     return g_state.m_renderer.custom_ifs(rp, bmode) ? 1 : 0;
 }
 
 // Computes the neighbor intersection graph for the currently selected block.
-// Must be called after ifs_select() has succeeded, and before custom_ifs().
+// Must be called after set_block() has succeeded, and before custom_ifs().
 //
 // ires     — output: pointer to an inter_result struct (20 bytes, align 4):
 //              offset  0  uint32  m_gcx         — how many intersections were checked
@@ -234,11 +195,26 @@ int custom_ifs(int bitmask,int lim)
 // the error message on failure.
 EMSCRIPTEN_KEEPALIVE
 int calc_neighbor_graph(
-    inter_result* ires, 
+    inter_result* ires,
     const integer_ims::settings* settings)
 {
     ext_console_clear();
     return g_state.m_renderer.calc_neighbor_graph(*ires, *settings) ? 1 : 0;
+}
+
+
+// Computes Hausdorff dimension of the boundary of the currently selected block.
+// The boundary dimension is calculated based on the neighbor intersection graph
+// previously computed by calc_neighbor_graph().
+// Return -1 if the boundary is empty
+// Must be called after calc_neighbor_graph() has succeeded.
+// Returns the computed boundary dimension as a floating-point value.
+// Returns NaN on failure. Call get_last_output() to retrieve the error message.
+EMSCRIPTEN_KEEPALIVE
+double calc_boundary_dim()
+{
+	ext_console_clear();
+	return g_state.m_renderer.boundary_dim();
 }
 
 // Returns console output accumulated since the last ifslib call.
@@ -253,7 +229,7 @@ const char* get_last_output()
 
 
 // Sets the camera/viewport for subsequent render() calls.
-// Must be called after ifs_select() has succeeded.
+// Must be called after set_block() has succeeded.
 //
 // camera_params — pointer to an array of doubles describing the camera.
 //                 Ignored when num_params is 0.
@@ -283,42 +259,223 @@ int set_camera(const double* camera_params, size_t num_params)
     return g_state.m_renderer.set_camera(camera_params, num_params) ? 1 : 0;
 }
 
-// Initializes the library by parsing an AIFS fractal definition.
-// Clears any previously loaded state and loads all blocks defined
-// in the input.
+// Parses an AIFS fractal definition and initializes the library state.
+// Replaces any previously loaded data; must be called before set_block().
 //
-// aifs_text — null-terminated UTF-8 string containing the AIFS
-//             fractal definition source.
+// Accepts any valid AIFS source: a single anonymous block (@), multiple
+// named blocks (@id:parentId), optional JavaScript interop (export ... @@),
+// and all AIFS language features ($dim, $subspace, $companion, etc.).
 //
-// Returns 1 on success, 0 on failure. Call get_last_output()
-// to retrieve the error message on failure.
-// On success, call ifs_select(block_id, root_id)
-// to select a block and root variable before rendering.
+// aifs_text — null-terminated UTF-8 string containing the AIFS source.
+//             Pass nullptr to clear the state without loading new data.
+//
+// Returns the number of blocks found in the input, or 0 on error.
+// Call get_last_output() to retrieve the error message on failure.
+// On success, call set_block() to select a block before rendering.
 EMSCRIPTEN_KEEPALIVE
 int init(const char* aifs_text)
 {
     ext_console_clear();
-    return g_state.m_renderer.init(aifs_text) ? 1 : 0;
+    return static_cast<int>(g_state.m_renderer.init(aifs_text));
 }
 
-// Selects a block and root from a previously initialized AIFS fractal definition.
-//
-// block_id — null-terminated UTF-8 string identifying the block by its identifier,
-//            display name, or numeric index. Pass an empty string to select
-//            the first non-hidden block.
-// root_id  — null-terminated UTF-8 string identifying the root variable within
-//            the selected block. Pass an empty string to select the default root
-//            (the first visible and buildable variable in the block).
+// Resolves a block identifier to its internal 0-based index without selecting it.
+// Accepts the block string ID (@id).
+// Pass nullptr or an empty string to get the index of the first non-hidden block.
 //
 // Must be called after init() has succeeded.
-// Returns 1 on success, 0 on failure. Call get_last_output() to retrieve
-// the error message on failure.
-// Can be called multiple times to select different blocks and roots without reinitializing the library.
+// Returns the 0-based block index on success, or -1 if no matching block is found
+// or init() was not called.
 EMSCRIPTEN_KEEPALIVE
-int ifs_select(const char* block_id, const char* root_id)
+int32_t get_block_idx(const char* block_id)
+{
+    let ret = g_state.m_renderer.get_block_idx(block_id ? block_id : std::string_view{});
+    return ret == block_id_max ? -1 : static_cast<int32_t>(ret);
+}
+
+// Selects a block by its 0-based index (as returned by get_block_idx()).
+// The default root is set to the first visible and buildable variable in
+// the selected block, or to $root if one is present. Call set_root() after
+// this function to override the default root selection.
+//
+// block_idx — 0-based block index. Pass -1 to select the first non-hidden block.
+//
+// Must be called after init() has succeeded.
+// Returns number of variables in the block or 0 on error or empty block.
+// Call get_last_output() to retrieve the error message on failure.
+// May be called multiple times to switch between blocks without
+// reinitializing the library.
+EMSCRIPTEN_KEEPALIVE
+int32_t set_block(int32_t block_idx)
 {
     ext_console_clear();
-    return g_state.m_renderer.select(block_id, root_id) ? 1 : 0;
+
+    if (block_idx < 0) {
+        block_idx = g_state.m_renderer.get_block_idx({});
+        if (block_idx < 0) {
+            std::cerr << "Invalid block index." << std::endl;
+            return 0;
+        }
+    }
+    return static_cast<int32_t>(g_state.m_renderer.set_block(static_cast<block_id_t>(block_idx)));
+}
+
+// Overrides the default root variable selection for the currently selected block.
+//
+// root_id — null-terminated UTF-8 string identifying the root variable within
+//            the selected block.
+//
+// Must be called after set_block() has succeeded.
+// Returns the Euclidean dimension of the projected attractor (DIM >= 0) on success,
+// or -1 on failure (variable not found or no block selected).
+// Call get_last_output() to retrieve the error message on failure.
+// May be called multiple times to switch between root variables without
+// reinitializing the library or reselecting the block.
+EMSCRIPTEN_KEEPALIVE
+int set_root(const char* root_id)
+{
+	ext_console_clear();
+	return g_state.m_renderer.set_root(root_id);
+}
+
+// Returns the name of the variable at the given 0-based index within the currently
+// selected block. Returns ALL variables (map definitions and attractor sets alike),
+// not just attractor variables.
+//
+// var_idx — 0-based index of the variable to look up.
+//
+// Must be called after set_block() has succeeded.
+// Returns a null-terminated string valid until the next ifslib call.
+// Returns nullptr if var_idx is out of range or no block is selected.
+// The returned memory should not be freed by the caller.
+EMSCRIPTEN_KEEPALIVE
+const char* get_var_name(int32_t var_idx)
+{
+	auto sv = g_state.m_renderer.get_root_name(static_cast<size_t>(var_idx));
+    static thread_local std::string root_name_buffer;
+    root_name_buffer = std::string{sv};
+	return sv.empty() ? nullptr : root_name_buffer.data();
+}
+
+// Returns the approximate enclosing ball of the currently selected root attractor.
+// The returned array has DIM+1 elements: [radius, center[0], ..., center[DIM-1]].
+// This is not the minimal enclosing ball; the radius is at most 3/2 of the minimal.
+// For point attractors (dim = 0), the radius is 0.
+// DIM is the Euclidean dimension of the rendering subspace (1, 2, or 3).
+//
+// Must be called after set_block() has succeeded.
+// Returns a pointer to an internal double array valid until the next ifslib call.
+// Returns nullptr if no block/root is selected or the attractor set is empty.
+// The returned memory should not be freed by the caller.
+EMSCRIPTEN_KEEPALIVE
+const double* root_enclosing_ball()
+{
+	ext_console_clear();
+	return g_state.m_renderer.root_enclosing_ball();
+}
+
+// Returns the Hausdorff dimension of the currently selected root attractor set.
+// Must be called after set_block() has succeeded.
+// Returns -1.0 if the attractor is empty (e.g. point contacts only),
+// or NaN on failure. Call get_last_output() to retrieve the error message.
+EMSCRIPTEN_KEEPALIVE
+double root_hdim()
+{
+	ext_console_clear();
+	return g_state.m_renderer.root_hdim();
+}
+
+// Returns the d-dimensional Hausdorff measure of the root attractor set,
+// where d = root_hdim().
+// For dim > 0: the normalized d-dimensional measure (may be infinity).
+// For dim = 0: 1 for a single point, 2 for finitely many points,
+//              infinity for infinitely many.
+// Must be called after set_block() has succeeded.
+EMSCRIPTEN_KEEPALIVE
+double root_measure()
+{
+	ext_console_clear();
+	return g_state.m_renderer.root_measure();
+}
+
+// Returns the center of mass of the root attractor set.
+// The returned array has DIM elements: [x, y, ...] in rendering subspace coordinates,
+// where DIM is the Euclidean dimension of the rendering subspace (as returned by set_root()).
+// Not meaningful for point attractors (dim = 0).
+// Must be called after set_block() has succeeded.
+// Returns a pointer to an internal double array valid until the next ifslib call.
+// Returns nullptr on error. The returned memory should not be freed by the caller.
+EMSCRIPTEN_KEEPALIVE
+const double* root_mass_center()
+{
+	ext_console_clear();
+	return g_state.m_renderer.root_mass_center();
+}
+
+// Returns the eigenvalues of the inertia tensor (principal moments) of the root attractor,
+// in ascending order. The returned array has DIM elements,
+// where DIM is the Euclidean dimension of the rendering subspace (as returned by set_root()).
+// Not meaningful for point attractors (dim = 0).
+// Must be called after set_block() has succeeded.
+// Returns a pointer to an internal double array valid until the next ifslib call.
+// Returns nullptr on error. The returned memory should not be freed by the caller.
+EMSCRIPTEN_KEEPALIVE
+const double* root_mass_moments()
+{
+	ext_console_clear();
+	return g_state.m_renderer.root_mass_moments();
+}
+
+// Returns the principal-axes matrix of the inertia tensor, stored column-major (DIM*DIM elements),
+// where DIM is the Euclidean dimension of the rendering subspace (as returned by set_root()).
+// Column k is the eigenvector corresponding to root_mass_moments()[k].
+// Not meaningful for point attractors (dim = 0).
+// Must be called after set_block() has succeeded.
+// Returns a pointer to an internal double array valid until the next ifslib call.
+// Returns nullptr on error. The returned memory should not be freed by the caller.
+EMSCRIPTEN_KEEPALIVE
+const double* root_mass_matrix()
+{
+	ext_console_clear();
+	return g_state.m_renderer.root_mass_matrix();
+}
+
+// Computes all geometric diameters of the current root attractor set.
+// Returns a pointer to a double array: [N, a1[0]..a1[DIM-1], b1[0]..b1[DIM-1], a2[0]..., ...]
+// where N is the number of diameter pairs and DIM is the rendering dimension.
+// The array has 1 + N * 2 * DIM elements. Valid until the next ifslib call.
+// Returns nullptr on error.
+//
+// max_queue_size  — search budget (larger = slower but more complete).
+// max_result_size — maximum number of diameter pairs to return.
+EMSCRIPTEN_KEEPALIVE
+const double* calc_diams(size_t max_queue_size, size_t max_result_size)
+{
+	static thread_local std::vector<double> diams;
+	ext_console_clear();
+	if (!g_state.m_renderer.calc_diams(diams, max_queue_size, max_result_size))
+		return nullptr;
+	return diams.data();
+}
+
+// Computes all points on the current root attractor most distant from the given point.
+// pt        — pointer to a double array of size dim (rendering dimension).
+// dim       — number of elements in pt; must match the attractor's rendering dimension.
+// Returns a pointer to a double array: [N, a1[0]..a1[DIM-1], a2[0]..., ...]
+// where N is the number of farthest points and DIM is the rendering dimension.
+// The array has 1 + N * DIM elements. Valid until the next ifslib call.
+// Returns nullptr on error.
+//
+// max_queue_size  — search budget (larger = slower but more complete).
+// max_result_size — maximum number of farthest points to return.
+EMSCRIPTEN_KEEPALIVE
+const double* calc_dists(const double* pt, int32_t dim, size_t max_queue_size, size_t max_result_size)
+{
+	static thread_local std::vector<double> dists;
+	ext_console_clear();
+	if (!g_state.m_renderer.calc_dists(pt, static_cast<size_t>(dim), dists, max_queue_size, max_result_size))
+		return nullptr;
+	return dists.data();
 }
 
 // Renders into an internal RGBA bitmap of size width x height.

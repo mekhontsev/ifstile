@@ -25,7 +25,9 @@
 #include "inter_type.h"
 #include "derived_ifs.h"
 
-bool ifs_renderer::init(const std::string& aifs)
+
+
+size_t ifs_renderer::init(const std::string& aifs)
 {
 	m_nfo = std::make_unique<ims_info>();
 	m_bb = nullptr;
@@ -34,9 +36,9 @@ bool ifs_renderer::init(const std::string& aifs)
 	auto nbeg = std::istreambuf_iterator<char>(istr);
 	let nend = std::istreambuf_iterator<char>();
 
-	
+
 	/////////////////////////////////////////////////
-	
+
 	size_t cur_line = 1;
 
 	read_state rs;
@@ -45,18 +47,18 @@ bool ifs_renderer::init(const std::string& aifs)
 	js_from_stream(js_src, cur_line, nbeg, nend);
 
 	m_nfo->m_js_src = std::move(js_src);
-	
+
 
 	if (!m_nfo->m_js_src.empty()) {
 		m_nfo->m_js_filename = "";
 		if (!m_nfo->process_js(rs)) {
-			return false;
+			return 0;
 		}
 	}
 
 	for (;;) {//loop through blocks
 		if (!aifs_from_stream_ex(m_nfo->m_list, cur_line, rs, nbeg, nend)) {
-			return false;
+			return 0;
 		}
 
 		if (rs.m_source_num_lines == 0) {
@@ -66,89 +68,333 @@ bool ifs_renderer::init(const std::string& aifs)
 
 	if (m_nfo->m_list.empty() && m_nfo->m_js_src.empty()) {
 		std::cerr << "No blocks or JS code found in the input." << std::endl;
-		return false;
+		return 0;
 	}
 
 	if (!m_nfo->link_refs(0)) {
+		return 0;
+	}
+
+	return m_nfo->m_list.m_blocks.size();
+}
+
+int ifs_renderer::set_root(std::string_view root_id)
+{
+	if (!m_bb){
+		std::cerr << "No block selected. Please call select() with a valid block before setting the root variable." << std::endl;
+		return -1;
+	}
+	let root_ref = m_bb->get_class()->find_var_by_name(root_id);
+
+	if (root_ref == ims_max) {
+		std::cerr << "Root variable '" << root_id << "' not found in the selected block." << std::endl;
+		return -1;
+	}
+	m_bb->set_active_ref(root_ref);
+	let root = m_bb->get_froot();
+
+	if (root == ims_max) {
+		std::cerr << "Root variable '" << root_id << "' could not be set." << std::endl;
+		return -1;
+	}
+
+	let vdim = m_bi.m_ver_dim[root];
+	if (vdim==ims_max){
+		std::cerr << "Root variable '" << root_id << "' is empty or invalid." << std::endl;
+		return -1;
+	}
+
+	return static_cast<int>(vdim);
+}
+
+std::string_view ifs_renderer::get_root_name(size_t root_idx) const
+{
+	if (!m_bb) {
+		std::cerr << "No block selected. Please call set_block() with a valid block before." << std::endl;
+		return nullptr;
+	}
+
+	let* c= m_bb->get_class();
+	if (root_idx >= c->m_refs.size()) {
+		std::cerr << "Root index " << root_idx << " is out of range. Valid range is 0 to " << (c->m_refs.size() - 1) << "." << std::endl;
+		return {};
+	}
+	return m_bb->get_class()->get_var_name(root_idx);
+};
+
+
+size_t ifs_renderer::get_froot() const
+{
+	if (!m_bb) {
+		std::cerr << "No block selected. Please call set_block() with a valid block before." << std::endl;
+		return ims_max;
+	}
+
+	let root = m_bb->get_froot();
+	if (root == ims_max) {
+		std::cerr << "Root variable is not defined for the selected block." << std::endl;
+		return ims_max;
+	}
+
+	return root;
+}
+
+bool ifs_renderer::calc_diams(std::vector<double>& diams,	size_t max_queue_size, size_t max_result_size)
+{
+	let root = get_froot();
+	if (root == ims_max) {
 		return false;
+	}
+
+	let& b = m_bi.m_vb[root];
+	if (!b.defined2()) {
+		std::cerr << "Root variable is not defined." << std::endl;
+		return false;
+	}
+
+	let dim = b.dim();
+
+	geom_input_data d;
+	d.gm = &m_bi.get_fg();
+	d.ri = m_bi.m_em;
+	d.vb = m_bi.m_vb;
+	d.eps = ims_num_traits<double>::epsilon();
+	d.max_queue_size = max_queue_size;
+	d.max_result_size = max_result_size;
+	d.root = root;
+
+	m_diam_s.compute(d);
+	let& res = m_diam_s.m_result;
+	// Layout: [N, a1[0]..a1[dim-1], b1[0]..b1[dim-1], a2[0]..., ...]
+	diams.resize(1 + res.size() * 2 * dim);
+	diams[0] = static_cast<double>(res.size());
+	for (size_t i = 0; i < res.size(); ++i) {
+		let& pair = res[i];
+		for (size_t j = 0; j < dim; ++j) {
+			let idx = 1 + i * 2 * dim;
+			diams[idx + j]       = pair[0](j);
+			diams[idx + dim + j] = pair[1](j);
+		}
 	}
 
 	return true;
-}
+};
 
-bool ifs_renderer::select(std::string_view block_id, std::string_view root_id)
+bool ifs_renderer::calc_dists(const double* pt, size_t ps_dim, std::vector<double>& dists,
+	size_t max_queue_size, size_t max_result_size)
 {
-	if (!m_nfo) {
-		std::cerr << "No AIFS data loaded. Please call init() with valid AIFS data before selecting a block." << std::endl;
+	let root = get_froot();
+	if (root == ims_max) {
 		return false;
 	}
 
-	oper_block* b = nullptr;
-	
+	let& b = m_bi.m_vb[root];
+	if (!b.defined2()) {
+		std::cerr << "Root variable is not defined." << std::endl;
+		return false;
+	}
+
+	let dim = b.dim();
+	if (ps_dim != dim) {
+		std::cerr << "Input point dimension " << ps_dim << " does not match attractor dimension " << dim << "." << std::endl;
+		return false;
+	}
+
+	geom_input_data d;
+	d.gm = &m_bi.get_fg();
+	d.ri = m_bi.m_em;
+	d.vb = m_bi.m_vb;
+	d.eps = ims_num_traits<double>::epsilon();
+	d.max_queue_size = max_queue_size;
+	d.max_result_size = max_result_size;
+	d.root = root;
+
+	dist_solver::Vec center(dim);
+	for (size_t j = 0; j < dim; ++j){
+		center(j) = pt[j];
+	}
+
+	m_dist_s.compute(d, center);
+	let& res = m_dist_s.m_result;
+	// Layout: [N, a1[0]..a1[dim-1], a2[0]..., ...]
+	dists.resize(1 + res.size() * dim);
+	dists[0] = static_cast<double>(res.size());
+	for (size_t i = 0; i < res.size(); ++i) {
+		let& pt_i = res[i];
+		for (size_t j = 0; j < dim; ++j)
+			dists[1 + i * dim + j] = pt_i[0](j);
+	}
+
+	return true;
+};
+
+
+const double* ifs_renderer::root_enclosing_ball() const
+{
+	let root = get_froot();
+	if (root == ims_max) {
+		return nullptr;
+	}
+
+	auto& b = m_bi.m_vb[root];
+	if (!b.defined2()) {
+		std::cerr << "Enclosing ball is not defined for the root variable." << std::endl;
+		return nullptr;
+	}
+
+	return b.radius_data();
+};
+
+double ifs_renderer::root_hdim()
+{
+	let root = get_froot();
+	if (root == ims_max) {
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+
+	let c = m_bi.get_fg().m_ver2com[root];
+	let& d = m_bi.m_im.di[c];
+	return d.H;
+};
+
+
+double ifs_renderer::root_measure()
+{
+	let root = get_froot();
+	if (root == ims_max) {
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+
+	let& fg =m_bi.get_fg();
+	let c = fg.m_ver2com[root];
+
+	let card = m_bi.m_af_point_calc.m_points_in_comp[c];
+
+	switch (card)
+	{
+	case cardinality::error:
+		return -1;
+	case cardinality::empty:
+		return 0;
+	case cardinality::point:
+		return 1;
+	case cardinality::finite:
+		return 2;
+	case cardinality::countable:
+	case cardinality::infmes:
+		return std::numeric_limits<double>::infinity();
+	default:
+		break;
+	}
+
+	return m_bi.m_im.measure[root];
+};
+
+const double* ifs_renderer::root_mass_center() const
+{
+	let root = get_froot();
+	if (root == ims_max) {
+		return nullptr;
+	}
+
+	let& m = m_bi.m_im.me[root];
+	return m.C.data();
+};
+
+const double* ifs_renderer::root_mass_moments() const
+{
+	let root = get_froot();
+	if (root == ims_max) {
+		return nullptr;
+	}
+
+	let& m = m_bi.m_im.me[root];
+	return m.I.data();
+};
+
+const double* ifs_renderer::root_mass_matrix() const
+{
+	let root = get_froot();
+	if (root == ims_max) {
+		return nullptr;
+	}
+
+	let& m = m_bi.m_im.me[root];
+	return m.Q.data();
+};
+
+block_id_t ifs_renderer::get_block_idx(std::string_view block_id) const
+{
+	if (!m_nfo) {
+		std::cerr << "No AIFS data loaded. Please call init() with valid AIFS data before searching for a block." << std::endl;
+		return block_id_max;
+	}
+
 	if (!block_id.empty()) {
-		b = m_nfo->m_list.find_block2(block_id, block_id);
-		if (!b) {
-			block_id_t bid = 0;
-			if (boost::conversion::try_lexical_convert(block_id, bid)) {
-				if (bid < m_nfo->m_list.m_id2data.size()) {
-					b = m_nfo->m_list.get_block(bid);
-				}
-			}
+		return m_nfo->m_list.m_idf.find_block_id(block_id);
+	}
+
+	//find first visible
+	for (let i : m_nfo->m_list.m_blocks) {
+		auto* pb = m_nfo->m_list.m_id2data[i].b.get();
+		if (pb && !pb->m_flags.hidden) {
+			return i;
 		}
-	} else {//find first visible
-		for (let bid : m_nfo->m_list.m_blocks) {
-			auto* pb = m_nfo->m_list.m_id2data[bid].b.get();
-			if (!pb->m_flags.hidden) {
-				b = pb;
-				break;
-			}
-		}
+	}
+
+	return block_id_max;
+};
+
+size_t ifs_renderer::set_block(block_id_t bid)
+{
+	if (!m_nfo) {
+		std::cerr << "No AIFS data loaded. Please call init() with valid AIFS data before selecting a block." << std::endl;
+		return 0;
+	}
+
+	if (bid >= m_nfo->m_list.m_id2data.size()) {
+		std::cerr << "Block index " << bid << " is out of range. Valid range is 0 to " << (m_nfo->m_list.m_id2data.size() - 1) << "." << std::endl;
+		return 0;
+	}
+
+	auto* b = m_nfo->m_list.get_block(bid);
+
+	if (!b) {
+		std::cerr << "Block with index " << bid << " not found." << std::endl;
+		return 0;
 	}
 
 	if (!b) {
 		std::cerr << "No blocks found." << std::endl;
-		return false;
+		return 0;
 	}
 
 	if (m_bb != b) {
 		m_bi.set_to_recalc_graph();
 		if (!m_bi.init4(*b)) {
-			std::cerr << "Failed to initialize block info for block: " << block_id << std::endl;
-			return false;
+			std::cerr << "Failed to initialize block info for block: " << bid << std::endl;
+			return 0;
 		}
 		m_sv.eval_builtins(*b, m_bi.m_ctx);
 
-		//even if the moment or dimension could not be calculated correctly
-		//important values are filled with acceptable values
 		if (!m_bi.compute_metrics()) {
-			std::cerr << "Failed to compute block metrics for block: " << block_id << std::endl;
-			return false;
+			std::cerr << "Failed to compute block metrics for block: " << bid << std::endl;
+			//even if the moment or dimension could not be calculated correctly
+			//important values are filled with acceptable values
 		}
 	}
 
 	m_bb = b;
 
-	///////////////////////////////////////////////////////////////////////////
-
-	size_t root_ref = ims_max;
-	if (!root_id.empty()) {
-		root_ref = b->get_class()->find_var_by_name(root_id);
-	} else {
-		root_ref = m_sv.eval_root(*b);
-		if (root_ref == ims_max) {
-			root_ref = b->find_default_ref();
-		}
-	}
-
+	//set the root attractor set to the default one
+	size_t root_ref = m_sv.eval_root(*b);
 	if (root_ref == ims_max) {
-		std::cerr << "No valid root reference found in the block." << std::endl;
-		return false;
+		root_ref = b->find_default_ref();
 	}
 	b->set_active_ref(root_ref);
 
-	return true;
+	return b->get_class()->m_refs.size();
 }
-
 
 bool ifs_renderer::information(const char* what)
 {
@@ -175,18 +421,6 @@ bool ifs_renderer::information(const char* what)
 	}
 	if (w == "Dimension") {
 		print_dimensions(std::cout, m_bi);
-		return true;
-	}
-	if (w == "Balls") {
-		print_balls(*m_bb, &m_bi);
-		return true;
-	}
-	if (w == "Diameters") {
-		print_diams(*m_bb, &m_bi);
-		return true;
-	}
-	if (w == "Measure") {
-		print_measure(*m_bb, &m_bi);
 		return true;
 	}
 	if (w == "Subspaces") {
@@ -230,7 +464,7 @@ bool ifs_renderer::custom_ifs(const report_params& rp, bool boundary_mode)
 		nullptr);
 
 	ASSUME(res);
-	
+
 	ast_stack ai;
 	if (!ims_info::link_refs_for_block(*m_nfo, block_custom.get(), ai)) {
 		std::cerr << "#Failed to link references for the custom block." << std::endl;
@@ -241,7 +475,7 @@ bool ifs_renderer::custom_ifs(const report_params& rp, bool boundary_mode)
 	return true;
 
 #if 0
-	
+
 	inter_result ires;
 
 	let ret = create_custom_block(
@@ -259,9 +493,9 @@ bool ifs_renderer::custom_ifs(const report_params& rp, bool boundary_mode)
 	std::cout << "#minimum depth where an exact overlap was found (0: OSC) = " << ires.m_over_depth << std::endl;
 	std::cout << "#intersections are fully created = " << ires.m_completed << std::endl;
 	std::cout << "#there was a rational overflow = " << ires.m_overflowed << std::endl;
-	std::cout << "#the mode in which the calculations were performed = " << 
-		(ires.m_mode == intersect_mode::rational ? "rational" : 
-			ires.m_mode == intersect_mode::big_rational ? 
+	std::cout << "#the mode in which the calculations were performed = " <<
+		(ires.m_mode == intersect_mode::rational ? "rational" :
+			ires.m_mode == intersect_mode::big_rational ?
 			"big rational" : "floating point") << std::endl;
 
 	if (!ret)
@@ -401,6 +635,34 @@ bool ifs_renderer::set_camera(const double* camera_params, size_t num_params)
 	return false;
 }
 
+double ifs_renderer::boundary_dim()
+{
+	if (m_nb.m_data.empty()) {
+		return -1;
+	};
+
+	m_nb.set_idx_graph(true);
+	let graph_ok = m_nb.create_boundary(m_bi.get_fg(), m_inters);
+	if (!graph_ok) {
+		std::cerr << "Failed to create the boundary graph. Please ensure that the block has a valid neighbor graph before calculating the boundary dimension." << std::endl;
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+
+	m_inters.init();
+
+	m_bi.m_dim_calc.compute_all_dims(
+		m_boundary_measure,
+		m_inters,
+		ims_view(&m_bi.m_em.data()->det_rootn, sizeof(edge_map)));
+
+	double md = -1;
+	for (let& q : m_boundary_measure.di) {
+		md = std::max(md, q.H);
+	}
+
+	return md;
+}
+
 bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
 {
 	if (!m_bb) {
@@ -416,7 +678,7 @@ bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
 	if (dim_set == ims_max || dim_set == 0) {
 		return false;
 	};
-	
+
 	//initialize the subspace
 	auto& sv = m_sv;
 	auto& si = sv.m_si2;
@@ -475,7 +737,7 @@ bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
 
 	let& rend = m_rp;
 
-	
+
 	//builder type
 	let& crz = sv.chas_builtin(builtin_ids::colorize) ?
 		sv.m_colorize : m_rp.m_colorize;
@@ -495,7 +757,7 @@ bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
 				thickness,
 				sds == 2);
 		}
-		
+
 		if (cc.empty(2)) {
 			return false;
 		}
@@ -536,7 +798,7 @@ bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
 			m_bi.get_fg(),
 			root2);
 
-		
+
 		if (cc.empty(3)) {
 			return false;
 		}

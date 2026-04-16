@@ -50,3 +50,32 @@ h3=1*[1,1]
 	EXPECT_TRUE(r.init(aifs));
 
 };
+
+TEST(testRender, BoundaryDimSquare)
+{
+	// Filled unit square: 4 maps, scale 1/2 (exact rational).
+	// Attractor is the unit square; boundary consists of 4 straight edges => dim(dA) = 1.
+	std::string aifs{ R"(
+@
+$dim=2
+f1=2^-1
+f2=[1,0]*2^-1
+f3=[0,1]*2^-1
+f4=[1,1]*2^-1
+A=(f1|f2|f3|f4)*A
+)" };
+
+	ifs_renderer r;
+	ASSERT_TRUE(r.init(aifs));
+	ASSERT_TRUE(r.set_block(""));
+
+	inter_result ires;
+	integer_ims::settings s;
+	ASSERT_TRUE(r.calc_neighbor_graph(ires, s));
+	EXPECT_EQ(ires.m_over_depth, 0u);  // OSC holds
+	EXPECT_TRUE(ires.m_completed);
+
+	double dim = r.boundary_dim();
+	// Polyhedral boundary: dim must equal exactly 1.0
+	EXPECT_NEAR(dim, 1.0, 1e-9);
+};
