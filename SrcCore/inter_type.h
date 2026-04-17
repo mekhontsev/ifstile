@@ -93,13 +93,19 @@ struct inter_result
 	size_t m_gcx{};		//how many intersections were checked
 	size_t m_depth{};	//depth reached
 	size_t m_bits{};	//how many bits were used
+	size_t m_neigh{};	//number of neighbours found (if m_completed == true)
 
 	//minimum depth where an exact overlap was found
 	//0 - no overlap was found, that is, OSC condition is satisfied
 	uint32_t m_over_depth{};
 
-	bool m_completed{}; //intersections are fully created, if false, then some intersections were left as unknown, but the algorithm stopped due to complexity limits or user interruption
-	bool m_overflowed{};//there was a rational overflow
+	//intersections are fully created, if false, then some intersections were 
+	//left as unknown, but the algorithm stopped due to complexity limits or 
+	//user interruption
+	bool m_completed{};
+
+	//there was a rational overflow - we need to increase bits and recalculate
+	bool m_overflowed{};
 
 	//the mode in which the calculations were performed
 	intersect_mode m_mode{};

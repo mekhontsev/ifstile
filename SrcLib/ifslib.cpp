@@ -155,18 +155,19 @@ int custom_ifs(int bitmask, int lim)
 // Computes the neighbor intersection graph for the currently selected block.
 // Must be called after set_block() has succeeded, and before custom_ifs().
 //
-// ires     — output: pointer to an inter_result struct (20 bytes, align 4):
+// ires     — output: pointer to an inter_result struct (24 bytes, align 4):
 //              offset  0  uint32  m_gcx         — how many intersections were checked
 //              offset  4  uint32  m_depth        — depth reached
 //              offset  8  uint32  m_bits         — how many bits were used
-//              offset 12  uint32  m_over_depth   — minimum depth where an exact overlap was found
+//              offset 12  uint32  m_neigh        — number of neighbours found (valid if m_completed == 1)
+//              offset 16  uint32  m_over_depth   — minimum depth where an exact overlap was found
 //                                                  (0 = no overlap found, i.e. OSC condition is satisfied)
-//              offset 16  uint8   m_completed    — 1 if all intersections were fully constructed;
+//              offset 20  uint8   m_completed    — 1 if all intersections were fully constructed;
 //                                                  0 if some were left unknown due to complexity limits
 //                                                  or user interruption
-//              offset 17  uint8   m_overflowed   — 1 if a rational overflow occurred
-//              offset 18  uint8   m_mode         — arithmetic mode: 0=rational, 1=big_rational, 2=real
-//              offset 19  uint8   (padding)
+//              offset 21  uint8   m_overflowed   — 1 if a rational overflow occurred
+//              offset 22  uint8   m_mode         — arithmetic mode: 0=rational, 1=big_rational, 2=real
+//              offset 23  uint8   (padding)
 //
 // settings — input: pointer to an integer_ims::settings struct (20 bytes, align 4):
 //              offset  0  uint32  max_inters         — maximum number of elements in the search tree;

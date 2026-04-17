@@ -420,7 +420,7 @@ bool ifs_renderer::information(const char* what)
 		return true;
 	}
 	if (w == "Dimension") {
-		print_dimensions(std::cout, m_bi);
+		print_dimensions(std::cout, m_bi, true);
 		return true;
 	}
 	if (w == "Subspaces") {
@@ -693,9 +693,12 @@ bool ifs_renderer::render(ims_bitmap& dst, float quality, float thickness)
 
 
 	///////////////////////////////////////////////
-
-	si.resize2(dim_set,  dim_set);
-	si.reset();
+	if (sv.m_si_empty) {
+		sv.m_si_empty = false;
+		si.resize2(dim_set, dim_set);
+		si.reset();
+	};
+	
 
 	if (dim_set > si.get_section_dim()) {
 		//we select the most elongated directions, example:

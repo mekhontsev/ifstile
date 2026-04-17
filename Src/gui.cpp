@@ -1496,7 +1496,7 @@ void console_print(e_what_print what)
 		break;
 	case e_what_print::Dimension:
 		console_compute([](const block_info* bi) {
-			print_dimensions(std::cout, *bi);
+			print_dimensions(std::cout, *bi, true);
 		});
 		break;
 	case e_what_print::Geometry:

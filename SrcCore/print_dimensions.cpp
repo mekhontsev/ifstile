@@ -22,7 +22,7 @@
 #include "ims_val.h"
 #include "eval_pool.h"
 
-bool print_dimensions(std::ostream& sout, const block_info& bi)
+bool print_dimensions(std::ostream& sout, const block_info& bi, bool reduce_poly)
 {
 	using Real = double;
 
@@ -430,13 +430,21 @@ bool print_dimensions(std::ostream& sout, const block_info& bi)
 
 		if (graph_poly.is_zero())continue;
 
-		let x = poly_roots::max_positive_root<Real>(graph_poly);
+		Real x;
+
+		if (reduce_poly) {
+			x = poly_roots::max_positive_root<Real>(graph_poly);
+		}
 
 		poly_func::print(
 			graph_poly.data().data(),
 			graph_poly.size(),
 			false,
 			sout);
+
+		if (!reduce_poly) {
+			x = poly_roots::max_positive_root<Real>(graph_poly);
+		}
 
 		fmt::println(sout, "=0");
 		fmt::println(sout, "x~={}", x);

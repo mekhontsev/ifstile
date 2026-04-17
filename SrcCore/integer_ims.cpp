@@ -773,6 +773,7 @@ inter_result integer_ims::calc_inter(
 		}//by components
 
 		nb.collapse_empty();
+		ir.m_neigh = nb.num_neighbours();
 		ir.m_completed = true;
 		return ir;
 

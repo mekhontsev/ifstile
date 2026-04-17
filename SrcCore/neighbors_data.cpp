@@ -100,6 +100,16 @@ bool neighbors_data::append_item(std::vector<size_t>& dst, size_t child_idx) con
 	return true;
 };
 
+size_t neighbors_data::num_neighbours() const
+{
+	size_t ret = 0;
+	for (let& q : m_data) {
+		if (q.inter_type_left()) {
+			++ret;
+		}
+	}
+	return ret;
+}
 
 size_t neighbors_data::set_idx_graph(bool all)
 {

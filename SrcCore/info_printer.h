@@ -24,7 +24,7 @@ void print_ifs_data(const oper_block& sr);
 void print_ifs_def(const oper_block& sr);
 void print_normal_maps(const oper_block& sr, eval_context& ec);
 void print_ifs_eval(const oper_block& sr, eval_context& ec);
-bool print_dimensions(std::ostream& sout, const block_info& bi);
+bool print_dimensions(std::ostream& sout, const block_info& bi, bool reduce_poly);
 void print_balls(const oper_block& sr, const block_info* bi);
 void print_diams(const oper_block& sr, const block_info* bi);
 void print_measure(const oper_block& sr, const block_info* bi);

@@ -164,7 +164,8 @@ struct neighbors_data
 	//add element idx to list dst in correct orientation
 	bool append_item(std::vector<size_t>& dst, size_t child_idx) const;
 
-	size_t set_idx_graph(bool all=false);
+	size_t num_neighbours() const;
+	size_t set_idx_graph(bool all = false);
 
 	//uses the idx_graph property
 	bool create_boundary(
