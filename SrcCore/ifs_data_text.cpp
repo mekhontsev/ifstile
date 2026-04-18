@@ -805,48 +805,52 @@ bool read_state::parse_block(
 			ims_error("invalid variable name");
 			return false;
 		}
-
 	
 		h = h.substr(p + 1);
 		skip_spaces(h);
 
-		//look for the end of the variable body
+		if (v.name == "$n") {//special case - use whole line as the name, without parsing
+			v.val = h;
+			++line;
+		} else {
+			//look for the end of the variable body
 		//either ';' or a string containing '='
-	
-		for (; line < m_source_view.size(); ++line) {
-			auto& q = m_source_view[line];
-			if (q.empty()) {
-				continue;
-			}
-			
 
-			let spos = q.find_first_of(';');
-			let epos = q.find_first_of('=');
-
-			if (epos < spos) {
-				break;
-			}
-
-			//do not allow concatenation of identifiers from different lines
-			if (!v.val.empty() &&
-				is_var_id_sym(v.val.back()) &&
-				is_var_id_sym(q.front()))
-			{
-				break;
-			}
+			for (; line < m_source_view.size(); ++line) {
+				auto& q = m_source_view[line];
+				if (q.empty()) {
+					continue;
+				}
 
 
-			if (spos != q.npos) {
-				v.val.append(q.data(), spos);
-				q = q.substr(spos + 1);
-				break;
-			}
+				let spos = q.find_first_of(';');
+				let epos = q.find_first_of('=');
 
-			//add the entire line to the body
-			if (!v.val.empty())v.val.push_back('\n');//multi-line support
-			v.val.append(q.data(), q.size());
+				if (epos < spos) {
+					break;
+				}
 
-		};
+				//do not allow concatenation of identifiers from different lines
+				if (!v.val.empty() &&
+					is_var_id_sym(v.val.back()) &&
+					is_var_id_sym(q.front()))
+				{
+					break;
+				}
+
+
+				if (spos != q.npos) {
+					v.val.append(q.data(), spos);
+					q = q.substr(spos + 1);
+					break;
+				}
+
+				//add the entire line to the body
+				if (!v.val.empty())v.val.push_back('\n');//multi-line support
+				v.val.append(q.data(), q.size());
+
+			};
+		}
 
 		if (v.val.empty()) {
 			ims_error("undefined variable {}", v.name);

@@ -179,12 +179,6 @@ bool ims_apply_source(
 			return false;
 		}
 
-		if (rs.m_source_num_lines == 0) {
-			break;
-		}
-		//one iteration gives exactly 1 block
-		assert(imp.m_list.m_blocks.size() == i + 1);
-
 		auto* new_cb = imp.m_list.get_block_by_idx(i);
 		if (cb == b) {
 			*new_b = new_cb;
