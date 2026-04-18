@@ -17,7 +17,7 @@
 #include "pch.h"
 #include "gtest/gtest.h"
 #include "render_tester.h"
-#include "ifs_renderer.h"
+#include "ifslib_core.h"
 
 
 TEST(testRender, RenderSquare)
@@ -45,7 +45,7 @@ h3=1*[1,1]
 
 )" };
 
-	ifs_renderer r;
+	ifslib_core r;
 
 	EXPECT_TRUE(r.init(aifs));
 
@@ -65,7 +65,7 @@ f4=[1,1]*2^-1
 A=(f1|f2|f3|f4)*A
 )" };
 
-	ifs_renderer r;
+	ifslib_core r;
 	ASSERT_TRUE(r.init(aifs));
 	ASSERT_TRUE(r.set_block(0));
 

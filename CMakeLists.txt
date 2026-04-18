@@ -255,7 +255,7 @@ octree.cpp octree.h
 lqsort.h builder.h builder.cpp builder3d.h
 gbuffer3d.h gbuffer3d.cpp builder3d.cpp builder2d.h builder2d.cpp builder_ext.h builder_ext.cpp
 build_data.h build_data.cpp builder_mesh.h builder_mesh.cpp
-standard_vars.h standard_vars.cpp ifs_renderer.h ifs_renderer.cpp
+standard_vars.h standard_vars.cpp ifslib_core.h ifslib_core.cpp
 png_support.h png_support.cpp png_impl.c
 animator.h animator.cpp create_block.cpp create_ifs.cpp
 creator_state.h creator_state.cpp

@@ -17,7 +17,7 @@
 #ifdef __EMSCRIPTEN__
 
 #include "pch.h"
-#include "ifs_renderer.h"
+#include "ifslib_core.h"
 #include "conbuf.h"
 #include "report_params.h"
 
@@ -28,7 +28,7 @@ bool ims_need_stop() { return false; }
 
 struct state
 {
-	ifs_renderer m_renderer;
+	ifslib_core m_core;
 	ims_bitmap m_bitmap;
     ims_conbuf m_conbuf;
     std::string m_console_text;
@@ -72,7 +72,7 @@ EMSCRIPTEN_KEEPALIVE
 int information(const char* what)
 {
     ext_console_clear();
-    return g_state.m_renderer.information(what) ? 1 : 0;
+    return g_state.m_core.information(what) ? 1 : 0;
 }
 
 // Generates custom AIFS using calc_inter results for the currently selected block
@@ -149,7 +149,7 @@ int custom_ifs(int bitmask, int lim)
         return false;
     }
 
-    return g_state.m_renderer.custom_ifs(rp, bmode) ? 1 : 0;
+    return g_state.m_core.custom_ifs(rp, bmode) ? 1 : 0;
 }
 
 // Computes the neighbor intersection graph for the currently selected block.
@@ -200,7 +200,7 @@ int calc_neighbor_graph(
     const integer_ims::settings* settings)
 {
     ext_console_clear();
-    return g_state.m_renderer.calc_neighbor_graph(*ires, *settings) ? 1 : 0;
+    return g_state.m_core.calc_neighbor_graph(*ires, *settings) ? 1 : 0;
 }
 
 
@@ -215,7 +215,7 @@ EMSCRIPTEN_KEEPALIVE
 double calc_boundary_dim()
 {
 	ext_console_clear();
-	return g_state.m_renderer.boundary_dim();
+	return g_state.m_core.boundary_dim();
 }
 
 // Returns console output accumulated since the last ifslib call.
@@ -257,7 +257,7 @@ EMSCRIPTEN_KEEPALIVE
 int set_camera(const double* camera_params, size_t num_params)
 {
     ext_console_clear();
-    return g_state.m_renderer.set_camera(camera_params, num_params) ? 1 : 0;
+    return g_state.m_core.set_camera(camera_params, num_params) ? 1 : 0;
 }
 
 // Parses an AIFS fractal definition and initializes the library state.
@@ -277,7 +277,7 @@ EMSCRIPTEN_KEEPALIVE
 int init(const char* aifs_text)
 {
     ext_console_clear();
-    return static_cast<int>(g_state.m_renderer.init(aifs_text));
+    return static_cast<int>(g_state.m_core.init(aifs_text));
 }
 
 // Resolves a block identifier to its internal 0-based index without selecting it.
@@ -290,7 +290,7 @@ int init(const char* aifs_text)
 EMSCRIPTEN_KEEPALIVE
 int32_t get_block_idx(const char* block_id)
 {
-    let ret = g_state.m_renderer.get_block_idx(block_id ? block_id : std::string_view{});
+    let ret = g_state.m_core.get_block_idx(block_id ? block_id : std::string_view{});
     return ret == block_id_max ? -1 : static_cast<int32_t>(ret);
 }
 
@@ -312,13 +312,13 @@ int32_t set_block(int32_t block_idx)
     ext_console_clear();
 
     if (block_idx < 0) {
-        block_idx = g_state.m_renderer.get_block_idx({});
+        block_idx = g_state.m_core.get_block_idx({});
         if (block_idx < 0) {
             std::cerr << "Invalid block index." << std::endl;
             return 0;
         }
     }
-    return static_cast<int32_t>(g_state.m_renderer.set_block(static_cast<block_id_t>(block_idx)));
+    return static_cast<int32_t>(g_state.m_core.set_block(static_cast<block_id_t>(block_idx)));
 }
 
 // Overrides the default root variable selection for the currently selected block.
@@ -336,7 +336,7 @@ EMSCRIPTEN_KEEPALIVE
 int set_root(const char* root_id)
 {
 	ext_console_clear();
-	return g_state.m_renderer.set_root(root_id);
+	return g_state.m_core.set_root(root_id);
 }
 
 // Returns the name of the variable at the given 0-based index within the currently
@@ -352,7 +352,7 @@ int set_root(const char* root_id)
 EMSCRIPTEN_KEEPALIVE
 const char* get_var_name(int32_t var_idx)
 {
-	auto sv = g_state.m_renderer.get_root_name(static_cast<size_t>(var_idx));
+	auto sv = g_state.m_core.get_root_name(static_cast<size_t>(var_idx));
     static thread_local std::string root_name_buffer;
     root_name_buffer = std::string{sv};
 	return sv.empty() ? nullptr : root_name_buffer.data();
@@ -372,7 +372,7 @@ EMSCRIPTEN_KEEPALIVE
 const double* root_enclosing_ball()
 {
 	ext_console_clear();
-	return g_state.m_renderer.root_enclosing_ball();
+	return g_state.m_core.root_enclosing_ball();
 }
 
 // Returns the Hausdorff dimension of the currently selected root attractor set.
@@ -383,7 +383,7 @@ EMSCRIPTEN_KEEPALIVE
 double root_hdim()
 {
 	ext_console_clear();
-	return g_state.m_renderer.root_hdim();
+	return g_state.m_core.root_hdim();
 }
 
 // Returns the d-dimensional Hausdorff measure of the root attractor set,
@@ -396,7 +396,7 @@ EMSCRIPTEN_KEEPALIVE
 double root_measure()
 {
 	ext_console_clear();
-	return g_state.m_renderer.root_measure();
+	return g_state.m_core.root_measure();
 }
 
 // Returns the center of mass of the root attractor set.
@@ -410,7 +410,7 @@ EMSCRIPTEN_KEEPALIVE
 const double* root_mass_center()
 {
 	ext_console_clear();
-	return g_state.m_renderer.root_mass_center();
+	return g_state.m_core.root_mass_center();
 }
 
 // Returns the eigenvalues of the inertia tensor (principal moments) of the root attractor,
@@ -424,7 +424,7 @@ EMSCRIPTEN_KEEPALIVE
 const double* root_mass_moments()
 {
 	ext_console_clear();
-	return g_state.m_renderer.root_mass_moments();
+	return g_state.m_core.root_mass_moments();
 }
 
 // Returns the principal-axes matrix of the inertia tensor, stored column-major (DIM*DIM elements),
@@ -438,7 +438,7 @@ EMSCRIPTEN_KEEPALIVE
 const double* root_mass_matrix()
 {
 	ext_console_clear();
-	return g_state.m_renderer.root_mass_matrix();
+	return g_state.m_core.root_mass_matrix();
 }
 
 // Computes all geometric diameters of the current root attractor set.
@@ -454,7 +454,7 @@ const double* calc_diams(size_t max_queue_size, size_t max_result_size)
 {
 	static thread_local std::vector<double> diams;
 	ext_console_clear();
-	if (!g_state.m_renderer.calc_diams(diams, max_queue_size, max_result_size))
+	if (!g_state.m_core.calc_diams(diams, max_queue_size, max_result_size))
 		return nullptr;
 	return diams.data();
 }
@@ -474,7 +474,7 @@ const double* calc_dists(const double* pt, int32_t dim, size_t max_queue_size, s
 {
 	static thread_local std::vector<double> dists;
 	ext_console_clear();
-	if (!g_state.m_renderer.calc_dists(pt, static_cast<size_t>(dim), dists, max_queue_size, max_result_size))
+	if (!g_state.m_core.calc_dists(pt, static_cast<size_t>(dim), dists, max_queue_size, max_result_size))
 		return nullptr;
 	return dists.data();
 }
@@ -494,7 +494,7 @@ const uint8_t* render(int width, int height, float quality, float thickness)
         return nullptr;
     }
 
-    if (!g_state.m_renderer.render(g_state.m_bitmap, quality, thickness)) {
+    if (!g_state.m_core.render(g_state.m_bitmap, quality, thickness)) {
         std::cerr << "Rendering failed" << std::endl;
         return nullptr;
     }

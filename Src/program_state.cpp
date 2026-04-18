@@ -28,7 +28,7 @@
 #include "edge_map.h"
 #include "variable.h"
 #include "ims_worker.h"
-#include "ifs_renderer.h"
+#include "ifslib_core.h"
 
 thumb_elem* program_state::get_first_thumb_elem()
 {
@@ -445,7 +445,7 @@ void program_state::build_image(
 		if (sds == 2 || sds == 1) {
 			if (task.fit || cc.empty(2)) {
 
-				ifs_renderer::fit1d2d(
+				ifslib_core::fit1d2d(
 					cur.m_data3->m_special,
 					cur.m_data3->m_bi,
 					*cur.m_pcam,
