@@ -686,7 +686,7 @@ target_link_libraries(IFSlib PRIVATE IFScore_ST)
 target_link_options(IFSlib PRIVATE
     --no-entry
     -sSTANDALONE_WASM=1
-    "-sEXPORTED_FUNCTIONS=_malloc,_free,_get_last_output,_init,_get_block_idx,_set_block,_set_root,_get_var_name,_render,_information,_custom_ifs,_calc_neighbor_graph,_set_camera,_calc_boundary_dim,_root_enclosing_ball,_root_hdim,_root_measure,_root_mass_center,_root_mass_moments,_root_mass_matrix,_calc_diams,_calc_dists"
+    "-sEXPORTED_FUNCTIONS=_malloc,_free"
 )
 
 set_target_properties(IFSlib PROPERTIES

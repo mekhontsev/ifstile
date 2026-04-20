@@ -119,7 +119,7 @@ TEST(testGraph, dfs1)
 	
 	for (size_t v = d.init(g); v < g.num_ver(); v = d.next(g)) {
 		EXPECT_EQ(res[idx++], v);
-	}	
+	}
 }
 
 

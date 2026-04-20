@@ -24,10 +24,39 @@
 #include "ast_stack.h"
 #include "inter_type.h"
 #include "derived_ifs.h"
+#include "block_graph.h"
+
+ifslib_core::ifslib_core()
+{
+	reset_palette();
+}
+
+bool ifslib_core::block_valid() const
+{
+	if (!m_bb) {
+		std::cerr << "No block selected. Please call set_block() with a valid block before." << std::endl;
+		return false;
+	}
+	return true;
+}
+
+int32_t ifslib_core::graph_root() const
+{
+	if (!block_valid()) {
+		return -1;
+	}
+
+	let root = m_bb->get_froot();
+	if (root == ims_max) {
+		std::cerr << "Root variable is not defined for the selected block." << std::endl;
+		return -1;
+	}
+
+	return static_cast<int32_t>(root);
+}
 
 
-
-size_t ifslib_core::init(const std::string& aifs)
+int32_t ifslib_core::init(const std::string& aifs)
 {
 	m_nfo = std::make_unique<ims_info>();
 	m_bb = nullptr;
@@ -75,81 +104,39 @@ size_t ifslib_core::init(const std::string& aifs)
 		return 0;
 	}
 
-	return m_nfo->m_list.m_blocks.size();
+	m_rp.reset_render_params();
+	reset_palette();
+
+	return static_cast<int32_t>(m_nfo->m_list.m_blocks.size());
 }
 
-int ifslib_core::set_root(std::string_view root_id)
+std::string_view ifslib_core::get_root_name(int32_t root_idx) const
 {
-	if (!m_bb){
-		std::cerr << "No block selected. Please call select() with a valid block before setting the root variable." << std::endl;
-		return -1;
-	}
-	let root_ref = m_bb->get_class()->find_var_by_name(root_id);
-
-	if (root_ref == ims_max) {
-		std::cerr << "Root variable '" << root_id << "' not found in the selected block." << std::endl;
-		return -1;
-	}
-	m_bb->set_active_ref(root_ref);
-	let root = m_bb->get_froot();
-
-	if (root == ims_max) {
-		std::cerr << "Root variable '" << root_id << "' could not be set." << std::endl;
-		return -1;
-	}
-
-	let vdim = m_bi.m_ver_dim[root];
-	if (vdim==ims_max){
-		std::cerr << "Root variable '" << root_id << "' is empty or invalid." << std::endl;
-		return -1;
-	}
-
-	return static_cast<int>(vdim);
-}
-
-std::string_view ifslib_core::get_root_name(size_t root_idx) const
-{
-	if (!m_bb) {
-		std::cerr << "No block selected. Please call set_block() with a valid block before." << std::endl;
-		return nullptr;
+	if (!block_valid()) {
+		return {};
 	}
 
 	let* c= m_bb->get_class();
-	if (root_idx >= c->m_refs.size()) {
+	if (root_idx < 0 || root_idx >= static_cast<int32_t>(c->m_refs.size())) {
 		std::cerr << "Root index " << root_idx << " is out of range. Valid range is 0 to " << (c->m_refs.size() - 1) << "." << std::endl;
 		return {};
 	}
-	return m_bb->get_class()->get_var_name(root_idx);
+	return m_bb->get_class()->get_var_name(static_cast<size_t>(root_idx));
 };
 
 
-size_t ifslib_core::get_froot() const
+int32_t ifslib_core::calc_diams(std::vector<double>& diams,
+	int32_t max_queue_size, int32_t max_result_size)
 {
-	if (!m_bb) {
-		std::cerr << "No block selected. Please call set_block() with a valid block before." << std::endl;
-		return ims_max;
-	}
-
-	let root = m_bb->get_froot();
-	if (root == ims_max) {
-		std::cerr << "Root variable is not defined for the selected block." << std::endl;
-		return ims_max;
-	}
-
-	return root;
-}
-
-bool ifslib_core::calc_diams(std::vector<double>& diams,	size_t max_queue_size, size_t max_result_size)
-{
-	let root = get_froot();
-	if (root == ims_max) {
-		return false;
+	let root = graph_root();
+	if (root == -1) {
+		return 0;
 	}
 
 	let& b = m_bi.m_vb[root];
 	if (!b.defined2()) {
 		std::cerr << "Root variable is not defined." << std::endl;
-		return false;
+		return 0;
 	}
 
 	let dim = b.dim();
@@ -170,34 +157,35 @@ bool ifslib_core::calc_diams(std::vector<double>& diams,	size_t max_queue_size, 
 	diams[0] = static_cast<double>(res.size());
 	for (size_t i = 0; i < res.size(); ++i) {
 		let& pair = res[i];
+		let idx = 1 + i * 2 * dim;
 		for (size_t j = 0; j < dim; ++j) {
-			let idx = 1 + i * 2 * dim;
 			diams[idx + j]       = pair[0](j);
 			diams[idx + dim + j] = pair[1](j);
 		}
 	}
 
-	return true;
+	return 1;
 };
 
-bool ifslib_core::calc_dists(const double* pt, size_t ps_dim, std::vector<double>& dists,
-	size_t max_queue_size, size_t max_result_size)
+int32_t ifslib_core::calc_dists(const double* pt, int32_t pt_dim,
+	std::vector<double>& dists,
+	int32_t max_queue_size, int32_t max_result_size)
 {
-	let root = get_froot();
-	if (root == ims_max) {
-		return false;
+	let root = graph_root();
+	if (root == -1) {
+		return 0;
 	}
 
 	let& b = m_bi.m_vb[root];
 	if (!b.defined2()) {
 		std::cerr << "Root variable is not defined." << std::endl;
-		return false;
+		return 0;
 	}
 
 	let dim = b.dim();
-	if (ps_dim != dim) {
-		std::cerr << "Input point dimension " << ps_dim << " does not match attractor dimension " << dim << "." << std::endl;
-		return false;
+	if ((size_t)pt_dim != dim) {
+		std::cerr << "Input point dimension " << pt_dim << " does not match attractor dimension " << dim << "." << std::endl;
+		return 0;
 	}
 
 	geom_input_data d;
@@ -205,8 +193,8 @@ bool ifslib_core::calc_dists(const double* pt, size_t ps_dim, std::vector<double
 	d.ri = m_bi.m_em;
 	d.vb = m_bi.m_vb;
 	d.eps = ims_num_traits<double>::epsilon();
-	d.max_queue_size = max_queue_size;
-	d.max_result_size = max_result_size;
+	d.max_queue_size = (size_t)max_queue_size;
+	d.max_result_size = (size_t)max_result_size;
 	d.root = root;
 
 	dist_solver::Vec center(dim);
@@ -225,14 +213,14 @@ bool ifslib_core::calc_dists(const double* pt, size_t ps_dim, std::vector<double
 			dists[1 + i * dim + j] = pt_i[0](j);
 	}
 
-	return true;
+	return 1;
 };
 
 
 const double* ifslib_core::root_enclosing_ball() const
 {
-	let root = get_froot();
-	if (root == ims_max) {
+	let root = graph_root();
+	if (root == -1) {
 		return nullptr;
 	}
 
@@ -247,8 +235,8 @@ const double* ifslib_core::root_enclosing_ball() const
 
 double ifslib_core::root_hdim()
 {
-	let root = get_froot();
-	if (root == ims_max) {
+	let root = graph_root();
+	if (root == -1) {
 		return std::numeric_limits<double>::quiet_NaN();
 	}
 
@@ -260,8 +248,8 @@ double ifslib_core::root_hdim()
 
 double ifslib_core::root_measure()
 {
-	let root = get_froot();
-	if (root == ims_max) {
+	let root = graph_root();
+	if (root == -1) {
 		return std::numeric_limits<double>::quiet_NaN();
 	}
 
@@ -292,8 +280,8 @@ double ifslib_core::root_measure()
 
 const double* ifslib_core::root_mass_center() const
 {
-	let root = get_froot();
-	if (root == ims_max) {
+	let root = graph_root();
+	if (root == -1) {
 		return nullptr;
 	}
 
@@ -303,8 +291,8 @@ const double* ifslib_core::root_mass_center() const
 
 const double* ifslib_core::root_mass_moments() const
 {
-	let root = get_froot();
-	if (root == ims_max) {
+	let root = graph_root();
+	if (root == -1) {
 		return nullptr;
 	}
 
@@ -314,8 +302,8 @@ const double* ifslib_core::root_mass_moments() const
 
 const double* ifslib_core::root_mass_matrix() const
 {
-	let root = get_froot();
-	if (root == ims_max) {
+	let root = graph_root();
+	if (root == -1) {
 		return nullptr;
 	}
 
@@ -345,14 +333,16 @@ block_id_t ifslib_core::get_block_idx(std::string_view block_id) const
 	return block_id_max;
 };
 
-size_t ifslib_core::set_block(block_id_t bid)
+int32_t ifslib_core::set_block(int32_t block_idx)
 {
 	if (!m_nfo) {
 		std::cerr << "No AIFS data loaded. Please call init() with valid AIFS data before selecting a block." << std::endl;
 		return 0;
 	}
 
-	if (bid >= m_nfo->m_list.m_id2data.size()) {
+	let bid = static_cast<block_id_t>(block_idx);
+
+	if (block_idx < 0 || bid >= m_nfo->m_list.m_id2data.size()) {
 		std::cerr << "Block index " << bid << " is out of range. Valid range is 0 to " << (m_nfo->m_list.m_id2data.size() - 1) << "." << std::endl;
 		return 0;
 	}
@@ -375,6 +365,7 @@ size_t ifslib_core::set_block(block_id_t bid)
 			std::cerr << "Failed to initialize block info for block: " << bid << std::endl;
 			return 0;
 		}
+		m_sv.clear8();
 		m_sv.eval_builtins(*b, m_bi.m_ctx);
 
 		if (!m_bi.compute_metrics()) {
@@ -393,63 +384,136 @@ size_t ifslib_core::set_block(block_id_t bid)
 	}
 	b->set_active_ref(root_ref);
 
-	return b->get_class()->m_refs.size();
+	m_fit = !m_sv.chas_builtin(builtin_ids::camera);
+
+	if (m_sv.chas_builtin(builtin_ids::colorize)) {
+		if (m_sv.m_colorize.is_tiling()){
+			m_depth = m_sv.m_colorize.get_depth();
+		}
+		m_mode = m_sv.m_colorize.type;
+		m_need_reset_parameters=true;
+	} else if (m_need_reset_parameters) {
+		reset_depth();
+		reset_mode();
+		m_need_reset_parameters = false;
+	}
+
+	if (m_sv.chas_builtin(builtin_ids::palette)) {
+		m_rp.m_palette = m_sv.m_pal;
+	} else if (m_need_reset_parameters) {
+		reset_palette();
+		m_need_reset_parameters = false;
+	}
+
+	m_nb.clear();
+
+	return (int32_t)b->get_class()->m_refs.size();
 }
 
-bool ifslib_core::information(const char* what)
+int32_t ifslib_core::set_root(int32_t root_ref)
 {
-	if (!m_bb) {
-		std::cerr << "No block selected. Please call select() with a valid block before requesting information." << std::endl;
-		return false;
+	if (!block_valid()) {
+		return -1;
+	}
+
+	let root_ref_u = static_cast<size_t>(root_ref);
+
+	let max_ref = m_bb->get_class()->m_refs.size();
+	if (root_ref < 0 || root_ref_u >= max_ref) {
+		std::cerr << "Root index " << root_ref <<
+			" is out of range. Valid range is 0 to " << (max_ref - 1) << "." << std::endl;
+		return -1;
+	}
+
+	m_bb->set_active_ref(root_ref_u);
+	let root = m_bb->get_froot();
+
+	if (root == ims_max) {
+		std::cerr << "Root variable '" << root_ref << "' could not be set." << std::endl;
+		return -1;
+	}
+
+	let vdim = m_bi.m_ver_dim[root];
+	if (vdim == ims_max) {
+		std::cerr << "Root variable '" << root_ref << "' is empty or invalid." << std::endl;
+		return -1;
+	}
+
+	m_fit = !m_sv.chas_builtin(builtin_ids::camera);
+
+	return static_cast<int32_t>(vdim);
+}
+
+
+int ifslib_core::get_var_idx(std::string_view var_name) const
+{
+	if (!block_valid()) {
+		return -1;
+	}
+
+	let var_ref = m_bb->get_class()->find_var_by_name(var_name);
+
+	if (var_ref == ims_max) {
+		std::cerr << "Variable '" << var_name << "' not found in the selected block." << std::endl;
+		return -1;
+	}
+
+	return static_cast<int>(var_ref);
+}
+
+int32_t ifslib_core::information(const char* what)
+{
+	if (!block_valid()) {
+		return 0;
 	}
 
 	std::string_view w(what);
 
 	if (w == "Evaluation") {
 		print_ifs_eval(*m_bb, m_bi.m_ctx);
-		return true;
+		return 1;
 	}
 	if (w == "NormalMaps") {
 		if (m_bb->get_dim() > 0) {
 			print_normal_maps(*m_bb, m_bi.m_ctx);
 		}
-		return true;
+		return 1;
 	}
 	if (w == "Projection") {
 		print_ifs_proj(*m_bb, m_bi);
-		return true;
+		return 1;
 	}
 	if (w == "Dimension") {
 		print_dimensions(std::cout, m_bi, true);
-		return true;
+		return 1;
 	}
 	if (w == "Subspaces") {
 		print_subspaces(*m_bb, &m_bi);
-		return true;
+		return 1;
 	}
 	if (w == "AST") {
 		print_ast(*m_bb, m_bi);
-		return true;
+		return 1;
 	}
 	if (w == "Components") {
 		print_components(*m_bb, m_bi);
-		return true;
+		return 1;
 	}
-	return false;
+	return 0;
 }
 
 
-bool ifslib_core::custom_ifs(const report_params& rp, bool boundary_mode)
+int32_t ifslib_core::custom_ifs(const report_params& rp, bool boundary_mode)
 {
 	if (0 == m_nb.num_ver()) {
 		std::cerr << "#Neighbor graph is empty. Please calculate the neighbor graph before creating a custom block." << std::endl;
-		return false;
+		return 0;
 	}
 
 	let num_neighbours = m_nb.set_idx_graph(!boundary_mode);
 	if (!num_neighbours) {
 		std::cerr << "#Neighbor graph is empty." << std::endl;
-		return false;
+		return 0;
 	}
 
 	std::unique_ptr<oper_block> block_custom;
@@ -468,12 +532,11 @@ bool ifslib_core::custom_ifs(const report_params& rp, bool boundary_mode)
 	ast_stack ai;
 	if (!ims_info::link_refs_for_block(*m_nfo, block_custom.get(), ai)) {
 		std::cerr << "#Failed to link references for the custom block." << std::endl;
-		return false;
+		return 0;
 	}
 
 	print_ifs_def(*block_custom);
-	return true;
-
+	return 1;
 #if 0
 
 	inter_result ires;
@@ -500,111 +563,34 @@ bool ifslib_core::custom_ifs(const report_params& rp, bool boundary_mode)
 
 	if (!ret)
 	{
-		return false;
+		return 0;
 	};
 
 	ast_stack ai;
 	ims_info::link_refs_for_block(*m_nfo, block_custom.get(), ai);
 
 	print_ifs_def(*block_custom);
-	return true;
+	return 1;
 #endif
 }
 
 
 
-bool ifslib_core::calc_neighbor_graph(inter_result& ires, const integer_ims::settings& settings)
+int32_t ifslib_core::calc_neighbor_graph(inter_result& ires, const integer_ims::settings& settings)
 {
-	if (!m_bb) {
-		std::cerr << "No block selected for neighbor graph calculation. Please call select() with a valid block before calculating intersections." << std::endl;
-		return false;
+	if (!block_valid()) {
+		return 0;
 	}
+
 	ires = m_cs.calc_inter(m_nb, m_bi, settings);
-	return true;
+	return 1;
 }
 
-void ifslib_core::fit1d2d(
-	standard_vars& sv,
-	block_info& bi,
-	camera_ex& cc,
-	size_t root,
-	size_t tw,
-	size_t th,
-	float iter_thk,
-	bool is2d)
+
+int32_t ifslib_core::set_camera(const double* camera_params, int32_t num_params)
 {
-	using real_number = standard_vars::Real;
-	auto& si = sv.m_si2;
-
-	box<real_number> dst;
-	auto& sd = cc.m_sd;
-
-	if (cc.empty(2)) {
-		sd.a = 0;
-	}
-
-
-	Eigen::Matrix2<real_number> rot;
-
-
-	auto si_a = si;//copy
-	if (is2d) {
-		let a = sd.a * boost::math::constants::pi<double>() / 180;
-		let c = cos(a);
-		let s = sin(a);
-		rot << c, s, -s, c;
-		si_a.basis = si_a.basis * rot;
-	}
-
-	builder::adjust_box(
-		dst,
-		0.01,
-		si_a,
-		bi.m_em,
-		bi.m_vb,
-		bi.get_fg(),
-		root);
-
-	if (ims_need_stop()) {
-		return;
-	}
-
-	assert(!dst.empty());
-
-	dst.adjust();
-
-
-	auto vc = dst.get_center();
-
-	if (is2d) {
-		vc = rot * vc;
-	}
-
-	sd.c[0] = vc(0);
-	real_number bw = dst.size(0);
-	real_number bh;
-	if (vc.size() > 1) {
-		sd.c[1] = vc(1);
-		bh = dst.size(1);
-	} else {
-		sd.c[1] = 0;
-		bh = 0;
-	}
-
-	let twh = std::min(tw, th);
-	let ps = std::max(bw / tw, bh / th);
-	sd.r = ps * twh / 2;
-	//expand by about 3 pixels
-	sd.r *= 1 + (1 + 2 * iter_thk) / twh;
-
-	cc.m_2d_empty = false;
-}
-
-bool ifslib_core::set_camera(const double* camera_params, size_t num_params)
-{
-	if (!m_bb) {
-		std::cerr << "No block selected. Please call select() with a valid block before setting the camera." << std::endl;
-		return false;
+	if (!block_valid()) {
+		return 0;
 	}
 
 	if (num_params == 4) {
@@ -614,7 +600,7 @@ bool ifslib_core::set_camera(const double* camera_params, size_t num_params)
 		m_sv.m_xcam2.m_sd.a = camera_params[3];
 		m_sv.m_xcam2.m_2d_empty = false;
 		m_fit = false;
-		return true;
+		return 1;
 	}
 
 	if (num_params == 10) {
@@ -624,19 +610,174 @@ bool ifslib_core::set_camera(const double* camera_params, size_t num_params)
 		m_sv.m_xcam2.m_camera.m_fov = camera_params[9];
 		m_sv.m_xcam2.m_3d_empty = false;
 		m_fit = false;
-		return true;
+		return 1;
 	}
 
 	if (num_params == 0) {
 		m_fit = true;
-		return true;
+		return 1;
 	}
 
-	return false;
+	return 0;
+}
+
+int32_t* ifslib_core::get_graph()
+{
+	if (!block_valid()) {
+		return nullptr;
+	}
+
+	if (!m_bi.exists()) {
+		std::cerr << "Substitution graph is not available for the selected block." << std::endl;
+		return nullptr;
+	}
+
+	let& fg = m_bi.get_fg();
+	let ne = fg.m_edges.size();
+	m_ret_int_array.resize(3 + ne * 3);
+
+	auto* r = m_ret_int_array.data();
+	r[0] = static_cast<int32_t>(ne);
+	r[1] = static_cast<int32_t>(fg.m_vers.size());
+	r[2] = static_cast<int32_t>(m_bi.m_em.size());
+	r += 3;
+	for (size_t i = 0; i < ne; ++i) {
+		let& e = fg.m_edges[i];
+		r[0] = static_cast<int32_t>(e.first);
+		r[1] = static_cast<int32_t>(e.second);
+		r[2] = static_cast<int32_t>(e.m);
+		r += 3;
+	}
+
+	return m_ret_int_array.data();
+}
+
+int32_t ifslib_core::get_vertex(int32_t var_idx)
+{
+	if (!block_valid()) {
+		return -1;
+	}
+
+	if (!m_bi.exists()) {
+		std::cerr << "Substitution graph is not available for the selected block." << std::endl;
+		return -1;
+	}
+
+	let ret = m_bb->get_graph()->ref2fg(var_idx);
+	if (ret == ims_max) {
+		return -1;
+	}
+	return static_cast<int32_t>(ret);
+}
+
+int32_t* ifslib_core::get_neighbor_graph()
+{
+	if (!block_valid()) {
+		return nullptr;
+	}
+
+	if (m_nb.m_data.empty()) {
+		return nullptr;
+	};
+
+	let& dig = m_bi.get_fg();
+	let dnv = dig.num_ver();
+	let num_ver =
+		m_nb.get_neighbor_graph(m_neighbour_graph, m_neighbour_maps, dig);
+
+	let esz = m_neighbour_graph.m_edges.size();
+
+	m_ret_int_array.resize(2 + esz * 4);
+	auto* d = m_ret_int_array.data();
+	let nv_neigh = num_ver - dnv;
+	d[0] = static_cast<int32_t>(esz);
+	d[1] = static_cast<int32_t>(nv_neigh);
+	d += 2;
+	for (let& e : m_neighbour_graph.m_edges) {
+		*d++ = e.first < nv_neigh ?
+			static_cast<int32_t>(e.first):
+			-1-static_cast<int32_t>(e.first - nv_neigh);
+
+		*d++ = e.second < nv_neigh ?
+			static_cast<int32_t>(e.second):
+			-1-static_cast<int32_t>(e.second - nv_neigh);
+
+		let& m = m_neighbour_maps[e.m];
+
+		*d++ = m.r == ims_max ? -1 : static_cast<int32_t>(m.r);
+		*d++ = m.f == ims_max ? -1 : static_cast<int32_t>(m.f);
+	}
+	return m_ret_int_array.data();
+}
+
+int32_t ifslib_core::set_palette(const double* colors, int32_t num_colors)
+{
+	if (num_colors < 0 || num_colors>65535) {
+		std::cerr << "Number of colors " << num_colors << " is out of range. Valid range is 0 to 65535." << std::endl;
+		return 0;
+	}
+	if (colors == nullptr || num_colors == 0) {
+		reset_palette();
+		return 1;
+	}
+	auto& d = m_rp.m_palette.data;
+	d.resize(num_colors);
+	for(int32_t i = 0; i < num_colors; ++i) {
+		d[i].c[0] = (float)colors[0];
+		d[i].c[1] = (float)colors[1];
+		d[i].c[2] = (float)colors[2];
+		d[i].c[3] = (float)colors[3];
+		colors+=4;
+	}
+
+	return	1;
+}
+
+int32_t ifslib_core::set_parameter(Param param, double value)
+{
+	switch (param)
+	{
+	case Param::Mode:
+		if (size_t szval = static_cast<size_t>(value);
+			szval < colorize_params::EPAR::e_numpar)
+		{
+			m_mode = static_cast<colorize_params::EPAR>(szval);
+			return 1;
+		}
+		break;
+	case Param::Depth:
+		if (value >= 0 && value < 1000) {
+			m_depth = value;
+			return 1;
+		}
+		break;
+	case Param::Quality:
+		if (value >= 1 && value <= 16) {
+			m_rp.m_quality = static_cast<float>(value);
+			return 1;
+		}
+		break;
+	case Param::Thickness:
+		if (value >= 1 && value < 1024) {
+			m_rp.m_thickness = static_cast<float>(value);
+			return 1;
+		}
+		break;
+	default:
+		break;
+	}
+
+	std::cerr << "Invalid render parameter or value: " <<
+		static_cast<int>(param) << " = " << value << "." << std::endl;
+	return 0;
 }
 
 double ifslib_core::boundary_dim()
 {
+	if (!block_valid()) {
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+
 	if (m_nb.m_data.empty()) {
 		return -1;
 	};
@@ -663,121 +804,108 @@ double ifslib_core::boundary_dim()
 	return md;
 }
 
-bool ifslib_core::render(ims_bitmap& dst, float quality, float thickness)
+int32_t ifslib_core::set_section(const double* params,
+	int32_t space_dim, int32_t section_dim)
 {
-	if (!m_bb) {
-		std::cerr << "No block selected for rendering." << std::endl;
-		return false;
+	let root = graph_root();
+	if (root == -1) {
+		return 0;
 	}
 
-	clear_color(dst);
+	let sp = static_cast<size_t>(space_dim);
+	let sc = static_cast<size_t>(section_dim);
 
-	let root2 = m_bb->get_froot();
+	if (sp != m_bi.m_ver_dim[root]) {
+		std::cerr << "Space dimension " << space_dim <<
+			" does not match attractor ambient dimension "
+			<< m_bi.m_ver_dim[root] << "." << std::endl;
+		return 0;
+	};
+
+	if (sc >= sp || sc < 2 || sc>3) {
+		std::cerr << "Section dimension " << sc <<
+			" is invalid. Valid values are 2 or 3, and must be less than the space dimension." << std::endl;
+		return 0;
+	}
+
+	auto& si = m_sv.m_si2;
+	si.resize2(sp, sc);
+
+	for (size_t i = 0; i < sp; ++i) {
+		si.origin(i) = params[i];
+	}
+	for (size_t j = 0; j < sc; ++j) {
+		let idx = sp + j * sp;
+		for (size_t i = 0; i < sp; ++i) {
+			si.basis_user(i, j) = params[idx + i];
+		}
+	}
+
+	m_sv.m_si_empty = false;
+
+	return 1;
+}
+
+
+int32_t ifslib_core::render(ims_bitmap& dst)
+{
+	let root2 = graph_root();
+	if (root2 == -1) {
+		return 0;
+	}
 
 	let dim_set = m_bi.m_ver_dim[root2];
 	if (dim_set == ims_max || dim_set == 0) {
 		return false;
 	};
 
+	let tx = dst.w();
+	let ty = dst.h();
+	///////////////////////////////////////////////
 	//initialize the subspace
 	auto& sv = m_sv;
 	auto& si = sv.m_si2;
 
-	let tx = dst.w();
-	let ty = dst.h();
-
-	bool has2dstd = false;
-	bool has2dext = false;
-	bool has3d = false;
-	size_t max_dim_set_ext = 0;
-
-
-	///////////////////////////////////////////////
-	if (sv.m_si_empty) {
+	if (!sv.m_si_empty && dim_set != si.get_dim_space()) {
+		sv.m_si_empty = true;
+	};
+	if (sv.m_si_empty) {//default section
 		sv.m_si_empty = false;
 		si.resize2(dim_set, dim_set);
 		si.reset();
+
+		if (dim_set > si.get_section_dim()) {
+			builder::set_section(si, m_bi.m_im.me[root2]);
+		}
 	};
-	
-
-	if (dim_set > si.get_section_dim()) {
-		//we select the most elongated directions, example:
-		//k1 <= k2 <= k3 are singular values, so if k1 != k2, we take (k2, k3)
-		//otherwise, we take (k1, k2)
-		let& me = m_bi.m_im.me[root2];
-		si.origin = me.C;
-
-		auto& b = si.basis_user;
-
-		size_t start_idx = me.Q.cols() - b.cols();
-
-		while (start_idx > 0 &&
-			std::abs(me.I(start_idx) - me.I(start_idx - 1)) <
-			ims_num_traits<double>::almost_zero())
-		{
-			--start_idx;
-		}
-
-		for (int c = 0; c < b.cols(); ++c) {
-			b.col(b.cols() - 1 - c) = me.Q.col(start_idx + c);
-		}
-	}
-
 	si.init_si();
 
 	let sds = si.get_section_dim();
-
-	if (sds < 1 || sds > 3) {
-		return false;
-	}
-
-	if (m_bi.get_fg().is_ver_empty(root2)) {
-		return false;
-	}
-
-	m_rp.reset_render_params();
-	m_rp.m_palette.reset();
-
-	let& rend = m_rp;
-
-
-	//builder type
-	let& crz = sv.chas_builtin(builtin_ids::colorize) ?
-		sv.m_colorize : m_rp.m_colorize;
+	///////////////////////////////////////////////
 
 	// automatic position detection
 	auto& cc = m_sv.m_xcam2;
 	if (sds == 2 || sds == 1) {
 
-		if (m_fit) {
-			ifslib_core::fit1d2d(
-				m_sv,
-				m_bi,
+		if (cc.empty(2) || m_fit) {
+			builder::adjust2d(
 				cc,
+				m_sv.m_si2,
+				m_bi.m_em,
+				m_bi.m_vb,
+				m_bi.get_fg(),
 				root2,
 				tx,
 				ty,
-				thickness,
+				m_rp.m_thickness,
 				sds == 2);
 		}
 
-		if (cc.empty(2)) {
-			return false;
-		}
-		////////////////////////////////////////////////////////////////
-
-
-		if (crz.is_field()) {
-			has2dext = true;
-			max_dim_set_ext = std::max(max_dim_set_ext, dim_set);
-		} else {
-			has2dstd = true;
-		}
 	} else {//3D
 
-		if (cc.empty(3)) {
+		if (cc.empty(3)) {//default camera
 			//use the projection of the center of mass
-			ball3d<real_number> bound;
+			ball3d<double> bound;
 
 			projector proj;
 			proj.R = si.basis;
@@ -790,41 +918,58 @@ bool ifslib_core::render(ims_bitmap& dst, float quality, float thickness)
 			cc.m_3d_empty = false;
 		}
 
-		builder::adjust3d(
-			cc.m_camera,
-			tx,
-			ty,
-			thickness,
-			si,
-			m_bi.m_em,
-			m_bi.m_vb,
-			m_bi.get_fg(),
-			root2);
+		if (m_fit) {
+			builder::adjust3d(
+				cc.m_camera,
+				tx,
+				ty,
+				m_rp.m_thickness,
+				si,
+				m_bi.m_em,
+				m_bi.m_vb,
+				m_bi.get_fg(),
+				root2);
+		}
+	}
+	///////////////////////////////////////////////
+
+	bool has2dstd = false;
+	bool has2dext = false;
+	bool has3d = false;
 
 
+	let& rend = m_rp;
+
+	//builder type
+	let& crz = sv.chas_builtin(builtin_ids::colorize) ?
+		sv.m_colorize : m_rp.m_colorize;
+
+	if (sds == 3) {
 		if (cc.empty(3)) {
 			return false;
 		}
-
 		has3d = true;
+	} else {
+		if (cc.empty(2)) {
+			return false;
+		}
+		if (crz.is_field()) {
+			has2dext = true;
+		} else {
+			has2dstd = true;
+		}
 	}
 
-	double cdp = 0;//coloring depth for the edge method
-
-	if (crz.is_tiling()) {
-		cdp = std::pow(2.0, -crz.get_depth());
-		cdp += ims_num_traits<real_number>::almost_zero();
-	}
-
+	//coloring depth (for tiling modes)
+	let cdp = std::pow(2.0, -m_depth) +
+		ims_num_traits<double>::almost_zero();
 
 	//maximum number of pixels on the last iteration
-	let max_pix = (tx) * (ty);
-
+	let max_pix = tx * ty;
 
 	if (has2dstd)m_buf2d_di.m_img.reserve(max_pix);
 	if (has3d)m_buf3d_di.m_img.reserve(max_pix);
 	if (has2dext)m_buf_ext_di.m_img.reserve(max_pix);
-
 
 	if (has2dstd) {
 		m_builder2d.reserve_memory(max_pix);
@@ -833,75 +978,52 @@ bool ifslib_core::render(ims_bitmap& dst, float quality, float thickness)
 		m_builder3d.reserve_memory(max_pix);
 	}
 	if (has2dext) {
-		m_builder_ext.reserve_memory(max_pix, max_dim_set_ext);
+		m_builder_ext.reserve_memory(max_pix, dim_set);
 	}
-
 
 	////////////////////////////////////////////////////////////////
 
-	//size of one thumbnail
-	let wc = tx;
-	let hc = ty;
+	clear_color(dst);
 
-	//size of the entire image
-	auto& rgba = dst;
-
-	clear_color(rgba);
-
-
-	const size_t oc = 1;
-	const float  qa = quality;
-
-	//resolution of the enlarged thumbnail taking into account oversampling
-	let sx = wc * oc;
-	let sy = hc * oc;
-
-	let root = root2;
-	let& pal = sv.chas_builtin(builtin_ids::palette) ?
-		sv.m_pal : rend.m_palette;
+	let& pal = rend.m_palette;
 
 	let& fog = sv.chas_builtin(builtin_ids::background) ?
 		sv.m_bac.get_fog() : rend.m_background.get_fog();
 
 	////////////////////////////////////////////////////////////////
-
-
-	//resulting thumbnail position
-	let hx = 0;
-	let hy = 0;
-
-	////////////////////////////////////////////////////////////////
 	//building
 
-	if (has2dstd) {
-
-		screen_params<real_number> sp;
-		cc.m_sd.to_params(sp, sx, sy);
-
-		m_builder2d.m_img2.recreate(sx, sy);
-		m_builder2d.m_img2.for_each([](auto& q) {q.clear_color(); });
-
+	if (has2dstd || has3d) {
 		m_cm.init_cmaps(
 			m_bi.m_style,
 			m_bi.get_fg(),
 			pal,
 			crz.shift,
-			crz.type
+			m_mode
 		);
+	}
 
-		m_ss.gm = &m_bi.get_fg();
-		m_ss.m_psi = &si;
-		m_ss.ri = m_bi.m_em;
-		m_ss.vb = m_bi.m_vb;
-		m_ss.mes_mul = m_bi.m_im.mes_mul;
-		m_ss.icm = &m_cm;
-		m_ss.cdpx = cdp;
+	m_ss.gm = &m_bi.get_fg();
+	m_ss.m_psi = &si;
+	m_ss.ri = m_bi.m_em;
+	m_ss.vb = m_bi.m_vb;
+	m_ss.mes_mul = m_bi.m_im.mes_mul;
+	m_ss.icm = &m_cm;
+	m_ss.cdpx = cdp;
+
+	if (has2dstd) {
+
+		screen_params<double> sp;
+		cc.m_sd.to_params(sp, tx, ty);
+
+		m_builder2d.m_img2.recreate(tx, ty);
+		m_builder2d.m_img2.for_each([](auto& q) {q.clear_color(); });
 
 		m_builder2d.calc_buffer(
 			m_ss,
-			qa,
-			thickness,
-			root,
+			m_rp.m_quality,
+			m_rp.m_thickness,
+			root2,
 			sp);
 
 		m_builder2d.init_draw(m_buf2d_di);
@@ -912,33 +1034,24 @@ bool ifslib_core::render(ims_bitmap& dst, float quality, float thickness)
 			rend.m_border_pow,
 			rend.m_inv_mode);
 
-		to_bitmap(rgba, m_buf2d_di, hx, hy, wc, hc, 1);
+		to_bitmap(dst, m_buf2d_di, 0, 0, tx, ty, 1);
 
 	} else if (has2dext) {
 
-		screen_params<real_number> sp;
-		cc.m_sd.to_params(sp, sx, sy);
+		screen_params<double> sp;
+		cc.m_sd.to_params(sp, tx, ty);
 
-		m_builder_ext.prepare(sx, sy, si, sp);
+		m_builder_ext.prepare(tx, ty, si, sp);
 
 		let power = crz.params.front();
 
-		m_ss.gm = &m_bi.get_fg();
-		m_ss.m_psi = &si;
-		m_ss.ri = m_bi.m_em;
-		m_ss.vb = m_bi.m_vb;
-		m_ss.mes_mul = m_bi.m_im.mes_mul;
-		m_ss.icm = nullptr;
-		m_ss.cdpx = cdp;//not used
-
 		m_builder_ext.calc_buffer(
-			m_bi.m_ver_dim[root],
+			m_bi.m_ver_dim[root2],
 			m_ss,
-			root,
+			root2,
 			sp.ps / 2,
-			quality * 4,
+			m_rp.m_quality * 4,
 			power);
-
 
 		projector proj;
 		proj.R = si.basis;
@@ -948,35 +1061,18 @@ bool ifslib_core::render(ims_bitmap& dst, float quality, float thickness)
 
 		m_buf_ext_di.init(pal, crz);
 
-		to_bitmap(rgba, m_buf_ext_di, hx, hy, wc, hc, 1);
+		to_bitmap(dst, m_buf_ext_di, 0, 0, tx, ty, 1);
 
 	} else if (has3d) {//3D
 
-		m_cm.init_cmaps(
-			m_bi.m_style,
-			m_bi.get_fg(),
-			pal,
-			crz.shift,
-			crz.type
-		);
-
-		m_ss.gm = &m_bi.get_fg();
-		m_ss.m_psi = &si;
-		m_ss.ri = m_bi.m_em;
-		m_ss.vb = m_bi.m_vb;
-		m_ss.mes_mul = m_bi.m_im.mes_mul;
-		m_ss.icm = &m_cm;
-		m_ss.cdpx = cdp;
-
-
 		m_builder3d.calc_buffer(
 			m_ss,
-			sx,
-			sy,
+			tx,
+			ty,
 			cc.m_camera,
-			qa,
-			thickness,
-			root,
+			m_rp.m_quality,
+			m_rp.m_thickness,
+			root2,
 			sv.m_light
 		);
 
@@ -998,10 +1094,10 @@ bool ifslib_core::render(ims_bitmap& dst, float quality, float thickness)
 			rend.m_ssao_density,
 			fog);
 
-		to_bitmap(rgba, m_buf3d_di, hx, hy, wc, hc, 1);
+		to_bitmap(dst, m_buf3d_di, 0, 0, tx, ty, 1);
 
 	}//3D
 
-	return true;
+	return 1;
 }
 

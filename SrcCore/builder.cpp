@@ -317,7 +317,6 @@ void builder::adjust3d(
 	cfv = sqrt(1 + tfv * tfv);
 	cfh = sqrt(1 + tfh * tfh);
 
-
 	graph_divider gd;
 	gd.init_gd(ri, vb, ig, vroot);
 
@@ -351,6 +350,28 @@ void builder::adjust3d(
 
 
 
+void builder::set_section(subspace_info<Real>& si, 
+	const ifs_metrics<Real>::metrics& me)
+{
+	si.origin = me.C;
+
+	auto& b = si.basis_user;
+
+	size_t start_idx = me.Q.cols() - b.cols();
+
+	let eps = ims_num_traits<Real>::almost_zero();
+
+	while (start_idx > 0 &&
+		std::abs(me.I(start_idx) - me.I(start_idx - 1)) < eps)
+	{
+		--start_idx;
+	}
+
+	for (int c = 0; c < b.cols(); ++c) {
+		b.col(b.cols() - 1 - c) = me.Q.col(start_idx + c);
+	}
+}
+
 void builder::adjust_box(
 	box<Real>& dst, 
 	double prec,
@@ -383,3 +404,79 @@ void builder::adjust_box(
 			return true;
 		});
 }
+
+
+
+void builder::adjust2d(
+	camera_ex& cc,
+	const subspace_info<Real>& si,
+	std::span<const edge_map> ri,
+	std::span<const edge_ball> vb,
+	const ims_graph_base& ig,
+	size_t root,
+	size_t tw,
+	size_t th,
+	float thickness,
+	bool is2d)
+{
+	box<Real> dst;
+	auto& sd = cc.m_sd;
+
+	if (cc.empty(2)) {
+		sd.a = 0;
+	}
+
+	Eigen::Matrix2<Real> rot;
+
+	auto si_a = si;//copy
+	if (is2d) {
+		let a = sd.a * boost::math::constants::pi<Real>() / 180;
+		let c = cos(a);
+		let s = sin(a);
+		rot << c, s, -s, c;
+		si_a.basis = si_a.basis * rot;
+	}
+
+	builder::adjust_box(
+		dst,
+		0.01,
+		si_a,
+		ri,
+		vb,
+		ig,
+		root);
+
+	if (ims_need_stop()) {
+		return;
+	}
+
+	assert(!dst.empty());
+
+	dst.adjust();
+
+	auto vc = dst.get_center();
+
+	if (is2d) {
+		vc = rot * vc;
+	}
+
+	sd.c[0] = vc(0);
+	Real bw = dst.size(0);
+	Real bh;
+	if (vc.size() > 1) {
+		sd.c[1] = vc(1);
+		bh = dst.size(1);
+	} else {
+		sd.c[1] = 0;
+		bh = 0;
+	}
+
+	let twh = std::min(tw, th);
+	let ps = std::max(bw / tw, bh / th);
+	sd.r = ps * twh / 2;
+	//expand by about 3 pixels
+	sd.r *= 1 + (1 + 2 * thickness) / twh;
+
+	cc.m_2d_empty = false;
+}
+

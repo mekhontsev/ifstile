@@ -69,13 +69,13 @@ extern "C" {
 // no block is currently selected. Call get_last_output() to retrieve
 // the results or error message.
 EMSCRIPTEN_KEEPALIVE
-int information(const char* what)
+int32_t information(const char* what)
 {
     ext_console_clear();
     return g_state.m_core.information(what) ? 1 : 0;
 }
 
-// Generates custom AIFS using calc_inter results for the currently selected block
+// Generates custom AIFS using calc_neighbor_graph() results for the currently selected block.
 // Results are output to the console as text.
 //
 // bitmask — controls which analysis components to generate:
@@ -93,12 +93,12 @@ int information(const char* what)
 //           Computation time is exponential. Use 2 unless triple
 //           (or higher) meeting points are explicitly needed.
 //
-// Must be called after calc_inter() have succeeded.
+// Must be called after calc_neighbor_graph() has succeeded.
 // Returns 1 on success, 0 on failure. Call get_last_output() to retrieve
 // the analysis results or error message.
 
 // Prefixes used to generate unique variable names for each category of
-// the custom ifs in the output. The actual names are formed
+// the custom AIFS in the output. The actual names are formed
 // as  <prefix><1-based index>  (e.g. "k1", "k2", ...).
 //
 //   eva_prefix  ("q")   – extra pre-evaluated references copied from
@@ -124,7 +124,7 @@ int information(const char* what)
 //   fu_prefix   ("w")   – higher-order connection unions (order 3, 4 …,
 //                         report_params::connections).
 EMSCRIPTEN_KEEPALIVE
-int custom_ifs(int bitmask, int lim)
+int32_t custom_ifs(int32_t bitmask, int32_t lim)
 {
     ext_console_clear();
 
@@ -195,7 +195,7 @@ int custom_ifs(int bitmask, int lim)
 // Returns 1 on success, 0 on failure. Call get_last_output() to retrieve
 // the error message on failure.
 EMSCRIPTEN_KEEPALIVE
-int calc_neighbor_graph(
+int32_t calc_neighbor_graph(
     inter_result* ires,
     const integer_ims::settings* settings)
 {
@@ -207,7 +207,7 @@ int calc_neighbor_graph(
 // Computes Hausdorff dimension of the boundary of the currently selected block.
 // The boundary dimension is calculated based on the neighbor intersection graph
 // previously computed by calc_neighbor_graph().
-// Return -1 if the boundary is empty
+// Returns -1 if the boundary is empty.
 // Must be called after calc_neighbor_graph() has succeeded.
 // Returns the computed boundary dimension as a floating-point value.
 // Returns NaN on failure. Call get_last_output() to retrieve the error message.
@@ -216,6 +216,27 @@ double calc_boundary_dim()
 {
 	ext_console_clear();
 	return g_state.m_core.boundary_dim();
+}
+
+// Set the rendering section for the current block.
+// The call only affects subsequent render() invocations.
+// It replaces the automatic section derived from the attractor or $section within the block.
+//
+// params       — pointer to an array of doubles describing the section.
+//                Layout: [origin, e1, e2, ...]
+//                origin is a point on the section subspace, and e1/e2/... are
+//                the basis vectors of the section subspace.
+//                The array must contain (1 + section_dim) * space_dim values.
+// space_dim    — dimension of the ambient attractor space.
+// section_dim  — dimension of the rendering section; must be 2 or 3 and not greater than space_dim.
+//
+// Returns 1 on success, 0 if no block is selected or the parameters are invalid.
+// Call get_last_output() to retrieve the error message on failure.
+EMSCRIPTEN_KEEPALIVE
+int32_t set_section(const double* params, int32_t space_dim, int32_t section_dim)
+{
+    ext_console_clear();
+    return g_state.m_core.set_section(params, space_dim, section_dim) ? 1 : 0;
 }
 
 // Returns console output accumulated since the last ifslib call.
@@ -249,15 +270,87 @@ const char* get_last_output()
 //                   [9]     fov  — vertical field of view (degrees)
 //
 // num_params    — number of elements in camera_params; must be 0, 4, or 10.
-//                 0 = reset to automatic camera (fit to attractor on next render() call).
+//                 0 = reset to automatic camera (fit to attractor on every render() call).
 //
 // Returns 1 on success, 0 if no block is selected or num_params is not 0, 4, or 10.
 // Call get_last_output() to retrieve the error message on failure.
 EMSCRIPTEN_KEEPALIVE
-int set_camera(const double* camera_params, size_t num_params)
+int32_t set_camera(const double* camera_params, int32_t num_params)
 {
     ext_console_clear();
     return g_state.m_core.set_camera(camera_params, num_params) ? 1 : 0;
+}
+
+
+// Updates the renderer state kept inside the wasm instance.
+//
+// param — integer selector identifying which render setting to update.
+//         Use the numeric value of ifslib_core::Param:
+//           0 = Mode      — selects the colorization/rendering mode used by render().
+//                         The provided value is interpreted as a colorize_params::EPAR value:
+//                           0 = e_edge          — each graph edge gets its own palette color
+//                           1 = e_vertex        — each graph vertex gets its own palette color;
+//                                                 for ordinary GIFS with a single vertex this produces
+//                                                 a monochrome coloring, but boundaries and density are
+//                                                 still visible; for GIFS with more than one vertex it
+//                                                 visualizes the substitution structure (which parts come
+//                                                 from which vertices)
+//                           2 = e_graph         — palette color is assigned by global position in the graph
+//                           3 = e_field_lines   — field-line coloring with power control
+//                           4 = e_equipotential — equipotential coloring with power and magnitude control
+//           1 = Depth     — sets the logarithmic tiling depth threshold used by tiling-like coloring.
+//                         Starting from this depth, tiles are colored as separate portions and their
+//                         boundaries are emphasized. If the palette contains semi-transparent colors,
+//                         deeper levels are then colored fractally inside those portions. If all palette
+//                         colors are opaque, the portions remain flat-colored. Independent of depth,
+//                         low-density parts of the set are darkened.
+//                         The value must be a non-negative number smaller than 1000.
+//           2 = Quality   — sets the render quality / sampling level.
+//                         The value must be in the inclusive range [1, 16].
+//           3 = Thickness — sets the edge thickness in pixels.
+//                         The value must be in the range [1, 1024).
+//
+// value — new numeric value for the selected parameter.
+//         Its meaning depends on param:
+//           - for Mode: the number is converted to the corresponding colorize_params::EPAR value;
+//           - for Depth: the number is stored as the logarithmic tiling depth;
+//           - for Quality: the number is converted to a floating-point render quality;
+//           - for Thickness: the number is converted to a floating-point edge thickness.
+//
+// Returns 1 on success, 0 if no block is selected, param is invalid, or value
+// is outside the accepted range. Call get_last_output() to retrieve the error
+// message on failure.
+EMSCRIPTEN_KEEPALIVE
+int32_t set_parameter(int32_t param, double value)
+{
+    ext_console_clear();
+    return g_state.m_core.set_parameter(static_cast<ifslib_core::Param>(param), value) ? 1 : 0;
+}
+
+// Updates the internal palette used by renderer color maps.
+//
+// colors     — pointer to a flat RGBA array in WASM memory.
+//              Layout: [r0,g0,b0,a0, r1,g1,b1,a1, ...].
+//              Values are expected in [0,1] range.
+//              If alpha is used (a < 1), deeper levels mix colors fractally inside the portions
+//              selected by the current Depth threshold. With fully opaque colors, those portions
+//              stay flat-colored. Density-based darkening is applied independently of alpha and depth.
+// num_colors — number of palette entries (not the number of doubles).
+//              If there are fewer palette entries than assigned graph colors,
+//              the color index is taken modulo num_colors.
+//              A palette can also be provided directly in AIFS via
+//              $palette=[[r,g,b,a], ...]. That built-in palette is loaded by
+//              set_block(); calling set_palette() overrides it until the next
+//              set_block() call. Calling set_palette(nullptr, 0) resets to the
+//              renderer default palette, not to the built-in AIFS $palette.
+//
+// Pass colors=nullptr or num_colors=0 to reset the palette to defaults.
+// Returns 1 on success, 0 on failure.
+EMSCRIPTEN_KEEPALIVE
+int32_t set_palette(const double* colors, int32_t num_colors)
+{
+    ext_console_clear();
+    return g_state.m_core.set_palette(colors, static_cast<size_t>(num_colors)) ? 1 : 0;
 }
 
 // Parses an AIFS fractal definition and initializes the library state.
@@ -274,10 +367,10 @@ int set_camera(const double* camera_params, size_t num_params)
 // Call get_last_output() to retrieve the error message on failure.
 // On success, call set_block() to select a block before rendering.
 EMSCRIPTEN_KEEPALIVE
-int init(const char* aifs_text)
+int32_t init(const char* aifs_text)
 {
     ext_console_clear();
-    return static_cast<int>(g_state.m_core.init(aifs_text));
+    return static_cast<int32_t>(g_state.m_core.init(aifs_text));
 }
 
 // Resolves a block identifier to its internal 0-based index without selecting it.
@@ -321,22 +414,39 @@ int32_t set_block(int32_t block_idx)
     return static_cast<int32_t>(g_state.m_core.set_block(static_cast<block_id_t>(block_idx)));
 }
 
-// Overrides the default root variable selection for the currently selected block.
+// Overrides the active root attractor set within the currently selected block.
 //
-// root_id — null-terminated UTF-8 string identifying the root variable within
-//            the selected block.
+// root_idx — 0-based index of the variable to set as root (as returned by get_var_idx()).
+//            Valid range is 0 to set_block() return value minus 1.
 //
 // Must be called after set_block() has succeeded.
 // Returns the Euclidean dimension of the projected attractor (DIM >= 0) on success,
-// or -1 on failure (variable not found or no block selected).
+// or -1 if the index is out of range or no block is selected.
 // Call get_last_output() to retrieve the error message on failure.
 // May be called multiple times to switch between root variables without
 // reinitializing the library or reselecting the block.
 EMSCRIPTEN_KEEPALIVE
-int set_root(const char* root_id)
+int32_t set_root(int32_t root_idx)
 {
 	ext_console_clear();
-	return g_state.m_core.set_root(root_id);
+	return g_state.m_core.set_root(root_idx);
+}
+
+// Resolves a variable name to its 0-based index within the currently selected block.
+// Returns ALL variables (map definitions and attractor sets alike),
+// not just attractor variables.
+//
+// var_name — null-terminated UTF-8 string with the variable name to look up.
+//
+// Must be called after set_block() has succeeded.
+// Returns the 0-based variable index on success, or -1 if the variable is not found
+// or no block is currently selected.
+// Call get_last_output() to retrieve the error message on failure.
+EMSCRIPTEN_KEEPALIVE
+int32_t get_var_idx(const char* var_name)
+{
+	ext_console_clear();
+	return g_state.m_core.get_var_idx(var_name ? var_name : std::string_view{});
 }
 
 // Returns the name of the variable at the given 0-based index within the currently
@@ -352,10 +462,69 @@ int set_root(const char* root_id)
 EMSCRIPTEN_KEEPALIVE
 const char* get_var_name(int32_t var_idx)
 {
-	auto sv = g_state.m_core.get_root_name(static_cast<size_t>(var_idx));
-    static thread_local std::string root_name_buffer;
-    root_name_buffer = std::string{sv};
-	return sv.empty() ? nullptr : root_name_buffer.data();
+	auto sv = g_state.m_core.get_root_name(var_idx);
+    g_state.m_core.m_ret_string = std::string{sv};
+	return sv.empty() ? nullptr : g_state.m_core.m_ret_string.c_str();
+}
+
+// Returns the substitution graph of the currently selected block as a flat int32 array.
+// Must be called after set_block() has succeeded.
+//
+// Array layout: [NE, NV, NM, e0.src, e0.dst, e0.map, e1.src, e1.dst, e1.map, ...]
+//   NE  = number of edges (result[0])
+//   NV  = number of vertices (result[1])
+//   NM  = number of maps / contraction maps (result[2])
+//   Each subsequent triple: src vertex index, dst vertex index, map index (all 0-based).
+// Total array length: 3 + NE * 3 elements.
+//
+// Returns nullptr if no block is selected or the substitution graph is unavailable.
+// The returned pointer is valid until the next ifslib call and must not be freed by the caller.
+EMSCRIPTEN_KEEPALIVE
+int32_t* get_graph()
+{
+	ext_console_clear();
+	return g_state.m_core.get_graph();
+}
+
+// Resolves a variable index to its corresponding vertex index in the substitution graph.
+// var_idx — 0-based variable index within the currently selected block,
+//            as returned by get_var_idx().
+// Must be called after set_block() has succeeded.
+//
+// Use this together with get_graph() to map attractor variables to graph vertices:
+//   const varIdx = wasm.get_var_idx(namePtr);  // e.g. 'S'
+//   const vertIdx = wasm.get_vertex(varIdx);    // vertex in the substitution graph
+//
+// Returns the 0-based graph vertex index on success.
+// Returns -1 if no block is selected, the substitution graph is unavailable,
+// or the variable at var_idx has no corresponding graph vertex.
+EMSCRIPTEN_KEEPALIVE
+int32_t get_vertex(int32_t var_idx)
+{
+	ext_console_clear();
+	return g_state.m_core.get_vertex(var_idx);
+}
+
+// Returns the neighbor graph of the currently selected block as a flat int32 array.
+// Must be called after calc_neighbor_graph() has succeeded.
+// Returns nullptr if no block is selected or the neighbor graph is empty.
+//
+// Array layout: [NE, NV, e0.ver_from, e0.ver_to, e0.e_revers, e0.e_forward, ...]
+//   NE = number of edges (result[0])
+//   NV = number of neighbor-graph vertices (result[1]; excludes original substitution vertices)
+//   Each subsequent quadruple: ver_from, ver_to, e_revers, e_forward
+//   Total array length: 2 + NE * 4 elements.
+//
+// Vertex encoding: ver >= 0 — neighbor-graph vertex; ver < 0 — original substitution vertex (−ver − 1).
+// Neighbor relation: tile(ver_to) = e_revers^-1 · tile(ver_from) · e_forward
+// e_revers, e_forward — edge indices in the substitution graph (−1 = identity map).
+//
+// The returned pointer is valid until the next ifslib call and must not be freed by the caller.
+EMSCRIPTEN_KEEPALIVE
+int32_t* get_neighbor_graph()
+{
+	ext_console_clear();
+	return g_state.m_core.get_neighbor_graph();
 }
 
 // Returns the approximate enclosing ball of the currently selected root attractor.
@@ -450,13 +619,13 @@ const double* root_mass_matrix()
 // max_queue_size  — search budget (larger = slower but more complete).
 // max_result_size — maximum number of diameter pairs to return.
 EMSCRIPTEN_KEEPALIVE
-const double* calc_diams(size_t max_queue_size, size_t max_result_size)
+const double* calc_diams(int32_t max_queue_size, int32_t max_result_size)
 {
-	static thread_local std::vector<double> diams;
 	ext_console_clear();
-	if (!g_state.m_core.calc_diams(diams, max_queue_size, max_result_size))
+    auto& arr = g_state.m_core.m_ret_real_array;
+	if (!g_state.m_core.calc_diams(arr, max_queue_size, max_result_size))
 		return nullptr;
-	return diams.data();
+	return arr.data();
 }
 
 // Computes all points on the current root attractor most distant from the given point.
@@ -470,22 +639,20 @@ const double* calc_diams(size_t max_queue_size, size_t max_result_size)
 // max_queue_size  — search budget (larger = slower but more complete).
 // max_result_size — maximum number of farthest points to return.
 EMSCRIPTEN_KEEPALIVE
-const double* calc_dists(const double* pt, int32_t dim, size_t max_queue_size, size_t max_result_size)
+const double* calc_dists(const double* pt, int32_t dim, int32_t max_queue_size, int32_t max_result_size)
 {
-	static thread_local std::vector<double> dists;
+	auto& arr = g_state.m_core.m_ret_real_array;
 	ext_console_clear();
-	if (!g_state.m_core.calc_dists(pt, static_cast<size_t>(dim), dists, max_queue_size, max_result_size))
+	if (!g_state.m_core.calc_dists(pt, dim, arr, max_queue_size, max_result_size))
 		return nullptr;
-	return dists.data();
+	return arr.data();
 }
 
 // Renders into an internal RGBA bitmap of size width x height.
 // Returns pointer to raw RGBA pixel data (width * height * 4 bytes),
 // or NULL on failure. Valid until the next render call, and should not be freed by the caller.
-// quality>=1, 2 is usually sufficient for good results, computation time grows exponentially.
-// thickness>=1 in pixels, use 1 as default.
 EMSCRIPTEN_KEEPALIVE
-const uint8_t* render(int width, int height, float quality, float thickness)
+const uint8_t* render(int32_t width, int32_t height)
 {
     ext_console_clear();
     g_state.m_bitmap.recreate(static_cast<size_t>(width), static_cast<size_t>(height));
@@ -494,7 +661,7 @@ const uint8_t* render(int width, int height, float quality, float thickness)
         return nullptr;
     }
 
-    if (!g_state.m_core.render(g_state.m_bitmap, quality, thickness)) {
+    if (!g_state.m_core.render(g_state.m_bitmap)) {
         std::cerr << "Rendering failed" << std::endl;
         return nullptr;
     }
