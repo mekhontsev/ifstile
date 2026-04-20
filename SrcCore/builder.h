@@ -23,6 +23,7 @@
 #include "edge_ball.h"
 #include "big_array.h"
 #include "geometry.h"
+#include "ifs_metrics.h"
 #include "box.h"
 
 struct ims_graph;
@@ -117,6 +118,14 @@ struct  builder
 		const size_t vroot);
 
 
+	//select the most elongated directions, example:
+	//k1 <= k2 <= k3 are singular values, so if k1 != k2, we take (k2, k3)
+	//otherwise, we take (k1, k2)
+	static void set_section(
+		subspace_info<Real>& si,
+		const ifs_metrics<Real>::metrics& me);
+
+
 	//find the circumscribing parallelepiped with a given relative error
 	static void adjust_box(
 		box<Real>& dst,
@@ -126,6 +135,20 @@ struct  builder
 		std::span<const edge_ball> vb,
 		const ims_graph_base& ig,
 		const size_t root);
+
+
+	static void adjust2d(
+		camera_ex& cc,
+		const subspace_info<double>& si,
+		std::span<const edge_map> ri,
+		std::span<const edge_ball> vb,
+		const ims_graph_base& ig,
+		size_t root,
+		size_t tw,
+		size_t th,
+		float thickness,
+		bool is2d);
+
 
 };
 

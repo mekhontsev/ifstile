@@ -115,8 +115,8 @@ struct neighbors_data
 	std::vector<size_t> m_childs;
 
 	//for temporary needs
-	std::vector<size_t> m_idxs;
-
+	mutable std::vector<size_t> m_idxs;
+	mutable std::vector<bool> m_visited;
 
 	//precision
 	double m_prec = 1;
@@ -176,6 +176,38 @@ struct neighbors_data
 	void get_neighbor_maps(
 		std::vector<neghbour_map>& nbm, 
 		relators* rel,//may be nullptr
+		const ims_graph_base& dig) const;
+
+	struct neighbor_edge_label 
+	{
+		//indexes of edges in the original substitution graph
+		//ims_max - if none (identity)
+		//edge[er].map^-1, edge[ef].map
+		size_t er, ef;
+
+		bool join(const neighbor_edge_label& lab)
+		{
+			if (lab.ef != ims_max) {
+				if (ef != ims_max) {
+					return false;
+				}
+				ef = lab.ef;
+			}
+			if (lab.er != ims_max) {
+				if (er != ims_max) {
+					return false;
+				}
+				er = lab.er;
+			}
+			return	true;
+		}
+	};
+
+	//last dig.num_ver() are overalppped dig vertices
+	//returns the number of vertices in the graph
+	size_t get_neighbor_graph(
+		ims_graph_base& dst,
+		std::vector<neighbor_edge_label>& labels,
 		const ims_graph_base& dig) const;
 
 private: 

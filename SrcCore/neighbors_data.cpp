@@ -473,6 +473,192 @@ void neighbors_data::get_neighbor_maps(
 }
 
 
+size_t neighbors_data::get_neighbor_graph(
+	ims_graph_base& dst,
+	std::vector<neighbor_edge_label>& labels,
+	const ims_graph_base& dig) const
+{
+	labels.clear();
+	dst.clear_base();
+
+	//initial intersection set
+	for (size_t s = 0; s < dig.num_ver(); ++s) {
+
+		if (ver_invalid(s)) {
+			continue;
+		}
+
+		let sne = dig.num_edges(s);
+
+		for (size_t i = 0; i < sne; ++i) {
+			let qi = dig.get_edge_idx(s, i);//left: fi^-1
+
+			for (size_t j = 0; j < sne; ++j) {
+				
+				if (j == i) {//do not intersect the element with itself
+					continue;
+				}
+
+				let sij = m_childs[get_root_inter(s, i, j)];
+				if (sij == ims_max)continue;//empty
+
+				let qj = dig.get_edge_idx(s, j);//right: fj
+
+				let map_idx = labels.size();
+				auto& m = labels.emplace_back();
+				m.ef = qj;
+				m.er = qi;
+
+				dst.create_edge(m_data.size() + s, sij, map_idx);
+			}
+		}
+	}
+
+	for (size_t i = 0; i < m_data.size(); ++i) {
+		//we must go through all of them because we need to visit all child elements
+		let& ev = m_data[i];
+
+		if (ev.res == inter_type::overlapped) {
+			continue;//ignore
+		}
+
+		let left = ev.inter_type_left();
+
+
+		let vdiv = left ? ev.s0 : ev.s1;
+		let	ne = dig.num_edges(vdiv);
+
+		for (size_t ediv = 0; ediv < ne; ++ediv) {
+
+			let idx = m_childs[ev.idx + ediv];
+			if (idx == ims_max)continue;//empty edge
+
+			let qd = dig.get_edge_idx(vdiv, ediv);
+
+			let map_idx = labels.size();
+			auto& m = labels.emplace_back();
+	
+			if (left) {//qd.m -> reverse
+				m.er = qd;
+				m.ef = ims_max;
+			} else {//qd.m -> forward
+				m.er = ims_max;
+				m.ef = qd;
+			}
+
+			dst.create_edge(i, idx, map_idx);
+		}
+	}
+
+	dst.set_vertex_index(m_data.size() + dig.num_ver());
+
+	//remove unused disbalanced neighbors
+	let nv = dst.num_ver();
+	for (size_t v = 0; v < nv; ++v) {
+		let ne = dst.num_edges(v);
+		for (size_t i = 0; i < ne; ++i) {
+			auto& e = dst.get_edge(v, i);
+
+			let v2 = e.second;
+			
+			let& ev = m_data[v2];
+			if (ev.inter_type_left()) {
+				continue;//overlapped and left neighbors are always balanced
+			}
+
+			let em = labels[e.m];//copy
+
+			let ne2 = dst.num_edges(v2);
+
+			bool can_be_replaced = true;
+			for (size_t j = 0; j < ne2; ++j) {
+				let& e2 = dst.get_edge(v2, j);
+				assert(e2.first == v2);
+		
+				neighbor_edge_label jm = em;
+				if (!jm.join(labels[e2.m])) {
+					can_be_replaced = false;
+					break;
+				}
+			}
+
+			if (!can_be_replaced) {
+				continue;
+			}
+			e.m = ims_max;//mark as removed
+
+			for (size_t j = 0; j < ne2; ++j) {
+				let& e2 = dst.get_edge(v2, j);
+				assert(e2.first == v2);
+
+				neighbor_edge_label jm = em;
+				ASSUME(jm.join(labels[e2.m]));
+
+				let map_idx = labels.size();
+				labels.emplace_back() = jm;
+
+				dst.create_edge(e.first, e2.second, map_idx);
+			}
+		}
+	}
+	std::erase_if(dst.m_edges, [](let& e) {
+		return e.m == ims_max;
+	});
+
+	//adjust overlaps
+	for (auto& q : dst.m_edges) {
+		let& ev = m_data[q.second];
+		if (ev.res == inter_type::overlapped) {
+			assert(ev.s0 == ev.s1);
+			q.second = m_data.size() + ev.s0;
+		}
+	}
+
+	dst.set_vertex_index(dst.num_ver());
+	m_idxs.clear();
+	ims_resize(m_visited, dst.num_ver());
+	//start from the dig graph vertices
+	for (size_t v = 0; v < dig.num_ver(); ++v) {
+		m_idxs.emplace_back(v + m_data.size());
+		while (!m_idxs.empty()) {
+			let cv = m_idxs.back();
+			m_idxs.pop_back();
+			if (m_visited[cv])continue;
+			m_visited[cv] = true;
+			let ne = dst.num_edges(cv);
+			for (size_t i = 0; i < ne; ++i) {
+				let& e = dst.get_edge(cv, i);
+				m_idxs.emplace_back(e.second);
+			}
+		}
+	}
+	std::erase_if(dst.m_edges, [&](let& e) {
+		return !m_visited[e.first];
+	});
+
+	//remap proper vertices
+	m_idxs.resize(dst.num_ver());
+	size_t idx = 0;
+	for(size_t v = 0; v < m_data.size(); ++v) {//do not touch dig vertices
+		if (!m_visited[v]) {
+			continue;
+		}
+		m_idxs[v] = idx++;		
+	}
+	for (size_t v = 0; v < dig.num_ver(); ++v) {
+		m_idxs[v + m_data.size()] = idx + v;
+	}
+
+	for (auto& e : dst.m_edges) {
+		assert(m_visited[e.first]);
+		assert(m_visited[e.second]);
+		e.first = m_idxs[e.first];
+		e.second = m_idxs[e.second];
+	}
+
+	return idx;
+}
+
 bool neighbors_data::ver_invalid(size_t v) const
 {
 	return m_root_inters[v].invalid();

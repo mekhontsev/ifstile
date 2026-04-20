@@ -28,7 +28,6 @@
 #include "edge_map.h"
 #include "variable.h"
 #include "ims_worker.h"
-#include "ifslib_core.h"
 
 thumb_elem* program_state::get_first_thumb_elem()
 {
@@ -391,31 +390,9 @@ void program_state::build_image(
 			si.reset();
 
 			if (dim_set > si.get_section_dim()) {
-				//select the most elongated directions, example:
-				//k1 <= k2 <= k3 are singular values, so if k1 != k2, we take (k2, k3)
-				//otherwise, we take (k1, k2)
-				let& me = bd.m_bi.m_im.me[cur.m_root2];
-				si.origin = me.C;
-
-				auto& b = si.basis_user;
-
-				size_t start_idx = me.Q.cols() - b.cols();
-
-				let eps = ims_num_traits<real_number>::almost_zero();
-
-				while (start_idx > 0 && 
-					std::abs(me.I(start_idx) - me.I(start_idx - 1)) < eps)
-				{
-					--start_idx;
-				}
-				
-
-				for (int c = 0; c < b.cols(); ++c) {
-					b.col(b.cols()-1-c) = me.Q.col(start_idx+c);
-				}
+				builder::set_section(si, bd.m_bi.m_im.me[cur.m_root2]);
 			}
 
-			
 			si.init_si();
 		}
 
@@ -445,10 +422,12 @@ void program_state::build_image(
 		if (sds == 2 || sds == 1) {
 			if (task.fit || cc.empty(2)) {
 
-				ifslib_core::fit1d2d(
-					cur.m_data3->m_special,
-					cur.m_data3->m_bi,
+				builder::adjust2d(
 					*cur.m_pcam,
+					cdt.m_special.m_si2,
+					bd.m_bi.m_em,
+					bd.m_bi.m_vb,
+					bd.m_bi.get_fg(),
 					cur.m_root2,
 					tx* iter_ovs,
 					ty* iter_ovs,
