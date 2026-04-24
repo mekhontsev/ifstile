@@ -67,7 +67,7 @@ bool neighbors_data::append_childs(std::vector<size_t>& dst, size_t child_idx) c
 
 		assert(e.res != inter_type::empty);
 
-		//divide s1	
+		//divide s1
 		assert(e.div_ver() == e.s1);
 		let ne = num_edges(e.s1);
 
@@ -158,7 +158,7 @@ bool neighbors_data::create_boundary(
 				if (!append_childs(m_idxs, qe)) {
 					return false;
 				}
-				
+
 			}else{
 				let nid = m_childs[qe];
 				if (nid != ims_max) {
@@ -191,7 +191,7 @@ void neighbors_data::set_relator(
 	//TODO: optimize, remove memory allocation
 	std::vector<size_t> mapf;
 	std::vector<size_t> mapr;
-	
+
 	////////////////////////////////////////////////////////////////////////////
 	if (ims_max != hf)mapf.emplace_back(hf);
 	if (ims_max != hr)mapr.emplace_back(hr);
@@ -230,9 +230,9 @@ void neighbors_data::set_relator(
 	////////////////////////////////////////////////////////////////////////////
 	if (ims_max != hr)mapr.emplace_back(hr);
 	if (ims_max != hf)mapf.emplace_back(hf);
-	
 
-	
+
+
 	while (ims_max != pidx) {
 		let& ph = nbm[pidx];
 		if (ims_max != ph.f)mapf.emplace_back(ph.f);
@@ -246,7 +246,7 @@ void neighbors_data::set_relator(
 	std::reverse(mapr.begin(), mapr.end());
 
 	dst.resize(di + mapr.size() + mapf.size());
-	
+
 	for (size_t i = 0; i < mapf.size(); ++i) {
 		dst[di++] = -intptr_t(mapf[i] + 1);
 	}
@@ -255,7 +255,7 @@ void neighbors_data::set_relator(
 	}
 
 
-	
+
 	//remove fragments of the form f^k*f^-k
 	bool cont = true;
 	while (cont) {
@@ -271,7 +271,7 @@ void neighbors_data::set_relator(
 			}
 		}
 	}
-	
+
 }
 
 
@@ -286,7 +286,7 @@ struct relator_hasher
 	{
 		size_t res = 0;
 		let sz = r.prod.size();
-	
+
 		//for all shifts
 		for (size_t shift = 0; shift < sz; ++shift) {
 			//in direct order
@@ -349,7 +349,7 @@ struct relator_hasher
 };
 
 void neighbors_data::get_neighbor_maps(
-	std::vector<neghbour_map>& nbm, 
+	std::vector<neghbour_map>& nbm,
 	relators* rel,
 	const ims_graph_base& dig) const
 {
@@ -366,7 +366,7 @@ void neighbors_data::get_neighbor_maps(
 		if (ver_invalid(s)) {
 			continue;
 		}
-		
+
 		let sne = dig.num_edges(s);
 
 		for (size_t i = 0; i < sne; ++i) {
@@ -379,19 +379,19 @@ void neighbors_data::get_neighbor_maps(
 					continue;
 				}
 
-		
+
 				let sij = m_childs[get_root_inter(s, i, j)];
 				if (sij == ims_max)continue;//empty
 
 				size_t hr = qi.m;
 				size_t hf = qj.m;
-				
+
 
 				auto& h = nbm[sij];
 
 				if (h.ready()) {//visited
 					if (rel) {
-						set_relator(rel->m_data.emplace_back().prod, 
+						set_relator(rel->m_data.emplace_back().prod,
 							nbm, sij, hr, hf, ims_max);
 					}
 					continue;
@@ -436,7 +436,7 @@ void neighbors_data::get_neighbor_maps(
 
 			if (h.ready()) {//visited
 				if (rel) {
-					set_relator(rel->m_data.emplace_back().prod, 
+					set_relator(rel->m_data.emplace_back().prod,
 						nbm, idx, hr, hf, i);
 				}
 				continue;
@@ -494,7 +494,7 @@ size_t neighbors_data::get_neighbor_graph(
 			let qi = dig.get_edge_idx(s, i);//left: fi^-1
 
 			for (size_t j = 0; j < sne; ++j) {
-				
+
 				if (j == i) {//do not intersect the element with itself
 					continue;
 				}
@@ -537,7 +537,7 @@ size_t neighbors_data::get_neighbor_graph(
 
 			let map_idx = labels.size();
 			auto& m = labels.emplace_back();
-	
+
 			if (left) {//qd.m -> reverse
 				m.er = qd;
 				m.ef = ims_max;
@@ -560,7 +560,7 @@ size_t neighbors_data::get_neighbor_graph(
 			auto& e = dst.get_edge(v, i);
 
 			let v2 = e.second;
-			
+
 			let& ev = m_data[v2];
 			if (ev.inter_type_left()) {
 				continue;//overlapped and left neighbors are always balanced
@@ -574,7 +574,7 @@ size_t neighbors_data::get_neighbor_graph(
 			for (size_t j = 0; j < ne2; ++j) {
 				let& e2 = dst.get_edge(v2, j);
 				assert(e2.first == v2);
-		
+
 				neighbor_edge_label jm = em;
 				if (!jm.join(labels[e2.m])) {
 					can_be_replaced = false;
@@ -585,6 +585,7 @@ size_t neighbors_data::get_neighbor_graph(
 			if (!can_be_replaced) {
 				continue;
 			}
+			let e_first = e.first;//save before create_edge may reallocate m_edges
 			e.m = ims_max;//mark as removed
 
 			for (size_t j = 0; j < ne2; ++j) {
@@ -592,12 +593,13 @@ size_t neighbors_data::get_neighbor_graph(
 				assert(e2.first == v2);
 
 				neighbor_edge_label jm = em;
-				ASSUME(jm.join(labels[e2.m]));
+				[[maybe_unused]] const bool join_ok = jm.join(labels[e2.m]);
+				ASSUME(join_ok);
 
 				let map_idx = labels.size();
 				labels.emplace_back() = jm;
 
-				dst.create_edge(e.first, e2.second, map_idx);
+				dst.create_edge(e_first, e2.second, map_idx);
 			}
 		}
 	}
@@ -643,7 +645,7 @@ size_t neighbors_data::get_neighbor_graph(
 		if (!m_visited[v]) {
 			continue;
 		}
-		m_idxs[v] = idx++;		
+		m_idxs[v] = idx++;
 	}
 	for (size_t v = 0; v < dig.num_ver(); ++v) {
 		m_idxs[v + m_data.size()] = idx + v;
@@ -678,14 +680,14 @@ void neighbors_data::collapse_empty()
 	m_idxs.resize(m_data.size());
 	for (size_t i = 0; i < m_data.size(); ++i) {
 		auto& ev = m_data[i];
-		
+
 		if (ev.res == inter_type::empty) {
 			m_idxs[i] = ims_max;
 		} else {
 			m_idxs[i] = dst_idx;
 			m_data[dst_idx++] = ev;
 		}
-	
+
 	}
 	m_data.resize(dst_idx);
 
